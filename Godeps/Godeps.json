@@ -1,0 +1,22 @@
+{
+	"ImportPath": "linksmart.eu/localconnect/core",
+	"GoVersion": "go1.3",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "code.google.com/p/go.net/websocket",
+			"Comment": "null-144",
+			"Rev": "ad01a6fcc8a19d3a4478c836895ffe883bd2ceab"
+		},
+		{
+			"ImportPath": "git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git",
+			"Rev": "4572889cc6f741a610af3bb5447c90c03bfb763f"
+		},
+		{
+			"ImportPath": "github.com/bmizerany/pat",
+			"Rev": "b8a35001b773c267eb260a691f4e5499a3531600"
+		}
+	]
+}
