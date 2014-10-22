@@ -96,14 +96,14 @@ func loadConfig(confPath string) (*Config, error) {
 // Main configuration container
 //
 type Config struct {
-	Id         string                       `json:"id"`
-	Name       string                       `json:"name"`
-	PublicAddr string                       `json:"publicAddr"`
-	StaticDir  string                       `json:"staticDir`
-	Catalog    []Catalog                    `json:"catalog"`
-	Http       HttpConfig                   `json:"http"`
-	Protocols  map[ProtocolType]interface{} `json:"protocols"`
-	Devices    []Device                     `json:"devices"`
+	Id          string                       `json:"id"`
+	Description string                       `json:"description"`
+	PublicAddr  string                       `json:"publicAddr"`
+	StaticDir   string                       `json:"staticDir`
+	Catalog     []Catalog                    `json:"catalog"`
+	Http        HttpConfig                   `json:"http"`
+	Protocols   map[ProtocolType]interface{} `json:"protocols"`
+	Devices     []Device                     `json:"devices"`
 }
 
 // Validates the loaded configuration
