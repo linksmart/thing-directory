@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"linksmart.eu/localconnect/core/catalog"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"linksmart.eu/localconnect/core/catalog"
 )
 
 const (

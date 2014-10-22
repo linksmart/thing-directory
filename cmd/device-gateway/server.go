@@ -3,15 +3,16 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/bmizerany/pat"
 	"io/ioutil"
-	catalog "linksmart.eu/localconnect/core/catalog/resource"
 	"log"
 	"mime"
 	"net"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/bmizerany/pat"
+	catalog "linksmart.eu/localconnect/core/catalog/resource"
 )
 
 const (

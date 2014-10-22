@@ -2,12 +2,13 @@ package service
 
 import (
 	"errors"
-	"linksmart.eu/localconnect/core/catalog"
 	"log"
 	"sort"
 	"strings"
 	"sync"
 	"time"
+
+	"linksmart.eu/localconnect/core/catalog"
 )
 
 // In-memory storage

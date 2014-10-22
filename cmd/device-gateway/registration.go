@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	catalog "linksmart.eu/localconnect/core/catalog/resource"
 	"log"
 	"time"
+
+	catalog "linksmart.eu/localconnect/core/catalog/resource"
 )
 
 const (

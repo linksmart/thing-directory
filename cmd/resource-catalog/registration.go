@@ -3,9 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+
 	dc "linksmart.eu/localconnect/core/catalog/resource"
 	sc "linksmart.eu/localconnect/core/catalog/service"
-	"log"
 )
 
 const (

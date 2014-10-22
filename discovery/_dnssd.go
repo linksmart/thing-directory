@@ -1,8 +1,9 @@
 package discovery
 
 import (
-	"github.com/andrewtj/dnssd"
 	"log"
+
+	"github.com/andrewtj/dnssd"
 )
 
 func DnsRegisterService(name, serviceType string, port int) (*dnssd.RegisterOp, error) {

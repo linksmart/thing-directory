@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+
 	"github.com/bmizerany/pat"
 	catalog "linksmart.eu/localconnect/core/catalog/service"
 	//"linksmart.eu/localconnect/core/discovery"

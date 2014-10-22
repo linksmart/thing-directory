@@ -2,10 +2,11 @@ package main
 
 import (
 	"flag"
-	catalog "linksmart.eu/localconnect/core/catalog/service"
 	"log"
 	"os"
 	"os/signal"
+
+	catalog "linksmart.eu/localconnect/core/catalog/service"
 )
 
 var (
