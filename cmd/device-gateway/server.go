@@ -17,7 +17,7 @@ import (
 
 const (
 	StaticLocation  = "/static"
-	CatalogLocation = "/dc"
+	CatalogLocation = "/rc"
 )
 
 type errorResponse struct {
