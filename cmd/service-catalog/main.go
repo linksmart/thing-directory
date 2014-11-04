@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/bmizerany/pat"
+	"linksmart.eu/localconnect/core/Godeps/_workspace/src/github.com/bmizerany/pat"
 	catalog "linksmart.eu/localconnect/core/catalog/service"
 	//"linksmart.eu/localconnect/core/discovery"
 	"log"

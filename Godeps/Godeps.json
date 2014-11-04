@@ -1,8 +1,8 @@
 {
 	"ImportPath": "linksmart.eu/localconnect/core",
-	"GoVersion": "go1.3",
+	"GoVersion": "go1.3.2",
 	"Packages": [
-		"./..."
+		"linksmart.eu/localconnect/core/..."
 	],
 	"Deps": [
 		{

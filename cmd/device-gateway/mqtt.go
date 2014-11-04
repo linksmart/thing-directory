@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	MQTT "git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git"
+	MQTT "linksmart.eu/localconnect/core/Godeps/_workspace/src/git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git"
 )
 
 type MQTTPublisher struct {
