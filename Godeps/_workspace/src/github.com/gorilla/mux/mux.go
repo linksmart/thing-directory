@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"path"
 
-	"linksmart.eu/localconnect/core/Godeps/_workspace/src/github.com/gorilla/context"
+	"github.com/patchwork-toolkit/patchwork/Godeps/_workspace/src/github.com/gorilla/context"
 )
 
 // NewRouter returns a new router instance.

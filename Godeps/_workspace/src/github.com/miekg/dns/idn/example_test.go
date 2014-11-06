@@ -2,7 +2,7 @@ package idn_test
 
 import (
 	"fmt"
-	"linksmart.eu/localconnect/core/Godeps/_workspace/src/github.com/miekg/dns/idn"
+	"github.com/patchwork-toolkit/patchwork/Godeps/_workspace/src/github.com/miekg/dns/idn"
 )
 
 func ExampleToPunycode() {
