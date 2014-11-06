@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/patchwork-toolkit/patchwork/Godeps/_workspace/src/github.com/gorilla/context"
+	"linksmart.eu/localconnect/core/Godeps/_workspace/src/github.com/gorilla/context"
 )
 
 type routeTest struct {

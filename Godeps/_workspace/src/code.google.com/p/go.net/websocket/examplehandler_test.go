@@ -8,7 +8,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/patchwork-toolkit/patchwork/Godeps/_workspace/src/code.google.com/p/go.net/websocket"
+	"linksmart.eu/localconnect/core/Godeps/_workspace/src/code.google.com/p/go.net/websocket"
 )
 
 // Echo the data received on the WebSocket.

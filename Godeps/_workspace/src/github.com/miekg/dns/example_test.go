@@ -3,7 +3,7 @@ package dns_test
 import (
 	"errors"
 	"fmt"
-	"github.com/patchwork-toolkit/patchwork/Godeps/_workspace/src/github.com/miekg/dns"
+	"linksmart.eu/localconnect/core/Godeps/_workspace/src/github.com/miekg/dns"
 	"log"
 	"net"
 )

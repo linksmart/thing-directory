@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"code.google.com/p/go.net/internal/nettest"
-	"github.com/patchwork-toolkit/patchwork/Godeps/_workspace/src/code.google.com/p/go.net/ipv4"
+	"linksmart.eu/localconnect/core/Godeps/_workspace/src/code.google.com/p/go.net/ipv4"
 )
 
 var packetConnMulticastSocketOptionTests = []struct {

@@ -7,9 +7,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/patchwork-toolkit/patchwork/Godeps/_workspace/src/golang.org/x/net/ipv4"
-	"github.com/patchwork-toolkit/patchwork/Godeps/_workspace/src/golang.org/x/net/ipv6"
-	"github.com/patchwork-toolkit/patchwork/Godeps/_workspace/src/github.com/miekg/dns"
+	"linksmart.eu/localconnect/core/Godeps/_workspace/src/golang.org/x/net/ipv4"
+	"linksmart.eu/localconnect/core/Godeps/_workspace/src/golang.org/x/net/ipv6"
+	"linksmart.eu/localconnect/core/Godeps/_workspace/src/github.com/miekg/dns"
 )
 
 // Main client data structure to run browse/lookup queries

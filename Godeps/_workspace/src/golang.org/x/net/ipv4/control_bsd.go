@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/patchwork-toolkit/patchwork/Godeps/_workspace/src/code.google.com/p/go.net/internal/iana"
+	"linksmart.eu/localconnect/core/Godeps/_workspace/src/code.google.com/p/go.net/internal/iana"
 )
 
 func marshalDst(b []byte, cm *ControlMessage) []byte {

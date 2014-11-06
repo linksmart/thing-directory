@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/patchwork-toolkit/patchwork/Godeps/_workspace/src/code.google.com/p/go.net/websocket"
+	"linksmart.eu/localconnect/core/Godeps/_workspace/src/code.google.com/p/go.net/websocket"
 )
 
 // This example demonstrates a trivial client.

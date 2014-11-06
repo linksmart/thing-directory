@@ -3,7 +3,7 @@ package idn
 
 import (
 	"bytes"
-	"github.com/patchwork-toolkit/patchwork/Godeps/_workspace/src/github.com/miekg/dns"
+	"linksmart.eu/localconnect/core/Godeps/_workspace/src/github.com/miekg/dns"
 	"strings"
 	"unicode"
 )

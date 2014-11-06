@@ -5,7 +5,7 @@
 package ipv6_test
 
 import (
-	"github.com/patchwork-toolkit/patchwork/Godeps/_workspace/src/code.google.com/p/go.net/ipv6"
+	"linksmart.eu/localconnect/core/Godeps/_workspace/src/code.google.com/p/go.net/ipv6"
 	"fmt"
 	"net"
 	"os"
