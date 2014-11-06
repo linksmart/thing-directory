@@ -2,7 +2,9 @@
 	"ImportPath": "linksmart.eu/localconnect/core",
 	"GoVersion": "go1.3.3",
 	"Packages": [
-		"linksmart.eu/localconnect/core/..."
+		"linksmart.eu/localconnect/core/cmd/...",
+		"linksmart.eu/localconnect/core/catalog/...",
+		"linksmart.eu/localconnect/core/discovery/..."
 	],
 	"Deps": [
 		{
