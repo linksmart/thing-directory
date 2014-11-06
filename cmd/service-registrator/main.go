@@ -1,17 +1,22 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
-	"log"
+	"fmt"
+	"io/ioutil"
 	"os"
 	"os/signal"
+	"strings"
+	"sync"
 
 	catalog "linksmart.eu/localconnect/core/catalog/service"
 )
 
 var (
 	confPath = flag.String("conf", "", "Path to the service configuration file")
-	endpoint = flag.String("endpoint", "http://localhost:8081/sc", "Service Catalog endpoint")
+	endpoint = flag.String("endpoint", "", "Service Catalog endpoint")
+	discover = flag.Bool("discover", false, "Use DNS-SD service discovery to find Service Catalog endpoint")
 )
 
 func main() {
@@ -22,34 +27,60 @@ func main() {
 		os.Exit(1)
 	}
 
-	registrator := catalog.NewRegistrator(*endpoint)
-	config, err := registrator.LoadConfigFromFile(*confPath)
-
-	if err != nil {
-		log.Fatal("Unable to read service configuration from file: ", err)
+	if *endpoint == "" && !*discover {
+		logger.Println("ERROR: -endpoint was not provided and discover flag not set.")
+		flag.Usage()
+		os.Exit(1)
 	}
 
-	err = registrator.RegisterService(config, true)
+	service, err := LoadConfigFromFile(*confPath)
 	if err != nil {
-		log.Fatal("Unable to register service in the catalog: ", err)
+		logger.Fatal("Unable to read service configuration from file: ", err)
 	}
+
+	// Launch the registration routine
+	var wg sync.WaitGroup
+	regCh := make(chan bool)
+	go catalog.RegisterServiceWithKeepalive(*endpoint, *discover, *service, regCh, &wg)
+	wg.Add(1)
 
 	// Ctrl+C handling
 	handler := make(chan os.Signal, 1)
 	signal.Notify(handler, os.Interrupt)
 	for sig := range handler {
 		if sig == os.Interrupt {
-			log.Println("Caught interrupt signal...")
+			logger.Println("Caught interrupt signal...")
 			break
 		}
 	}
+	// Signal shutdown to the registration routine
+	select {
+	// Notify if the routine hasn't returned already
+	case regCh <- true:
+	default:
+	}
+	wg.Wait()
 
-	log.Println("Deregistering service before exiting...")
-	err = registrator.DeregisterService(config)
+	logger.Println("Stopped")
+	os.Exit(0)
+}
+
+// Loads service registration from a config file
+func LoadConfigFromFile(confPath string) (*catalog.Service, error) {
+	if !strings.HasSuffix(confPath, ".json") {
+		return nil, fmt.Errorf("Config should be a .json file")
+	}
+	f, err := ioutil.ReadFile(confPath)
 	if err != nil {
-		log.Println("Unable to deregister service in the catalog (will be removed after TTL expire): ", err)
+		return nil, err
 	}
 
-	log.Println("Stopped")
-	os.Exit(0)
+	config := &catalog.ServiceConfig{}
+	err = json.Unmarshal(f, config)
+	if err != nil {
+		return nil, fmt.Errorf("Error parsing config")
+	}
+
+	service, err := config.GetService()
+	return service, err
 }

@@ -5,11 +5,12 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"strings"
 	"time"
 
 	MQTT "linksmart.eu/localconnect/core/Godeps/_workspace/src/git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git"
+	"linksmart.eu/localconnect/core/catalog"
+	"linksmart.eu/localconnect/core/catalog/service"
 )
 
 type MQTTPublisher struct {
@@ -54,116 +55,168 @@ func newMQTTPublisher(conf *Config) *MQTTPublisher {
 	// Create and return publisher
 	publisher := &MQTTPublisher{
 		config:   &config,
-		clientId: conf.Id,
+		clientId: fmt.Sprintf("%v-%v", conf.Id, time.Now().Unix()),
 		dataCh:   make(chan AgentResponse),
 	}
-
-	// Configure the MQTT connection
-	publisher.configureMqttConnection()
 
 	return publisher
 }
 
-func (self *MQTTPublisher) dataInbox() chan<- AgentResponse {
-	return self.dataCh
+func (p *MQTTPublisher) dataInbox() chan<- AgentResponse {
+	return p.dataCh
 }
 
-func (self *MQTTPublisher) start() {
-	log.Println("MQTTPublisher.start()")
+func (p *MQTTPublisher) start() {
+	logger.Println("MQTTPublisher.start()")
+
+	if p.config.Discover && p.config.ServerUri == "" {
+		err := p.discoverBrokerEndpoint()
+		if err != nil {
+			logger.Println("MQTTPublisher.start() failed to start publisher:", err.Error())
+			return
+		}
+	}
+
+	// configure the mqtt client
+	p.configureMqttConnection()
+
 	// start the connection routine
-	log.Printf("MQTTPublisher: Will connect to the broker %v\n", self.config.ServerUri)
-	go self.connect(0)
+	logger.Printf("MQTTPublisher.start() Will connect to the broker %v\n", p.config.ServerUri)
+	go p.connect(0)
 
 	qos := 1
-	prefix := self.config.Prefix
-	for resp := range self.dataCh {
-		if !self.client.IsConnected() {
-			log.Println("MQTTPublisher: got data while not connected to the broker. **discarded**")
+	prefix := p.config.Prefix
+	for resp := range p.dataCh {
+		if !p.client.IsConnected() {
+			logger.Println("MQTTPublisher.start() got data while not connected to the broker. **discarded**")
 			continue
 		}
 		if resp.IsError {
-			log.Println("MQTTPublisher: data ERROR from agent manager:", string(resp.Payload))
+			logger.Println("MQTTPublisher.start() data ERROR from agent manager:", string(resp.Payload))
 			continue
 		}
 		topic := fmt.Sprintf("%s/%s", prefix, resp.ResourceId)
-		self.client.Publish(MQTT.QoS(qos), topic, resp.Payload)
+		p.client.Publish(MQTT.QoS(qos), topic, resp.Payload)
 		// We dont' wait for confirmation from broker (avoid blocking here!)
 		//<-r
-		log.Println("MQTTPublisher: published to", topic)
+		logger.Println("MQTTPublisher.start() published to", topic)
 	}
 }
 
-func (self *MQTTPublisher) stop() {
-	log.Println("MQTTPublisher.stop()")
-	if self.client != nil && self.client.IsConnected() {
-		self.client.Disconnect(500)
-	}
-}
-
-func (self *MQTTPublisher) connect(backOff int) {
-	log.Printf("MQTTPublisher: connecting to the broker %v, backOff: %v sec\n", self.config.ServerUri, backOff)
-	// sleep for backOff seconds
-	time.Sleep(time.Duration(backOff) * time.Second)
-	_, err := self.client.Start()
-
+func (p *MQTTPublisher) discoverBrokerEndpoint() error {
+	endpoint, err := catalog.DiscoverCatalogEndpoint(service.DNSSDServiceType)
 	if err != nil {
-		log.Printf("MQTTPublisher: failed to connect: %v\n", err.Error())
-		// intial backOff 10 sec, every further retry backOff*2 unless <= 10 min
+		return err
+	}
+
+	rcc := service.NewRemoteCatalogClient(endpoint)
+	res, _, err := rcc.FindServices("meta.serviceType", "equals", DNSSDServiceTypeMQTT, 1, 50)
+	if err != nil {
+		return err
+	}
+	supportsPub := false
+	for _, s := range res {
+		for _, proto := range s.Protocols {
+			for _, m := range proto.Methods {
+				if m == "PUB" {
+					supportsPub = true
+					break
+				}
+			}
+			if !supportsPub {
+				continue
+			}
+			logger.Println(proto.Endpoint["url"])
+			if ProtocolType(proto.Type) == ProtocolTypeMQTT {
+				p.config.ServerUri = proto.Endpoint["url"].(string)
+				break
+			}
+		}
+	}
+
+	err = p.config.Validate()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *MQTTPublisher) stop() {
+	logger.Println("MQTTPublisher.stop()")
+	if p.client != nil && p.client.IsConnected() {
+		p.client.Disconnect(500)
+	}
+}
+
+func (p *MQTTPublisher) connect(backOff int) {
+	if p.client == nil {
+		logger.Printf("MQTTPublisher.connect() client is not configured")
+		return
+	}
+	for {
+		logger.Printf("MQTTPublisher.connect() connecting to the broker %v, backOff: %v sec\n", p.config.ServerUri, backOff)
+		time.Sleep(time.Duration(backOff) * time.Second)
+		if p.client.IsConnected() {
+			break
+		}
+		_, err := p.client.Start()
+		if err == nil {
+			break
+		}
+		logger.Printf("MQTTPublisher.connect() failed to connect: %v\n", err.Error())
 		if backOff == 0 {
 			backOff = 10
 		} else if backOff <= 600 {
 			backOff *= 2
 		}
-		go self.connect(backOff)
-		return
 	}
 
-	log.Printf("MQTTPublisher: connected to the broker %v", self.config.ServerUri)
+	logger.Printf("MQTTPublisher.connect() connected to the broker %v", p.config.ServerUri)
 	return
 }
 
-func (self *MQTTPublisher) onConnectionLost(client *MQTT.MqttClient, reason error) {
-	log.Println("MQTTPulbisher: lost connection to the broker: ", reason.Error())
+func (p *MQTTPublisher) onConnectionLost(client *MQTT.MqttClient, reason error) {
+	logger.Println("MQTTPulbisher.onConnectionLost() lost connection to the broker: ", reason.Error())
 
 	// Initialize a new client and reconnect
-	self.configureMqttConnection()
-	go self.connect(0)
+	p.configureMqttConnection()
+	go p.connect(0)
 }
 
-func (self *MQTTPublisher) configureMqttConnection() {
+func (p *MQTTPublisher) configureMqttConnection() {
 	connOpts := MQTT.NewClientOptions().
-		AddBroker(self.config.ServerUri).
-		SetClientId(self.clientId).
+		AddBroker(p.config.ServerUri).
+		SetClientId(p.clientId).
 		SetCleanSession(true).
-		SetOnConnectionLost(self.onConnectionLost)
+		SetOnConnectionLost(p.onConnectionLost)
 
 	// Username/password authentication
-	if self.config.Username != "" && self.config.Password != "" {
-		connOpts.SetUsername(self.config.Username)
-		connOpts.SetPassword(self.config.Password)
+	if p.config.Username != "" && p.config.Password != "" {
+		connOpts.SetUsername(p.config.Username)
+		connOpts.SetPassword(p.config.Password)
 	}
 
 	// SSL/TLS
-	if strings.HasPrefix(self.config.ServerUri, "ssl") {
+	if strings.HasPrefix(p.config.ServerUri, "ssl") {
 		tlsConfig := &tls.Config{}
 		// Custom CA to auth broker with a self-signed certificate
-		if self.config.CaFile != "" {
-			caFile, err := ioutil.ReadFile(self.config.CaFile)
+		if p.config.CaFile != "" {
+			caFile, err := ioutil.ReadFile(p.config.CaFile)
 			if err != nil {
-				log.Printf("MQTTPublisher: error reading CA file %s:%s\n", self.config.CaFile, err.Error())
+				logger.Printf("MQTTPublisher.configureMqttConnection() ERROR: failed to read CA file %s:%s\n", p.config.CaFile, err.Error())
 			} else {
 				tlsConfig.RootCAs = x509.NewCertPool()
 				ok := tlsConfig.RootCAs.AppendCertsFromPEM(caFile)
 				if !ok {
-					log.Printf("MQTTPublisher: error parsing the CA certificate %s\n", self.config.CaFile)
+					logger.Printf("MQTTPublisher.configureMqttConnection() ERROR: failed to parse CA certificate %s\n", p.config.CaFile)
 				}
 			}
 		}
 		// Certificate-based client authentication
-		if self.config.CertFile != "" && self.config.KeyFile != "" {
-			cert, err := tls.LoadX509KeyPair(self.config.CertFile, self.config.KeyFile)
+		if p.config.CertFile != "" && p.config.KeyFile != "" {
+			cert, err := tls.LoadX509KeyPair(p.config.CertFile, p.config.KeyFile)
 			if err != nil {
-				log.Printf("MQTTPublisher: error loading client TLS credentials: %s\n",
+				logger.Printf("MQTTPublisher.configureMqttConnection() ERROR: failed to load client TLS credentials: %s\n",
 					err.Error())
 			} else {
 				tlsConfig.Certificates = []tls.Certificate{cert}
@@ -173,5 +226,5 @@ func (self *MQTTPublisher) configureMqttConnection() {
 		connOpts.SetTlsConfig(tlsConfig)
 	}
 
-	self.client = MQTT.NewClient(connOpts)
+	p.client = MQTT.NewClient(connOpts)
 }

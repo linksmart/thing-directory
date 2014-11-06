@@ -1,7 +1,8 @@
-package device
+package resource
 
 import (
 	"errors"
+	"strings"
 	"time"
 )
 
@@ -52,6 +53,20 @@ func (self *Device) copy() Device {
 	return dc
 }
 
+// Validates the Device configuration
+func (d *Device) validate() bool {
+	if d.Id == "" || len(strings.Split(d.Id, "/")) != 2 || d.Name == "" || d.Ttl == 0 {
+		return false
+	}
+	// validate all resources
+	for _, r := range d.Resources {
+		if !r.validate() {
+			return false
+		}
+	}
+	return true
+}
+
 // Deep copy of the resource
 func (self *Resource) copy() Resource {
 	var rc Resource
@@ -62,36 +77,35 @@ func (self *Resource) copy() Resource {
 	return rc
 }
 
+// Validates the Resource configuration
+func (r *Resource) validate() bool {
+	if r.Id == "" || len(strings.Split(r.Id, "/")) != 3 || r.Name == "" {
+		return false
+	}
+	return true
+}
+
 // Interfaces
 
 // Storage interface
 type CatalogStorage interface {
 	// CRUD
-	add(Device) error
-	update(string, Device) error
-	delete(string) error
-	get(string) (Device, error)
+	add(d Device) error
+	update(id string, d Device) error
+	delete(id string) error
+	get(id string) (Device, error)
 
 	// Utility functions
-	getMany(int, int) ([]Device, int, error)
+	getMany(page, perPage int) ([]Device, int, error)
 	getDevicesCount() int
 	getResourcesCount() int
-	getResourceById(string) (Resource, error)
-	devicesFromResources([]Resource) []Device
-	cleanExpired(time.Time)
+	getResourceById(id string) (Resource, error)
+	devicesFromResources(resources []Resource) []Device
+	cleanExpired(ts time.Time)
 
 	// Path filtering
-	pathFilterDevice(string, string, string) (Device, error)
-	pathFilterDevices(string, string, string, int, int) ([]Device, int, error)
-	pathFilterResource(string, string, string) (Resource, error)
-	pathFilterResources(string, string, string, int, int) ([]Resource, int, error)
-}
-
-// Catalog client
-type CatalogClient interface {
-	Get(string) (Device, error)
-	Add(Device) error
-	Update(string, Device) error
-	Delete(string) error
-	GetMany(int, int) ([]Device, int, error)
+	pathFilterDevice(path, op, value string) (Device, error)
+	pathFilterDevices(path, op, value string, page, perPage int) ([]Device, int, error)
+	pathFilterResource(path, op, value string) (Resource, error)
+	pathFilterResources(path, op, value string, page, perPage int) ([]Resource, int, error)
 }

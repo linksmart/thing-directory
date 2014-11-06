@@ -2,10 +2,12 @@ package main
 
 import (
 	"flag"
-	"log"
+	"fmt"
 	"os"
 	"os/signal"
+	"syscall"
 
+	"linksmart.eu/localconnect/core/Godeps/_workspace/src/github.com/oleksandr/bonjour"
 	catalog "linksmart.eu/localconnect/core/catalog/resource"
 )
 
@@ -14,10 +16,8 @@ var (
 )
 
 func main() {
-	log.SetPrefix("[device-gateway] ")
-	log.SetFlags(log.Ltime)
-
 	flag.Parse()
+
 	if *confPath == "" {
 		flag.Usage()
 		os.Exit(1)
@@ -25,19 +25,21 @@ func main() {
 
 	config, err := loadConfig(*confPath)
 	if err != nil {
-		log.Printf("Failed to load configuration: %v\n", err)
+		logger.Printf("Failed to load configuration: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Publish device data to MQTT (if require)
-	mqttPublisher := newMQTTPublisher(config)
-
-	// Start the agent programs and establish internal communication
+	// Agents' process manager
 	agentManager := newAgentManager(config)
+
+	// Configure MQTT publishing if required
+	mqttPublisher := newMQTTPublisher(config)
 	if mqttPublisher != nil {
-		go mqttPublisher.start()
 		agentManager.setPublishingChannel(mqttPublisher.dataInbox())
+		go mqttPublisher.start()
 	}
+
+	// Start agents
 	go agentManager.start()
 
 	// Expose device's resources via REST (include statics and local catalog)
@@ -45,53 +47,65 @@ func main() {
 	catalogStorage := catalog.NewMemoryStorage()
 	go restServer.start(catalogStorage)
 
-	// Register devices in the local catalog and run periodic remote catalog updates (if required)
-	go registerDevices(config, catalogStorage)
+	// Parse device configurations
+	devices := configureDevices(config)
+	// register in local catalog
+	registerInLocalCatalog(devices, config, catalogStorage)
+	// register in remote catalogs
+	regChannels, wg := registerInRemoteCatalog(devices, config)
 
-	/*
-		// Announce serice using DNS-SD
-		dnsRegistration, err := dnsRegisterService(config)
+	// Register this gateway as a service via DNS-SD
+	var bonjourCh chan<- bool
+	if config.DnssdEnabled {
+		restConfig, _ := config.Protocols[ProtocolTypeREST].(RestProtocol)
+		bonjourCh, err = bonjour.Register(config.Description,
+			DNSSDServiceTypeDGW,
+			"",
+			config.Http.BindPort,
+			[]string{fmt.Sprintf("uri=%s", restConfig.Location)},
+			nil)
 		if err != nil {
-			log.Printf("Failed to perform DNS-SD registration: %v\n", err.Error())
+			logger.Printf("Failed to register DNS-SD service: %s", err.Error())
+		} else {
+			logger.Println("Registered service via DNS-SD using type", DNSSDServiceTypeDGW)
 		}
-
-		or
-
-		consider this:
-		if config.DnssdEnabled {
-			parts := strings.Split(config.Endpoint, ":")
-			port, _ := strconv.Atoi(parts[1])
-			_, err := discovery.DnsRegisterService(config.Name, catalog.DnssdServiceType, port)
-			if err != nil {
-				log.Printf("Failed to perform DNS-SD registration: %v\n", err.Error())
-			}
-		}
-	*/
+	}
 
 	// Ctrl+C handling
 	handler := make(chan os.Signal, 1)
-	signal.Notify(handler, os.Interrupt)
+	signal.Notify(handler,
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT)
 	for sig := range handler {
 		if sig == os.Interrupt {
-			log.Println("Caught interrupt signal...")
+			logger.Println("Caught interrupt signal...")
 			break
 		}
 	}
 
+	// Stop bonjour registration
+	if bonjourCh != nil {
+		bonjourCh <- true
+	}
+
+	// Shutdown all
 	agentManager.stop()
 	if mqttPublisher != nil {
 		mqttPublisher.stop()
 	}
-	/*
-		if dnsRegistration != nil {
-			dnsRegistration.Stop()
-		}
-	*/
-	// Remove registratoins from configured remote catalogs
-	if len(config.Catalog) > 0 {
-		unregisterDevices(config, catalogStorage)
-	}
 
-	log.Println("Stopped")
+	// Unregister in the remote catalog(s)
+	for _, sigCh := range regChannels {
+		// Notify if the routine hasn't returned already
+		select {
+		case sigCh <- true:
+		default:
+		}
+	}
+	wg.Wait()
+
+	logger.Println("Stopped")
 	os.Exit(0)
 }

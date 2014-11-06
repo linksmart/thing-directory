@@ -1,8 +1,7 @@
 package service
 
 import (
-	"errors"
-	"log"
+	"fmt"
 	"sort"
 	"strings"
 	"sync"
@@ -20,8 +19,8 @@ type MemoryStorage struct {
 
 // CRUD
 func (self *MemoryStorage) add(s Service) error {
-	if s.Id == "" || len(strings.Split(s.Id, "/")) != 2 {
-		return errors.New("Service ID has to be <uuid>/<name>")
+	if !s.validate() {
+		return fmt.Errorf("Invalid Service registration")
 	}
 
 	s.Created = time.Now()
@@ -119,7 +118,7 @@ func (self *MemoryStorage) cleanExpired(timestamp time.Time) {
 	self.mutex.Lock()
 	for id, svc := range self.data {
 		if svc.Ttl >= 0 && !svc.Expires.After(timestamp) {
-			log.Printf("In-memory storage cleaner: registration %v has expired\n", id)
+			logger.Printf("MemoryStorage.cleanExpired() Registration %v has expired\n", id)
 			delete(self.data, id)
 		}
 	}

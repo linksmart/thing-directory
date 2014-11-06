@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strings"
+
+	utils "linksmart.eu/localconnect/core/catalog"
 )
 
 type Config struct {
@@ -30,46 +32,54 @@ type StorageConfig struct {
 }
 
 var supportedBackends = map[string]bool{
-	"memory": true,
+	utils.CatalogBackendMemory: true,
 }
 
-func (self *Config) Validate() error {
+func (c *Config) Validate() error {
 	var err error
-	if self.BindAddr == "" && self.BindPort == 0 {
+	if c.BindAddr == "" && c.BindPort == 0 {
 		err = fmt.Errorf("Empty host or port")
 	}
-	if !supportedBackends[self.Storage.Type] {
+	if !supportedBackends[c.Storage.Type] {
 		err = fmt.Errorf("Unsupported storage backend")
 	}
-	if self.ApiLocation == "" {
+	if c.ApiLocation == "" {
 		err = fmt.Errorf("apiLocation must be defined")
 	}
-	if self.StaticDir == "" {
+	if c.StaticDir == "" {
 		err = fmt.Errorf("staticDir must be defined")
 	}
-	if strings.HasSuffix(self.ApiLocation, "/") {
+	if strings.HasSuffix(c.ApiLocation, "/") {
 		err = fmt.Errorf("apiLocation must not have a training slash")
 	}
-	if strings.HasSuffix(self.StaticDir, "/") {
+	if strings.HasSuffix(c.StaticDir, "/") {
 		err = fmt.Errorf("staticDir must not have a training slash")
+	}
+	for _, cat := range c.ServiceCatalog {
+		if cat.Endpoint == "" && cat.Discover == false {
+			err = fmt.Errorf("All ServiceCatalog entries must have either endpoint or a discovery flag defined")
+		}
+		if cat.Ttl <= 0 {
+			err = fmt.Errorf("All ServiceCatalog entries must have TTL >= 0")
+		}
 	}
 	return err
 }
 
-func loadConfig(confPath string) (*Config, error) {
-	file, err := ioutil.ReadFile(confPath)
+func loadConfig(path string) (*Config, error) {
+	file, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 
-	config := new(Config)
-	err = json.Unmarshal(file, config)
+	c := new(Config)
+	err = json.Unmarshal(file, c)
 	if err != nil {
 		return nil, err
 	}
 
-	if err = config.Validate(); err != nil {
+	if err = c.Validate(); err != nil {
 		return nil, err
 	}
-	return config, nil
+	return c, nil
 }

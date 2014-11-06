@@ -96,59 +96,50 @@ func loadConfig(confPath string) (*Config, error) {
 // Main configuration container
 //
 type Config struct {
-	Id          string                       `json:"id"`
-	Description string                       `json:"description"`
-	PublicAddr  string                       `json:"publicAddr"`
-	StaticDir   string                       `json:"staticDir`
-	Catalog     []Catalog                    `json:"catalog"`
-	Http        HttpConfig                   `json:"http"`
-	Protocols   map[ProtocolType]interface{} `json:"protocols"`
-	Devices     []Device                     `json:"devices"`
+	Id           string                       `json:"id"`
+	Description  string                       `json:"description"`
+	DnssdEnabled bool                         `json:"dnssdEnabled"`
+	PublicAddr   string                       `json:"publicAddr"`
+	StaticDir    string                       `json:"staticDir`
+	Catalog      []Catalog                    `json:"catalog"`
+	Http         HttpConfig                   `json:"http"`
+	Protocols    map[ProtocolType]interface{} `json:"protocols"`
+	Devices      []Device                     `json:"devices"`
 }
 
 // Validates the loaded configuration
-func (self *Config) Validate() error {
-	// Check if HTTP is configured
-	if self.Http.BindAddr == "" || self.Http.BindPort == 0 {
-		return fmt.Errorf("HTTP has to be properly configured")
+func (c *Config) Validate() error {
+	// Check if HTTP configuration is valid
+	err := c.Http.Validate()
+	if err != nil {
+		return err
 	}
 
-	// Check if REST protocol is configured
-	_, ok := self.Protocols[ProtocolTypeREST]
-	if !ok {
-		return fmt.Errorf("REST protocol has to be configured")
+	_, ok := c.Protocols[ProtocolTypeREST]
+	// Check if REST configuration is valid
+	if ok {
+		restConf := c.Protocols[ProtocolTypeREST].(RestProtocol)
+		err := restConf.Validate()
+		if err != nil {
+			return err
+		}
 	}
 
-	_, ok = self.Protocols[ProtocolTypeMQTT]
+	_, ok = c.Protocols[ProtocolTypeMQTT]
 	// Check if MQTT configuration is valid
 	if ok {
-		mqttConf := self.Protocols[ProtocolTypeMQTT].(MqttProtocol)
-
-		// Check that ServerUri is a valid URL
-		serverUri, err := url.Parse(mqttConf.ServerUri)
+		mqttConf := c.Protocols[ProtocolTypeMQTT].(MqttProtocol)
+		err := mqttConf.Validate()
 		if err != nil {
-			return fmt.Errorf("MQTT ServerUri must be a URI in the format scheme://host:port")
+			return err
 		}
-		if serverUri.Scheme != "tcp" && serverUri.Scheme != "ssl" {
-			return fmt.Errorf("MQTT ServerUri scheme must be either 'tcp' or 'ssl'")
-		}
+	}
 
-		// Check that the CA file exists
-		if mqttConf.CaFile != "" {
-			if _, err := os.Stat(mqttConf.CaFile); os.IsNotExist(err) {
-				return fmt.Errorf("MQTT CA file %s does not exist", mqttConf.CaFile)
-			}
-		}
-
-		// Check that the client certificate and key files exist
-		if mqttConf.CertFile != "" || mqttConf.KeyFile != "" {
-			if _, err := os.Stat(mqttConf.CertFile); os.IsNotExist(err) {
-				return fmt.Errorf("MQTT client certificate file %s does not exist", mqttConf.CertFile)
-			}
-
-			if _, err = os.Stat(mqttConf.KeyFile); os.IsNotExist(err) {
-				return fmt.Errorf("MQTT client key file %s does not exist", mqttConf.KeyFile)
-			}
+	// Check if remote catalogs configs are valid
+	for _, cat := range c.Catalog {
+		err := cat.Validate()
+		if err != nil {
+			return err
 		}
 	}
 
@@ -156,8 +147,8 @@ func (self *Config) Validate() error {
 }
 
 // Finds resource record by given resource id
-func (self *Config) FindResource(resourceId string) (*Resource, bool) {
-	for _, d := range self.Devices {
+func (c *Config) FindResource(resourceId string) (*Resource, bool) {
+	for _, d := range c.Devices {
 		for _, r := range d.Resources {
 			if resourceId == d.ResourceId(r.Name) {
 				return &r, true
@@ -168,11 +159,18 @@ func (self *Config) FindResource(resourceId string) (*Resource, bool) {
 }
 
 //
-// Catalog entry and types
+// Catalog config
 //
 type Catalog struct {
 	Discover bool   `json:"discover"`
 	Endpoint string `json:"endpoint"`
+}
+
+func (c *Catalog) Validate() error {
+	if c.Endpoint == "" && c.Discover == false {
+		return fmt.Errorf("Catalog must have either endpoint or discovery flag defined")
+	}
+	return nil
 }
 
 //
@@ -183,6 +181,13 @@ type HttpConfig struct {
 	BindPort int    `json:"bindPort"`
 }
 
+func (h *HttpConfig) Validate() error {
+	if h.BindAddr == "" || h.BindPort == 0 {
+		return fmt.Errorf("HTTP bindAddr and bindPort have to be defined")
+	}
+	return nil
+}
+
 //
 // Protocol entry and types
 //
@@ -190,7 +195,15 @@ type RestProtocol struct {
 	Location string `json:"location"`
 }
 
+func (p *RestProtocol) Validate() error {
+	if p.Location == "" {
+		return fmt.Errorf("REST location has to be defined")
+	}
+	return nil
+}
+
 type MqttProtocol struct {
+	Discover  bool   `json:"discover"`
 	ServerUri string `json:"serverUri"`
 	Prefix    string `json:"prefix"`
 	Username  string `json:"username"`
@@ -198,6 +211,37 @@ type MqttProtocol struct {
 	CaFile    string `json:"caFile"`
 	CertFile  string `json:"certFile"`
 	KeyFile   string `json:"keyFile"`
+}
+
+func (p *MqttProtocol) Validate() error {
+	if !p.Discover {
+		serverUri, err := url.Parse(p.ServerUri)
+		if err != nil {
+			return fmt.Errorf("MQTT ServerUri must be a URI in the format scheme://host:port")
+		}
+		if serverUri.Scheme != "tcp" && serverUri.Scheme != "ssl" {
+			return fmt.Errorf("MQTT ServerUri scheme must be either 'tcp' or 'ssl'")
+		}
+	}
+
+	// Check that the CA file exists
+	if p.CaFile != "" {
+		if _, err := os.Stat(p.CaFile); os.IsNotExist(err) {
+			return fmt.Errorf("MQTT CA file %s does not exist", p.CaFile)
+		}
+	}
+
+	// Check that the client certificate and key files exist
+	if p.CertFile != "" || p.KeyFile != "" {
+		if _, err := os.Stat(p.CertFile); os.IsNotExist(err) {
+			return fmt.Errorf("MQTT client certificate file %s does not exist", p.CertFile)
+		}
+
+		if _, err := os.Stat(p.KeyFile); os.IsNotExist(err) {
+			return fmt.Errorf("MQTT client key file %s does not exist", p.KeyFile)
+		}
+	}
+	return nil
 }
 
 type ProtocolType string
@@ -219,8 +263,8 @@ type Device struct {
 	Resources   []Resource
 }
 
-func (device *Device) ResourceId(name string) string {
-	return fmt.Sprintf("%s/%s", device.Name, name)
+func (d *Device) ResourceId(name string) string {
+	return fmt.Sprintf("%s/%s", d.Name, name)
 }
 
 //

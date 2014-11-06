@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"strings"
 	"time"
 )
 
@@ -36,6 +37,14 @@ func (self *Service) copy() Service {
 	return sc
 }
 
+// Validates the Service configuration
+func (s *Service) validate() bool {
+	if s.Id == "" || len(strings.Split(s.Id, "/")) != 2 || s.Name == "" || s.Ttl == 0 {
+		return false
+	}
+	return true
+}
+
 // Protocol describes the service API
 type Protocol struct {
 	Type         string                 `json:"type"`
@@ -49,26 +58,17 @@ type Protocol struct {
 // Storage interface
 type CatalogStorage interface {
 	// CRUD
-	add(Service) error
-	update(string, Service) error
-	delete(string) error
-	get(string) (Service, error)
+	add(s Service) error
+	update(id string, s Service) error
+	delete(id string) error
+	get(id string) (Service, error)
 
 	// Utility functions
-	getMany(int, int) ([]Service, int, error)
+	getMany(page, perPage int) ([]Service, int, error)
 	getCount() int
-	cleanExpired(time.Time)
+	cleanExpired(ts time.Time)
 
 	// Path filtering
-	pathFilterOne(string, string, string) (Service, error)
-	pathFilter(string, string, string, int, int) ([]Service, int, error)
-}
-
-// Catalog client
-type CatalogClient interface {
-	Get(string) (Service, error)
-	Add(Service) error
-	Update(string, Service) error
-	Delete(string) error
-	GetMany(int, int) ([]Service, int, error)
+	pathFilterOne(path, op, value string) (Service, error)
+	pathFilter(path, op, value string, page, perPage int) ([]Service, int, error)
 }

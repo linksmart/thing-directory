@@ -2,17 +2,13 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"time"
+	"sync"
 
 	catalog "linksmart.eu/localconnect/core/catalog/resource"
 )
 
-const (
-	minKeepaliveSec = 5
-)
-
-func registerDevices(config *Config, catalogStorage catalog.CatalogStorage) {
+// Parses config into a slice of configured devices
+func configureDevices(config *Config) []catalog.Device {
 	devices := make([]catalog.Device, 0, len(config.Devices))
 	restConfig, _ := config.Protocols[ProtocolTypeREST].(RestProtocol)
 	for _, device := range config.Devices {
@@ -48,7 +44,7 @@ func registerDevices(config *Config, catalogStorage catalog.CatalogStorage) {
 					mqtt, ok := config.Protocols[ProtocolTypeMQTT].(MqttProtocol)
 					if ok {
 						p.Endpoint["broker"] = mqtt.ServerUri
-						p.Endpoint["topic"] = fmt.Sprintf("%s/%v", mqtt.Prefix, r.Id)
+						p.Endpoint["topic"] = fmt.Sprintf("%s/%v", mqtt.Prefix, res.Id)
 					}
 				}
 				res.Protocols = append(res.Protocols, *p)
@@ -58,117 +54,34 @@ func registerDevices(config *Config, catalogStorage catalog.CatalogStorage) {
 		}
 		devices = append(devices, *r)
 	}
+	return devices
+}
 
-	// Register in the local catalog
-	localCatalogClient := catalog.NewLocalCatalogClient(catalogStorage)
-	publishRegistrations(localCatalogClient, devices, false)
-	log.Printf("Registered %v device(s) in local catalog\n", len(config.Devices))
-
-	// Publish to remote catalogs if configured
-	for _, cat := range config.Catalog {
-		if cat.Discover == true {
-			//TODO: Catalog discovery
-		} else {
-			log.Printf("Will publish to remote catalog %v\n", cat.Endpoint)
-			remoteCatalogClient := catalog.NewRemoteCatalogClient(cat.Endpoint)
-			publishRegistrations(remoteCatalogClient, devices, true)
-		}
+// Register configured devices from a given configuration using provided storage implementation
+func registerInLocalCatalog(devices []catalog.Device, config *Config, catalogStorage catalog.CatalogStorage) {
+	client := catalog.NewLocalCatalogClient(catalogStorage)
+	for _, r := range devices {
+		catalog.RegisterDevice(client, &r)
 	}
 }
 
-func unregisterDevices(config *Config, catalogStorage catalog.CatalogStorage) {
-	devices := make([]catalog.Device, 0, len(config.Devices))
+func registerInRemoteCatalog(devices []catalog.Device, config *Config) ([]chan<- bool, *sync.WaitGroup) {
+	regChannels := make([]chan<- bool, 0, len(config.Catalog))
+	var wg sync.WaitGroup
 
-	for _, device := range config.Devices {
-		r := catalog.Device{
-			Id: fmt.Sprintf("%v/%v", config.Id, device.Name),
-		}
-		devices = append(devices, r)
-	}
+	if len(config.Catalog) > 0 {
+		logger.Println("Will now register in the configured remote catalogs")
 
-	for _, cat := range config.Catalog {
-		if cat.Discover == true {
-			//TODO: Catalog discovery
-		} else {
-			log.Printf("Will remove local devices from remote catalog %v\n", cat.Endpoint)
-			remoteCatalogClient := catalog.NewRemoteCatalogClient(cat.Endpoint)
-			removeRegistrations(remoteCatalogClient, devices)
-		}
-	}
+		for _, cat := range config.Catalog {
+			for _, d := range devices {
+				sigCh := make(chan bool)
 
-}
-
-func publishRegistrations(catalogClient catalog.CatalogClient, registrations []catalog.Device, keepalive bool) {
-	for _, lr := range registrations {
-		_, err := catalogClient.Get(lr.Id)
-		// If not in the target catalog - Add
-		if err == catalog.ErrorNotFound {
-			err = catalogClient.Add(lr)
-			if err != nil {
-				log.Printf("Error accessing the catalog: %v\n", err)
-				return
+				go catalog.RegisterDeviceWithKeepalive(cat.Endpoint, cat.Discover, d, sigCh, &wg)
+				regChannels = append(regChannels, sigCh)
+				wg.Add(1)
 			}
-			log.Printf("Added registration %v", lr.Id)
-		} else if err != nil {
-			log.Printf("Error accessing the catalog: %v\n", err)
-			return
-		} else {
-			// otherwise - Update
-			err = catalogClient.Update(lr.Id, lr)
-			if err != nil {
-				log.Printf("Error accessing the catalog: %v\n", err)
-				return
-			}
-			log.Printf("Updated registration %v\n", lr.Id)
 		}
 	}
 
-	// If told to keep alive
-	if keepalive {
-		log.Printf("Will keep alive %v registrations\n", len(registrations))
-		for _, reg := range registrations {
-			var delay time.Duration
-
-			if reg.Ttl-minKeepaliveSec <= minKeepaliveSec {
-				// WARNING: this may lead to high churn in the remote catalog (choose ttl wisely)
-				delay = time.Duration(minKeepaliveSec) * time.Second
-			} else {
-				// Update every ttl - (minTtl *2)
-				delay = time.Duration(reg.Ttl-minKeepaliveSec*2) * time.Second
-			}
-			go keepRegistrationAlive(delay, catalogClient, reg)
-		}
-	}
-}
-
-func removeRegistrations(catalogClient catalog.CatalogClient, registrations []catalog.Device) {
-	for _, r := range registrations {
-		log.Printf("Removing registration %v\n", r.Id)
-		catalogClient.Delete(r.Id)
-	}
-}
-
-func keepRegistrationAlive(delay time.Duration, client catalog.CatalogClient, reg catalog.Device) {
-	time.Sleep(delay)
-
-	err := client.Update(reg.Id, reg)
-
-	// Device not found in the remote catalog
-	if err == catalog.ErrorNotFound {
-		log.Printf("Device %v not found in the remote catalog. TTL expired?", reg.Id)
-		err = client.Add(reg)
-		if err != nil {
-			log.Printf("Error accessing the catalog: %v\n", err)
-			go keepRegistrationAlive(delay, client, reg)
-			return
-		}
-		log.Printf("Added registration %v\n", reg.Id)
-	} else if err != nil {
-		log.Printf("Error accessing the catalog: %v\n", err)
-		go keepRegistrationAlive(delay, client, reg)
-		return
-	} else {
-		log.Printf("Updated registration %v\n", reg.Id)
-	}
-	go keepRegistrationAlive(delay, client, reg)
+	return regChannels, &wg
 }

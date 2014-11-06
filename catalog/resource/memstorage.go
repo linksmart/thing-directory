@@ -1,9 +1,8 @@
-package device
+package resource
 
 import (
 	"errors"
 	"fmt"
-	"log"
 	"sort"
 	"strings"
 	"sync"
@@ -28,14 +27,8 @@ type StoredDevice struct {
 
 // CRUD
 func (self *MemoryStorage) add(d Device) error {
-	if d.Id == "" || len(strings.Split(d.Id, "/")) != 2 {
-		return errors.New("Device ID has to be <uuid>/<name>")
-	}
-
-	for _, res := range d.Resources {
-		if res.Id == "" || len(strings.Split(res.Id, "/")) != 3 {
-			return errors.New("Resource ID has to be <uuid>/<name>/<resource>")
-		}
+	if !d.validate() {
+		return errors.New("Invalid Device registration")
 	}
 
 	sd := StoredDevice{
@@ -187,11 +180,11 @@ func (self *MemoryStorage) getResourcesCount() int {
 
 // Clean all remote registrations which expire time is larger than the given timestamp
 func (self *MemoryStorage) cleanExpired(timestamp time.Time) {
-	// log.Printf("Storage cleaner: will clean up all entries expired after %v", timestamp)
+	// logger.Printf("Storage cleaner: will clean up all entries expired after %v", timestamp)
 	self.mutex.Lock()
 	for id, d := range self.devices {
 		if d.Ttl >= 0 && !d.Expires.After(timestamp) {
-			log.Printf("Storage cleaner: registration %v has expired\n", id)
+			logger.Printf("MemoryStorage.cleanExpired() Registration %v has expired\n", id)
 			for _, rid := range d.Resources {
 				delete(self.resources, rid)
 			}
