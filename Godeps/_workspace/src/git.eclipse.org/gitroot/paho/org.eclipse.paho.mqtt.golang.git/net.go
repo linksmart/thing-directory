@@ -15,7 +15,7 @@
 package mqtt
 
 import (
-	"linksmart.eu/localconnect/core/Godeps/_workspace/src/code.google.com/p/go.net/websocket"
+	"linksmart.eu/lc/core/Godeps/_workspace/src/code.google.com/p/go.net/websocket"
 	"crypto/tls"
 	"io"
 	"net"

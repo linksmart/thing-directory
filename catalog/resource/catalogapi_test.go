@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"linksmart.eu/localconnect/core/Godeps/_workspace/src/github.com/gorilla/mux"
-	utils "linksmart.eu/localconnect/core/catalog"
+	utils "linksmart.eu/lc/core/catalog"
+	"linksmart.eu/lc/core/Godeps/_workspace/src/github.com/gorilla/mux"
 )
 
 const (

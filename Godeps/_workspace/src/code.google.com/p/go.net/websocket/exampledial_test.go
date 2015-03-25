@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"log"
 
-	"linksmart.eu/localconnect/core/Godeps/_workspace/src/code.google.com/p/go.net/websocket"
+	"linksmart.eu/lc/core/Godeps/_workspace/src/code.google.com/p/go.net/websocket"
 )
 
 // This example demonstrates a trivial client.

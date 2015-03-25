@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	catalog "linksmart.eu/localconnect/core/catalog/service"
+	catalog "linksmart.eu/lc/core/catalog/service"
 )
 
 var (

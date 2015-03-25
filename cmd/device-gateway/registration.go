@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	catalog "linksmart.eu/localconnect/core/catalog/resource"
+	catalog "linksmart.eu/lc/core/catalog/resource"
 )
 
 // Parses config into a slice of configured devices

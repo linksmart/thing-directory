@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	utils "linksmart.eu/localconnect/core/catalog"
+	utils "linksmart.eu/lc/core/catalog"
 )
 
 const (

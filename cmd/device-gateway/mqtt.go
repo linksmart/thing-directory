@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	MQTT "linksmart.eu/localconnect/core/Godeps/_workspace/src/git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git"
-	"linksmart.eu/localconnect/core/catalog"
-	"linksmart.eu/localconnect/core/catalog/service"
+	"linksmart.eu/lc/core/catalog"
+	"linksmart.eu/lc/core/catalog/service"
+	MQTT "linksmart.eu/lc/core/Godeps/_workspace/src/git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git"
 )
 
 type MQTTPublisher struct {

@@ -11,7 +11,7 @@ import (
 	"os"
 	"unsafe"
 
-	"linksmart.eu/localconnect/core/Godeps/_workspace/src/code.google.com/p/go.net/internal/iana"
+	"linksmart.eu/lc/core/Godeps/_workspace/src/code.google.com/p/go.net/internal/iana"
 )
 
 func setsockoptIPMreq(fd, name int, ifi *net.Interface, grp net.IP) error {

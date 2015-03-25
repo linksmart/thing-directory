@@ -1,7 +1,7 @@
 package dns_test
 
 import (
-	"linksmart.eu/localconnect/core/Godeps/_workspace/src/github.com/miekg/dns"
+	"linksmart.eu/lc/core/Godeps/_workspace/src/github.com/miekg/dns"
 	"strings"
 	"testing"
 )

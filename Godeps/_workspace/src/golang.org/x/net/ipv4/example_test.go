@@ -8,7 +8,7 @@ import (
 	"log"
 	"net"
 
-	"linksmart.eu/localconnect/core/Godeps/_workspace/src/code.google.com/p/go.net/internal/iana"
+	"linksmart.eu/lc/core/Godeps/_workspace/src/code.google.com/p/go.net/internal/iana"
 	"code.google.com/p/go.net/ipv4"
 )
 

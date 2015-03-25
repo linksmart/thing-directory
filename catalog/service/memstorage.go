@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"linksmart.eu/localconnect/core/catalog"
+	"linksmart.eu/lc/core/catalog"
 )
 
 // In-memory storage

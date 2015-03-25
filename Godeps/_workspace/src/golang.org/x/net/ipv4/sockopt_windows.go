@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"unsafe"
 
-	"linksmart.eu/localconnect/core/Godeps/_workspace/src/code.google.com/p/go.net/internal/iana"
+	"linksmart.eu/lc/core/Godeps/_workspace/src/code.google.com/p/go.net/internal/iana"
 )
 
 func getInt(fd syscall.Handle, opt *sockOpt) (int, error) {

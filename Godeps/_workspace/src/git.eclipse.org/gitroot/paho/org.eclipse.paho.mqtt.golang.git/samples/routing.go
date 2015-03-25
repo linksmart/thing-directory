@@ -30,7 +30,7 @@ import (
 	"fmt"
 	"os"
 
-	MQTT "linksmart.eu/localconnect/core/Godeps/_workspace/src/git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git"
+	MQTT "linksmart.eu/lc/core/Godeps/_workspace/src/git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git"
 )
 
 var broker_load = make(chan bool)

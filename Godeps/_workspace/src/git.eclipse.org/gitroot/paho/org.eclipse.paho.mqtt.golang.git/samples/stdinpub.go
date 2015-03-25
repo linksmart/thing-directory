@@ -25,7 +25,7 @@ import (
 	"time"
 )
 
-import MQTT "linksmart.eu/localconnect/core/Godeps/_workspace/src/git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git"
+import MQTT "linksmart.eu/lc/core/Godeps/_workspace/src/git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git"
 
 func main() {
 	stdin := bufio.NewReader(os.Stdin)

@@ -6,7 +6,7 @@ package discovery
 import (
 	"log"
 
-	"linksmart.eu/localconnect/core/Godeps/_workspace/src/github.com/oleksandr/bonjour"
+	"linksmart.eu/lc/core/Godeps/_workspace/src/github.com/oleksandr/bonjour"
 )
 
 // Discovery single result handling function type

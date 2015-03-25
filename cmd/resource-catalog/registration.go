@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	catalog "linksmart.eu/localconnect/core/catalog/resource"
-	sc "linksmart.eu/localconnect/core/catalog/service"
+	catalog "linksmart.eu/lc/core/catalog/resource"
+	sc "linksmart.eu/lc/core/catalog/service"
 )
 
 const (

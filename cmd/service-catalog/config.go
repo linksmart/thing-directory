@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"strings"
 
-	utils "linksmart.eu/localconnect/core/catalog"
+	utils "linksmart.eu/lc/core/catalog"
 )
 
 type Config struct {

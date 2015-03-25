@@ -10,11 +10,11 @@ import (
 	"strconv"
 	"syscall"
 
-	"linksmart.eu/localconnect/core/Godeps/_workspace/src/github.com/codegangsta/negroni"
-	"linksmart.eu/localconnect/core/Godeps/_workspace/src/github.com/gorilla/mux"
-	"linksmart.eu/localconnect/core/Godeps/_workspace/src/github.com/oleksandr/bonjour"
-	utils "linksmart.eu/localconnect/core/catalog"
-	catalog "linksmart.eu/localconnect/core/catalog/service"
+	utils "linksmart.eu/lc/core/catalog"
+	catalog "linksmart.eu/lc/core/catalog/service"
+	"linksmart.eu/lc/core/Godeps/_workspace/src/github.com/codegangsta/negroni"
+	"linksmart.eu/lc/core/Godeps/_workspace/src/github.com/gorilla/mux"
+	"linksmart.eu/lc/core/Godeps/_workspace/src/github.com/oleksandr/bonjour"
 )
 
 var (

@@ -7,8 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"linksmart.eu/localconnect/core/Godeps/_workspace/src/github.com/oleksandr/bonjour"
-	catalog "linksmart.eu/localconnect/core/catalog/resource"
+	catalog "linksmart.eu/lc/core/catalog/resource"
+	"linksmart.eu/lc/core/Godeps/_workspace/src/github.com/oleksandr/bonjour"
 )
 
 var (

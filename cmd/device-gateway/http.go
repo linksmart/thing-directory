@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"path/filepath"
 
-	"linksmart.eu/localconnect/core/Godeps/_workspace/src/github.com/codegangsta/negroni"
-	"linksmart.eu/localconnect/core/Godeps/_workspace/src/github.com/gorilla/mux"
-	catalog "linksmart.eu/localconnect/core/catalog/resource"
+	catalog "linksmart.eu/lc/core/catalog/resource"
+	"linksmart.eu/lc/core/Godeps/_workspace/src/github.com/codegangsta/negroni"
+	"linksmart.eu/lc/core/Godeps/_workspace/src/github.com/gorilla/mux"
 )
 
 // errorResponse used to serialize errors into JSON for RESTful responses

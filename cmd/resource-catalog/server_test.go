@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	catalog "linksmart.eu/localconnect/core/catalog/resource"
+	catalog "linksmart.eu/lc/core/catalog/resource"
 )
 
 func TestDemo(t *testing.T) {
