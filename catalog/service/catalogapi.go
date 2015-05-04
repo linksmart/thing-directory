@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"linksmart.eu/lc/core/catalog"
 	"linksmart.eu/lc/core/Godeps/_workspace/src/github.com/gorilla/mux"
+	"linksmart.eu/lc/core/catalog"
 )
 
 const (
@@ -38,6 +38,7 @@ type ReadableCatalogAPI struct {
 	apiLocation    string
 	ctxPathRoot    string
 	description    string
+	listeners      []Listener
 }
 
 // Writable catalog api
@@ -45,22 +46,24 @@ type WritableCatalogAPI struct {
 	*ReadableCatalogAPI
 }
 
-func NewReadableCatalogAPI(storage CatalogStorage, apiLocation, staticLocation, description string) *ReadableCatalogAPI {
+func NewReadableCatalogAPI(storage CatalogStorage, apiLocation, staticLocation, description string, listeners ...Listener) *ReadableCatalogAPI {
 	return &ReadableCatalogAPI{
 		catalogStorage: storage,
 		apiLocation:    apiLocation,
 		ctxPathRoot:    staticLocation + CtxRootDir,
 		description:    description,
+		listeners:      listeners,
 	}
 }
 
-func NewWritableCatalogAPI(storage CatalogStorage, apiLocation, staticLocation, description string) *WritableCatalogAPI {
+func NewWritableCatalogAPI(storage CatalogStorage, apiLocation, staticLocation, description string, listeners ...Listener) *WritableCatalogAPI {
 	return &WritableCatalogAPI{
 		&ReadableCatalogAPI{
 			catalogStorage: storage,
 			apiLocation:    apiLocation,
 			ctxPathRoot:    staticLocation + CtxRootDir,
 			description:    description,
+			listeners:      listeners,
 		}}
 }
 
@@ -205,6 +208,11 @@ func (self WritableCatalogAPI) Add(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// notify listeners
+	for _, l := range self.listeners {
+		go l.added(&s)
+	}
+
 	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
 	w.Header().Set("Location", fmt.Sprintf("%s/%s", self.apiLocation, s.Id))
 	w.WriteHeader(http.StatusCreated)
@@ -237,6 +245,11 @@ func (self WritableCatalogAPI) Update(w http.ResponseWriter, req *http.Request) 
 		return
 	}
 
+	// notify listeners
+	for _, l := range self.listeners {
+		go l.updated(&s)
+	}
+
 	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
 	w.WriteHeader(http.StatusOK)
 	return
@@ -255,6 +268,11 @@ func (self WritableCatalogAPI) Delete(w http.ResponseWriter, req *http.Request) 
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Error deleting the device: %s\n", err.Error())
 		return
+	}
+
+	// notify listeners
+	for _, l := range self.listeners {
+		go l.deleted(id)
 	}
 
 	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)

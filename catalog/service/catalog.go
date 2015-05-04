@@ -72,3 +72,11 @@ type CatalogStorage interface {
 	pathFilterOne(path, op, value string) (Service, error)
 	pathFilter(path, op, value string, page, perPage int) ([]Service, int, error)
 }
+
+// Listener interface can be used for notification of the catalog updates
+// NOTE: Implementations are expected to be thread safe
+type Listener interface {
+	added(s *Service)
+	updated(s *Service)
+	deleted(id string)
+}
