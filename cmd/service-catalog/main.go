@@ -5,16 +5,17 @@ import (
 	"fmt"
 	"mime"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"strconv"
 	"syscall"
 
-	utils "linksmart.eu/lc/core/catalog"
-	catalog "linksmart.eu/lc/core/catalog/service"
 	"linksmart.eu/lc/core/Godeps/_workspace/src/github.com/codegangsta/negroni"
 	"linksmart.eu/lc/core/Godeps/_workspace/src/github.com/gorilla/mux"
 	"linksmart.eu/lc/core/Godeps/_workspace/src/github.com/oleksandr/bonjour"
+	utils "linksmart.eu/lc/core/catalog"
+	catalog "linksmart.eu/lc/core/catalog/service"
 )
 
 var (
@@ -98,12 +99,20 @@ func main() {
 func setupRouter(config *Config) (*mux.Router, error) {
 	// Create catalog API object
 	var api *catalog.WritableCatalogAPI
+	listeners := []catalog.Listener{}
+	// GC publisher if configured
+	if config.GC.TunnelingService != "" {
+		endpoint, _ := url.Parse(config.GC.TunnelingService)
+		listeners = append(listeners, catalog.NewGCPublisher(*endpoint))
+	}
+
 	if config.Storage.Type == utils.CatalogBackendMemory {
 		api = catalog.NewWritableCatalogAPI(
 			catalog.NewMemoryStorage(),
 			config.ApiLocation,
 			utils.StaticLocation,
 			config.Description,
+			listeners...,
 		)
 	}
 	if api == nil {
