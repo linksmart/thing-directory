@@ -210,7 +210,7 @@ func (self WritableCatalogAPI) Add(w http.ResponseWriter, req *http.Request) {
 
 	// notify listeners
 	for _, l := range self.listeners {
-		go l.added(&s)
+		go l.added(s)
 	}
 
 	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
@@ -247,7 +247,7 @@ func (self WritableCatalogAPI) Update(w http.ResponseWriter, req *http.Request) 
 
 	// notify listeners
 	for _, l := range self.listeners {
-		go l.updated(&s)
+		go l.updated(s)
 	}
 
 	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)

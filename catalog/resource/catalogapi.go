@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"linksmart.eu/lc/core/catalog"
 	"linksmart.eu/lc/core/Godeps/_workspace/src/github.com/gorilla/mux"
+	"linksmart.eu/lc/core/catalog"
 )
 
 const (

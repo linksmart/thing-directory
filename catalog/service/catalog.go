@@ -45,6 +45,27 @@ func (s *Service) validate() bool {
 	return true
 }
 
+// Checks whether the service can be tunneled in GC
+func (s *Service) isGCTunnelable() bool {
+	// Until the service discovery in GC is not working properly,
+	// we can only tunnel services that never expire (tll == -1)
+	if s.Ttl != -1 {
+		return false
+	}
+
+	v, ok := s.Meta[MetaKeyGCExpose]
+	if !ok {
+		return false
+	}
+
+	// flag should be bool
+	e := v.(bool)
+	if e == true {
+		return true
+	}
+	return false
+}
+
 // Protocol describes the service API
 type Protocol struct {
 	Type         string                 `json:"type"`
@@ -76,7 +97,7 @@ type CatalogStorage interface {
 // Listener interface can be used for notification of the catalog updates
 // NOTE: Implementations are expected to be thread safe
 type Listener interface {
-	added(s *Service)
-	updated(s *Service)
+	added(s Service)
+	updated(s Service)
 	deleted(id string)
 }

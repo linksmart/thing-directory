@@ -92,13 +92,19 @@ func tunneledServiceFromResponse(res *http.Response) (*TunneledService, error) {
 	return ts, nil
 }
 
-func (l *GCPublisher) added(s *Service) {
+func (l *GCPublisher) added(s Service) {
+	if !s.isGCTunnelable() {
+		logger.Printf("Ignoring service that cannot be tunneled in GC: %v\n", s.Id)
+		return
+	}
+
+	s.Type = ApiRegistrationType
 	l.mutex.Lock()
 	ssvc, ok := l.services[s.Id]
 	// create new service entry if doesn't exist (actually shouldn't)
 	if !ok {
 		ssvc = syncedService{
-			service: *s,
+			service: s,
 		}
 	}
 
@@ -144,7 +150,7 @@ func (l *GCPublisher) added(s *Service) {
 	l.mutex.Unlock()
 }
 
-func (l *GCPublisher) updated(s *Service) {
+func (l *GCPublisher) updated(s Service) {
 	////////////////////////////////////////////
 	// DISABLED FOR THE TIME BEING
 	// NM currently assigns a new VAD on update, which effectively has no other effect
@@ -158,7 +164,7 @@ func (l *GCPublisher) updated(s *Service) {
 	// 	logger.Printf("Asked to update unknown service %v **will do nothing**", s.Id)
 	// }
 	// // replace the service
-	// ssvc.service = *s
+	// ssvc.service = s
 
 	// // create tunneled service
 	// tsvc, err := NewTunneledService(&ssvc.service, ssvc.vad)
@@ -206,8 +212,9 @@ func (l *GCPublisher) deleted(id string) {
 	l.mutex.Lock()
 	// check if service is known
 	ssvc, ok := l.services[id]
+
 	if !ok {
-		logger.Printf("Asked to delete unknown service %v **will do nothing**", id)
+		logger.Printf("Asked to delete unknown (not tunnellable?) service %v **will do nothing**", id)
 		l.mutex.Unlock()
 		return
 	}
