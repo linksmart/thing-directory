@@ -59,7 +59,13 @@ func RegisterServiceWithKeepalive(endpoint string, discover bool, s Service, sig
 	if s.Ttl <= 0 {
 		logger.Println("RegisterServiceWithKeepalive() WARNING: Registration has ttl <= 0. Will not start the keepalive routine")
 		RegisterService(client, &s)
-		return
+
+		// catch a shutdown signal from the upstream
+		for _ = range sigCh {
+			logger.Printf("RegisterServiceWithKeepalive() Removing the registration %v/%v...", endpoint, s.Id)
+			client.Delete(s.Id)
+			return
+		}
 	}
 	logger.Printf("RegisterServiceWithKeepalive() Will register and update registration periodically: %v/%v", endpoint, s.Id)
 
