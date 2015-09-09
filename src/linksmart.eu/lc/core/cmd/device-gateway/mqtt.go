@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
+	MQTT "git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git"
 	"linksmart.eu/lc/core/catalog"
 	"linksmart.eu/lc/core/catalog/service"
-	MQTT "linksmart.eu/lc/core/Godeps/_workspace/src/git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git"
 )
 
 type MQTTPublisher struct {
@@ -109,7 +109,7 @@ func (p *MQTTPublisher) discoverBrokerEndpoint() error {
 		return err
 	}
 
-	rcc := service.NewRemoteCatalogClient(endpoint)
+	rcc := service.NewRemoteCatalogClient(endpoint, nil)
 	res, _, err := rcc.FindServices("meta.serviceType", "equals", DNSSDServiceTypeMQTT, 1, 50)
 	if err != nil {
 		return err

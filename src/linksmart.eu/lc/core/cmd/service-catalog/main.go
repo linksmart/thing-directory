@@ -10,10 +10,14 @@ import (
 	"os/signal"
 	"strconv"
 	"syscall"
+	"time"
 
-	"linksmart.eu/lc/core/Godeps/_workspace/src/github.com/codegangsta/negroni"
-	"linksmart.eu/lc/core/Godeps/_workspace/src/github.com/gorilla/mux"
-	"linksmart.eu/lc/core/Godeps/_workspace/src/github.com/oleksandr/bonjour"
+	"github.com/codegangsta/negroni"
+	"github.com/gorilla/context"
+	"github.com/gorilla/mux"
+	"github.com/justinas/alice"
+	"github.com/oleksandr/bonjour"
+	"linksmart.eu/auth/cas/validator"
 	utils "linksmart.eu/lc/core/catalog"
 	catalog "linksmart.eu/lc/core/catalog/service"
 )
@@ -36,9 +40,9 @@ func main() {
 	}
 
 	// Announce service using DNS-SD
-	var bonjourCh chan<- bool
+	var bonjourS *bonjour.Server
 	if config.DnssdEnabled {
-		bonjourCh, err = bonjour.Register(config.Description,
+		bonjourS, err = bonjour.Register(config.Description,
 			catalog.DNSSDServiceType,
 			"",
 			config.BindPort,
@@ -48,9 +52,6 @@ func main() {
 			logger.Printf("Failed to register DNS-SD service: %s", err.Error())
 		} else {
 			logger.Println("Registered service via DNS-SD using type", catalog.DNSSDServiceType)
-			defer func(ch chan<- bool) {
-				ch <- true
-			}(bonjourCh)
 		}
 	}
 
@@ -66,6 +67,12 @@ func main() {
 			// sig is a ^C, handle it
 
 			//TODO: put here the last will logic
+
+			// Stop bonjour registration
+			if bonjourS != nil {
+				bonjourS.Shutdown()
+				time.Sleep(1e9)
+			}
 
 			logger.Println("Stopped")
 			os.Exit(0)
@@ -119,16 +126,30 @@ func setupRouter(config *Config) (*mux.Router, error) {
 		return nil, fmt.Errorf("Could not create catalog API structure. Unsupported storage type: %v", config.Storage.Type)
 	}
 
+	commonHandlers := alice.New(
+		context.ClearHandler,
+	)
+
+	// Append auth handler if enabled
+	if config.Auth.Enabled {
+		v, err := validator.New(config.Auth)
+		if err != nil {
+			fmt.Println(err.Error())
+			os.Exit(1)
+		}
+		commonHandlers = commonHandlers.Append(v.Handler)
+	}
+
 	// Configure routers
 	r := mux.NewRouter().StrictSlash(true)
-	r.Methods("GET").Path(config.ApiLocation).HandlerFunc(api.List).Name("list")
-	r.Methods("POST").Path(config.ApiLocation + "/").HandlerFunc(api.Add).Name("add")
-	r.Methods("GET").Path(config.ApiLocation + "/{type}/{path}/{op}/{value}").HandlerFunc(api.Filter).Name("filter")
+	r.Methods("GET").Path(config.ApiLocation).Handler(commonHandlers.ThenFunc(api.List)).Name("list")
+	r.Methods("POST").Path(config.ApiLocation + "/").Handler(commonHandlers.ThenFunc(api.Add)).Name("add")
+	r.Methods("GET").Path(config.ApiLocation + "/{type}/{path}/{op}/{value:.*}").Handler(commonHandlers.ThenFunc(api.Filter)).Name("filter")
 
 	url := config.ApiLocation + "/{hostid}/{regid}"
-	r.Methods("GET").Path(url).HandlerFunc(api.Get).Name("get")
-	r.Methods("PUT").Path(url).HandlerFunc(api.Update).Name("update")
-	r.Methods("DELETE").Path(url).HandlerFunc(api.Delete).Name("delete")
+	r.Methods("GET").Path(url).Handler(commonHandlers.ThenFunc(api.Get)).Name("get")
+	r.Methods("PUT").Path(url).Handler(commonHandlers.ThenFunc(api.Update)).Name("update")
+	r.Methods("DELETE").Path(url).Handler(commonHandlers.ThenFunc(api.Delete)).Name("delete")
 
 	return r, nil
 }

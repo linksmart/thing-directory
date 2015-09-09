@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 
+	cas "linksmart.eu/auth/cas/obtainer"
+	auth "linksmart.eu/auth/obtainer"
 	catalog "linksmart.eu/lc/core/catalog/service"
 )
 
@@ -17,6 +19,11 @@ var (
 	confPath = flag.String("conf", "", "Path to the service configuration file")
 	endpoint = flag.String("endpoint", "", "Service Catalog endpoint")
 	discover = flag.Bool("discover", false, "Use DNS-SD service discovery to find Service Catalog endpoint")
+	// Authentication configuration
+	authServer = flag.String("authServer", "", "Authentication server address")
+	authUser   = flag.String("authUser", "", "Auth. server username")
+	authPass   = flag.String("authPass", "", "Auth. server password")
+	serviceID  = flag.String("serviceID", "", "Service ID at the auth. server")
 )
 
 func main() {
@@ -26,6 +33,9 @@ func main() {
 		flag.Usage()
 		os.Exit(1)
 	}
+
+	// requiresAuth if authServer is specified
+	var requiresAuth bool = (*authServer != "")
 
 	if *endpoint == "" && !*discover {
 		logger.Println("ERROR: -endpoint was not provided and discover flag not set.")
@@ -41,7 +51,15 @@ func main() {
 	// Launch the registration routine
 	var wg sync.WaitGroup
 	regCh := make(chan bool)
-	go catalog.RegisterServiceWithKeepalive(*endpoint, *discover, *service, regCh, &wg)
+
+	if !requiresAuth {
+		go catalog.RegisterServiceWithKeepalive(*endpoint, *discover, *service, regCh, &wg, nil)
+	} else {
+		// Setup auth client with a CAS obtainer
+		catalog.RegisterServiceWithKeepalive(*endpoint, *discover, *service, regCh, &wg,
+			auth.NewClient(cas.New(*authServer), *authUser, *authPass, *serviceID),
+		)
+	}
 	wg.Add(1)
 
 	// Ctrl+C handling

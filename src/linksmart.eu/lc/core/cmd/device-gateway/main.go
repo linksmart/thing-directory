@@ -6,9 +6,10 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
+	"github.com/oleksandr/bonjour"
 	catalog "linksmart.eu/lc/core/catalog/resource"
-	"linksmart.eu/lc/core/Godeps/_workspace/src/github.com/oleksandr/bonjour"
 )
 
 var (
@@ -55,10 +56,10 @@ func main() {
 	regChannels, wg := registerInRemoteCatalog(devices, config)
 
 	// Register this gateway as a service via DNS-SD
-	var bonjourCh chan<- bool
+	var bonjourS *bonjour.Server
 	if config.DnssdEnabled {
 		restConfig, _ := config.Protocols[ProtocolTypeREST].(RestProtocol)
-		bonjourCh, err = bonjour.Register(config.Description,
+		bonjourS, err = bonjour.Register(config.Description,
 			DNSSDServiceTypeDGW,
 			"",
 			config.Http.BindPort,
@@ -86,8 +87,9 @@ func main() {
 	}
 
 	// Stop bonjour registration
-	if bonjourCh != nil {
-		bonjourCh <- true
+	if bonjourS != nil {
+		bonjourS.Shutdown()
+		time.Sleep(1e9)
 	}
 
 	// Shutdown all

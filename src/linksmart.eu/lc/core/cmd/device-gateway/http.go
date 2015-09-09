@@ -6,11 +6,15 @@ import (
 	"io/ioutil"
 	"mime"
 	"net/http"
+	"os"
 	"path/filepath"
 
+	"github.com/codegangsta/negroni"
+	"github.com/gorilla/context"
+	"github.com/gorilla/mux"
+	"github.com/justinas/alice"
+	"linksmart.eu/auth/cas/validator"
 	catalog "linksmart.eu/lc/core/catalog/resource"
-	"linksmart.eu/lc/core/Godeps/_workspace/src/github.com/codegangsta/negroni"
-	"linksmart.eu/lc/core/Godeps/_workspace/src/github.com/gorilla/mux"
 )
 
 // errorResponse used to serialize errors into JSON for RESTful responses
@@ -21,21 +25,38 @@ type errorResponse struct {
 // RESTfulAPI contains all required configuration for running a RESTful API
 // for device gateway
 type RESTfulAPI struct {
-	config     *Config
-	restConfig *RestProtocol
-	router     *mux.Router
-	dataCh     chan<- DataRequest
+	config         *Config
+	restConfig     *RestProtocol
+	router         *mux.Router
+	dataCh         chan<- DataRequest
+	commonHandlers alice.Chain
 }
 
 // Constructs a RESTfulAPI data structure
 func newRESTfulAPI(conf *Config, dataCh chan<- DataRequest) *RESTfulAPI {
 	restConfig, _ := conf.Protocols[ProtocolTypeREST].(RestProtocol)
 
+	// Common handlers
+	commonHandlers := alice.New(
+		context.ClearHandler,
+	)
+
+	// Append auth handler if enabled
+	if conf.Auth.Enabled {
+		v, err := validator.New(conf.Auth)
+		if err != nil {
+			logger.Println(err.Error())
+			os.Exit(1)
+		}
+		commonHandlers = commonHandlers.Append(v.Handler)
+	}
+
 	api := &RESTfulAPI{
-		config:     conf,
-		restConfig: &restConfig,
-		router:     mux.NewRouter().StrictSlash(true),
-		dataCh:     dataCh,
+		config:         conf,
+		restConfig:     &restConfig,
+		router:         mux.NewRouter().StrictSlash(true),
+		dataCh:         dataCh,
+		commonHandlers: commonHandlers,
 	}
 	return api
 }
@@ -45,8 +66,10 @@ func (api *RESTfulAPI) start(catalogStorage catalog.CatalogStorage) {
 	api.mountCatalog(catalogStorage)
 	api.mountResources()
 
-	api.router.Methods("GET", "POST").Path("/dashboard").HandlerFunc(api.dashboardHandler(*confPath))
-	api.router.Methods("GET").Path(api.restConfig.Location).HandlerFunc(api.indexHandler())
+	api.router.Methods("GET", "POST").Path("/dashboard").Handler(
+		api.commonHandlers.ThenFunc(api.dashboardHandler(*confPath)))
+	api.router.Methods("GET").Path(api.restConfig.Location).Handler(
+		api.commonHandlers.ThenFunc(api.indexHandler()))
 
 	err := mime.AddExtensionType(".jsonld", "application/ld+json")
 	if err != nil {
@@ -137,9 +160,11 @@ func (api *RESTfulAPI) mountResources() {
 				for _, method := range protocol.Methods {
 					switch method {
 					case "GET":
-						api.router.Methods("GET").Path(uri).HandlerFunc(api.createResourceGetHandler(rid))
+						api.router.Methods("GET").Path(uri).Handler(
+							api.commonHandlers.ThenFunc(api.createResourceGetHandler(rid)))
 					case "PUT":
-						api.router.Methods("PUT").Path(uri).HandlerFunc(api.createResourcePutHandler(rid))
+						api.router.Methods("PUT").Path(uri).Handler(
+							api.commonHandlers.ThenFunc(api.createResourcePutHandler(rid)))
 					}
 				}
 			}
@@ -155,10 +180,14 @@ func (api *RESTfulAPI) mountCatalog(catalogStorage catalog.CatalogStorage) {
 		fmt.Sprintf("Local catalog at %s", api.config.Description),
 	)
 
-	api.router.Methods("GET").Path(CatalogLocation + "/{type}/{path}/{op}/{value}").HandlerFunc(catalogAPI.Filter).Name("filter")
-	api.router.Methods("GET").Path(CatalogLocation + "/{dgwid}/{regid}/{resname}").HandlerFunc(catalogAPI.GetResource).Name("details")
-	api.router.Methods("GET").Path(CatalogLocation + "/{dgwid}/{regid}").HandlerFunc(catalogAPI.Get).Name("get")
-	api.router.Methods("GET").Path(CatalogLocation).HandlerFunc(catalogAPI.List).Name("list")
+	api.router.Methods("GET").Path(CatalogLocation + "/{type}/{path}/{op}/{value:.*}").Handler(
+		api.commonHandlers.ThenFunc(catalogAPI.Filter)).Name("filter")
+	api.router.Methods("GET").Path(CatalogLocation + "/{dgwid}/{regid}/{resname}").Handler(
+		api.commonHandlers.ThenFunc(catalogAPI.GetResource)).Name("details")
+	api.router.Methods("GET").Path(CatalogLocation + "/{dgwid}/{regid}").Handler(
+		api.commonHandlers.ThenFunc(catalogAPI.Get)).Name("get")
+	api.router.Methods("GET").Path(CatalogLocation).Handler(
+		api.commonHandlers.ThenFunc(catalogAPI.List)).Name("list")
 
 	logger.Printf("RESTfulAPI.mountCatalog() Mounted local catalog at %v", CatalogLocation)
 }

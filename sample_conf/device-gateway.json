@@ -1,0 +1,38 @@
+{
+  "id": "demo-dgw",
+  "description": "Example Gateway",
+  "publicAddr": "fqdn-of-the-host",
+  "staticDir": "./static",
+  "catalog": [
+    {
+      "discover": false,
+      "endpoint": "http://remotehost:8080/rc"
+    }
+  ],
+  "http": {
+    "bindAddr": "0.0.0.0",
+    "bindPort": 8080
+  },
+  "protocols": {
+    "REST": {
+      "location": "/rest"
+    },
+    "MQTT": {
+      "url": "tcp://127.0.0.1:1883",
+      "prefix": "/demo-dgw"
+    }
+  },
+   "auth": {
+     "enabled": true,
+     "serverAddr": "http://dimmer.fit.fraunhofer.de:8070/cas",
+     "serviceID": "rcdimmer",
+     "authorization": [
+      {
+        "resources": ["/rc","/rest","/dashboard"],
+        "methods": ["GET", "POST", "PUT", "DELETE"],
+        "users": [],
+        "groups": ["dimmerpartners"]
+      }
+   ]
+  }
+}

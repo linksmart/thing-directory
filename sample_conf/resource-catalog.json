@@ -1,0 +1,38 @@
+{
+  "description": "Standalone Device/Resource Catalog",
+  "dnssdEnabled": true,
+  "publicAddr": "localhost",
+  "bindAddr": "0.0.0.0",
+  "bindPort": 8081,
+  "apiLocation": "/rc",
+  "staticDir": "./static",
+  "storage": {
+    "type": "memory"
+  },
+  "serviceCatalog": [
+    {
+      "discover": false,
+      "endpoint": "http://localhost:8082/sc",
+      "ttl": 120,
+      "auth": {
+        "serverAddr": "http://dimmer.fit.fraunhofer.de:8070/cas",
+        "username": "rcdimmer",
+        "password": "",
+        "serviceID": "dimmerSC"
+      }
+    }
+  ],
+  "auth": {
+    "enabled": true,
+    "serverAddr": "http://dimmer.fit.fraunhofer.de:8070/cas",
+    "serviceID": "dimmerRC",
+    "authorization": [
+      {
+        "resources": ["/rc"],
+        "methods": ["GET", "POST", "PUT", "DELETE"],
+        "users": [],
+        "groups": ["dimmerpartners"]
+      }
+    ]
+  }
+}

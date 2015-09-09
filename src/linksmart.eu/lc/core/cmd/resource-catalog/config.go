@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"linksmart.eu/auth/obtainer"
+	"linksmart.eu/auth/validator"
 	utils "linksmart.eu/lc/core/catalog"
 )
 
@@ -19,12 +21,15 @@ type Config struct {
 	ApiLocation    string           `json:"apiLocation"`
 	Storage        StorageConfig    `json:"storage"`
 	ServiceCatalog []ServiceCatalog `json:"serviceCatalog"`
+	// Auth config
+	Auth validator.Conf `json:"auth"`
 }
 
 type ServiceCatalog struct {
 	Discover bool
 	Endpoint string
 	Ttl      int
+	Auth     *obtainer.Conf `json:"auth"`
 }
 
 type StorageConfig struct {
@@ -62,7 +67,23 @@ func (c *Config) Validate() error {
 		if cat.Ttl <= 0 {
 			err = fmt.Errorf("All ServiceCatalog entries must have TTL >= 0")
 		}
+		if cat.Auth != nil {
+			// Validate ticket obtainer config
+			err = cat.Auth.Validate()
+			if err != nil {
+				return err
+			}
+		}
 	}
+
+	if c.Auth.Enabled {
+		// Validate ticket validator config
+		err = c.Auth.Validate()
+		if err != nil {
+			return err
+		}
+	}
+
 	return err
 }
 

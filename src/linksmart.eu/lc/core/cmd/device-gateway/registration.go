@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sync"
 
+	cas "linksmart.eu/auth/cas/obtainer"
+	auth "linksmart.eu/auth/obtainer"
 	catalog "linksmart.eu/lc/core/catalog/resource"
 )
 
@@ -76,7 +78,15 @@ func registerInRemoteCatalog(devices []catalog.Device, config *Config) ([]chan<-
 			for _, d := range devices {
 				sigCh := make(chan bool)
 
-				go catalog.RegisterDeviceWithKeepalive(cat.Endpoint, cat.Discover, d, sigCh, &wg)
+				if cat.Auth == nil {
+					go catalog.RegisterDeviceWithKeepalive(cat.Endpoint, cat.Discover, d, sigCh, &wg, nil)
+				} else {
+					// Setup auth client with a CAS obtainer
+					go catalog.RegisterDeviceWithKeepalive(cat.Endpoint, cat.Discover, d, sigCh, &wg,
+						auth.NewClient(cas.New(cat.Auth.ServerAddr), cat.Auth.Username, cat.Auth.Password, cat.Auth.ServiceID),
+					)
+				}
+
 				regChannels = append(regChannels, sigCh)
 				wg.Add(1)
 			}

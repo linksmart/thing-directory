@@ -1,0 +1,30 @@
+{
+  "description": "Standalone Service Catalog",
+  "dnssdEnabled": true,
+  "bindAddr": "0.0.0.0",
+  "bindPort": 8082,
+  "apiLocation": "/sc",
+  "staticDir": "./static",
+  "storage": {
+    "type": "memory"
+  },
+  "auth": {
+		"enabled": true,
+		"serverAddr": "http://dimmer.fit.fraunhofer.de:8070/cas",
+		"serviceID": "dimmerSC",
+		"authorization": [
+			{
+				"resources": ["/sc"],
+				"methods": ["GET"],
+				"users": [],
+				"groups": ["dimmerpartners"]
+			},
+			{
+				"resources": ["/sc"],
+				"methods": ["GET","POST","PUT","DELETE"],
+				"users": [],
+				"groups": ["mwservices"]
+			}
+		]
+	}
+}

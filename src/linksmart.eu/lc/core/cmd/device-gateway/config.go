@@ -10,6 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"linksmart.eu/auth/obtainer"
+	"linksmart.eu/auth/validator"
 )
 
 //
@@ -105,6 +108,8 @@ type Config struct {
 	Http         HttpConfig                   `json:"http"`
 	Protocols    map[ProtocolType]interface{} `json:"protocols"`
 	Devices      []Device                     `json:"devices"`
+	// Auth config
+	Auth validator.Conf `json:"auth"`
 }
 
 // Validates the loaded configuration
@@ -141,6 +146,21 @@ func (c *Config) Validate() error {
 		if err != nil {
 			return err
 		}
+		if cat.Auth != nil {
+			// Validate ticket obtainer config
+			err = cat.Auth.Validate()
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if c.Auth.Enabled {
+		// Validate ticket validator config
+		err = c.Auth.Validate()
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -162,8 +182,9 @@ func (c *Config) FindResource(resourceId string) (*Resource, bool) {
 // Catalog config
 //
 type Catalog struct {
-	Discover bool   `json:"discover"`
-	Endpoint string `json:"endpoint"`
+	Discover bool           `json:"discover"`
+	Endpoint string         `json:"endpoint"`
+	Auth     *obtainer.Conf `json:"auth"`
 }
 
 func (c *Catalog) Validate() error {

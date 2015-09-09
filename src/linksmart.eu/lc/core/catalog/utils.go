@@ -8,7 +8,7 @@ import (
 	"syscall"
 	"time"
 
-	"linksmart.eu/lc/core/Godeps/_workspace/src/github.com/oleksandr/bonjour"
+	"github.com/oleksandr/bonjour"
 )
 
 const (

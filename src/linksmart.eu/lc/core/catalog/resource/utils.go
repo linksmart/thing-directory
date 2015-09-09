@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	auth "linksmart.eu/auth/obtainer"
 	utils "linksmart.eu/lc/core/catalog"
 )
 
@@ -43,7 +44,7 @@ func RegisterDevice(client CatalogClient, d *Device) error {
 // endpoint: catalog endpoint. If empty - will be discovered using DNS-SD
 // d: device registration
 // sigCh: channel for shutdown signalisation from upstream
-func RegisterDeviceWithKeepalive(endpoint string, discover bool, d Device, sigCh <-chan bool, wg *sync.WaitGroup) {
+func RegisterDeviceWithKeepalive(endpoint string, discover bool, d Device, sigCh <-chan bool, wg *sync.WaitGroup, ticketClient *auth.Client) {
 	defer wg.Done()
 	var err error
 	if discover {
@@ -54,8 +55,17 @@ func RegisterDeviceWithKeepalive(endpoint string, discover bool, d Device, sigCh
 		}
 	}
 
+	// Get a new service auth ticket
+	if ticketClient != nil {
+		_, err := ticketClient.Obtain()
+		if err != nil {
+			logger.Println("RegisterDeviceWithKeepalive() Unable to get service ticket from auth client:", err.Error())
+			return
+		}
+	}
+
 	// Configure client
-	client := NewRemoteCatalogClient(endpoint)
+	client := NewRemoteCatalogClient(endpoint, ticketClient)
 
 	// Will not keepalive registration with a negative TTL
 	if d.Ttl <= 0 {
@@ -84,7 +94,7 @@ func RegisterDeviceWithKeepalive(endpoint string, discover bool, d Device, sigCh
 				}
 			}
 			logger.Println("RegisterDeviceWithKeepalive() Will use the new endpoint:", endpoint)
-			client := NewRemoteCatalogClient(endpoint)
+			client := NewRemoteCatalogClient(endpoint, ticketClient)
 			go keepAlive(client, &d, ksigCh, kerrCh)
 
 		// catch a shutdown signal from the upstream
