@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
+	"strings"
 
 	catalog "linksmart.eu/lc/core/catalog/resource"
 	sc "linksmart.eu/lc/core/catalog/service"
@@ -43,7 +45,8 @@ func registrationFromConfig(conf *Config) (*sc.Service, error) {
 
 	json.Unmarshal([]byte(registrationTemplate), c)
 	c.Name = catalog.ApiCollectionType
-	c.Host = conf.PublicAddr
+	publicURL, _ := url.Parse(conf.PublicEndpoint)
+	c.Host = strings.Split(publicURL.Host, ":")[0]
 	c.Description = conf.Description
 	c.Ttl = defaultTtl
 
@@ -53,7 +56,7 @@ func registrationFromConfig(conf *Config) (*sc.Service, error) {
 
 	// protocols
 	// port from the bind port, address from the public address
-	c.Protocols[0].Endpoint["url"] = fmt.Sprintf("http://%v:%v%v", conf.PublicAddr, conf.BindPort, conf.ApiLocation)
+	c.Protocols[0].Endpoint["url"] = fmt.Sprintf("%v%v", conf.PublicEndpoint, conf.ApiLocation)
 
 	return c.GetService()
 }

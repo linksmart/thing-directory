@@ -10,20 +10,20 @@
   },
   "auth": {
 		"enabled": true,
-		"serverAddr": "http://dimmer.fit.fraunhofer.de:8070/cas",
-		"serviceID": "dimmerSC",
+		"serverAddr": "http://cas-server-addr:8000/cas",
+		"serviceID": "scID",
 		"authorization": [
 			{
 				"resources": ["/sc"],
 				"methods": ["GET"],
 				"users": [],
-				"groups": ["dimmerpartners"]
+				"groups": ["rousers"]
 			},
 			{
 				"resources": ["/sc"],
 				"methods": ["GET","POST","PUT","DELETE"],
 				"users": [],
-				"groups": ["mwservices"]
+				"groups": ["rwusers"]
 			}
 		]
 	}

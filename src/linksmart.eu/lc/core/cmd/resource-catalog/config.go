@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"strings"
 
 	"linksmart.eu/auth/obtainer"
@@ -13,7 +14,7 @@ import (
 
 type Config struct {
 	Description    string           `json:"description"`
-	PublicAddr     string           `json:"publicAddr"`
+	PublicEndpoint string           `json:"publicEndpoint"`
 	BindAddr       string           `json:"bindAddr"`
 	BindPort       int              `json:"bindPort"`
 	DnssdEnabled   bool             `json:"dnssdEnabled"`
@@ -42,8 +43,12 @@ var supportedBackends = map[string]bool{
 
 func (c *Config) Validate() error {
 	var err error
-	if c.BindAddr == "" && c.BindPort == 0 {
-		err = fmt.Errorf("Empty host or port")
+	if c.BindAddr == "" || c.BindPort == 0 || c.PublicEndpoint == "" {
+		err = fmt.Errorf("BindAddr, BindPort, and PublicEndpoint have to be defined")
+	}
+	_, err = url.Parse(c.PublicEndpoint)
+	if err != nil {
+		err = fmt.Errorf("PublicEndpoint should be a valid URL")
 	}
 	if !supportedBackends[c.Storage.Type] {
 		err = fmt.Errorf("Unsupported storage backend")

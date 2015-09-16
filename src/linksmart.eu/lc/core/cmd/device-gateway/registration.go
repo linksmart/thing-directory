@@ -38,10 +38,11 @@ func configureDevices(config *Config) []catalog.Device {
 				p.ContentTypes = proto.ContentTypes
 				p.Endpoint = map[string]interface{}{}
 				if proto.Type == ProtocolTypeREST {
-					p.Endpoint["url"] = fmt.Sprintf("http://%s:%d%s",
-						config.PublicAddr,
-						config.Http.BindPort,
-						restConfig.Location+"/"+device.Name+"/"+resource.Name)
+					p.Endpoint["url"] = fmt.Sprintf("%s%s/%s/%s",
+						config.PublicEndpoint,
+						restConfig.Location,
+						device.Name,
+						resource.Name)
 				} else if proto.Type == ProtocolTypeMQTT {
 					mqtt, ok := config.Protocols[ProtocolTypeMQTT].(MqttProtocol)
 					if ok {
