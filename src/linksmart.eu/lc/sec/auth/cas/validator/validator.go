@@ -48,7 +48,7 @@ func (v *Validator) Validate(ticket string) (bool, map[string]string, error) {
 
 	// Check for server errors
 	if res.StatusCode != http.StatusOK {
-		auth.Err.Println(res.Status)
+		auth.Err.Println(err.Error())
 		return false, bodyMap, auth.Errorf(res.Status)
 	}
 

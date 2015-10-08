@@ -35,9 +35,9 @@ func (v *Validator) Handler(next http.Handler) http.Handler {
 			return
 		}
 		// Authorization is enabled
-		if v.Authorization() {
+		if v.Authz.Enabled {
 			// Check if user matches authorization rules
-			authorized := v.Authorized(r.URL.Path, r.Method, body["user"], body["group"])
+			authorized := v.Authz.Authorized(r.URL.Path, r.Method, body["user"], body["group"])
 			if !authorized {
 				auth.Log.Printf("[%s] %q %s `%s`/`%s`\n", r.Method, r.URL.String(),
 					"Access denied for", body["group"], body["user"])

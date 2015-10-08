@@ -3,6 +3,8 @@ package validator
 import (
 	"errors"
 	"net/url"
+
+	"linksmart.eu/lc/sec/authz"
 )
 
 // Validator Config
@@ -13,16 +15,8 @@ type Conf struct {
 	ServerAddr string `json:"serverAddr"`
 	// Service ID
 	ServiceID string `json:"serviceID"`
-	// Authorization rules, if any
-	AuthorizationRules []Rule `json:"authorization"`
-}
-
-// Validator Config Rule
-type Rule struct {
-	Resources []string `json:"resources"`
-	Methods   []string `json:"methods"`
-	Users     []string `json:"users"`
-	Groups    []string `json:"groups"`
+	// Authorization config
+	Authz authz.Conf `json:"authorization"`
 }
 
 func (c Conf) Validate() error {
@@ -41,20 +35,10 @@ func (c Conf) Validate() error {
 		return errors.New("Ticket Validator: Service ID (serviceID) is not specified.")
 	}
 
-	// Validate AuthorizationRules
-	if len(c.AuthorizationRules) == 0 {
-		return errors.New("Ticket Validator: At least one authorization rule must be defined.")
-	}
-	for _, rule := range c.AuthorizationRules {
-		if len(rule.Resources) == 0 {
-			return errors.New("Ticket Validator: No resources in an authorization rule.")
-		}
-		if len(rule.Methods) == 0 {
-			return errors.New("Ticket Validator: No methods in an authorization rule.")
-		}
-		if len(rule.Users) == 0 && len(rule.Groups) == 0 {
-			return errors.New(
-				"Ticket Validator: At least one user or group must be assigned to each authorization rule.")
+	// Validate Authorization
+	if c.Authz.Enabled {
+		if err := c.Authz.Validate(); err != nil {
+			return err
 		}
 	}
 

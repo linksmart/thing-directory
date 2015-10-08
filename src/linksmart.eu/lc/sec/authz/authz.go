@@ -1,14 +1,9 @@
-package validator
+package authz
 
 import "strings"
 
-// Returns true if authorization rules are specified
-func (c *Conf) Authorization() bool {
-	return len(c.AuthorizationRules) > 0
-}
-
 // Authorized checks whether a user/group is authorized to access resource using a specific method
-func (c *Conf) Authorized(resource, method, user, group string) bool {
+func (authz *Conf) Authorized(resource, method, user, group string) bool {
 	// Create a tree of paths
 	// e.g. parses /path1/path2/path3 to [/path1/path2/path3 /path1/path2 /path1]
 	// e.g. parses / to [/]
@@ -32,7 +27,7 @@ func (c *Conf) Authorized(resource, method, user, group string) bool {
 		return false
 	}
 
-	for _, rule := range c.AuthorizationRules {
+	for _, rule := range authz.Rules {
 		for _, res := range resource_tree {
 			// Return true if user or group matches a rule
 			if inSlice(res, rule.Resources) && inSlice(method, rule.Methods) &&

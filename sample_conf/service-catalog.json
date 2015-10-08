@@ -12,19 +12,22 @@
 		"enabled": true,
 		"serverAddr": "http://cas-server-addr:8000/cas",
 		"serviceID": "scID",
-		"authorization": [
-			{
-				"resources": ["/sc"],
-				"methods": ["GET"],
-				"users": [],
-				"groups": ["rousers"]
-			},
-			{
-				"resources": ["/sc"],
-				"methods": ["GET","POST","PUT","DELETE"],
-				"users": [],
-				"groups": ["rwusers"]
-			}
-		]
+		"authorization": {
+			"enabled": true,
+			"rules": [
+				{
+					"resources": ["/sc"],
+					"methods": ["GET"],
+					"users": [],
+					"groups": ["rousers"]
+				},
+				{
+					"resources": ["/sc"],
+					"methods": ["GET","POST","PUT","DELETE"],
+					"users": [],
+					"groups": ["rwusers"]
+				}
+			]
+		}
 	}
 }
