@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"linksmart.eu/auth"
+	"linksmart.eu/lc/sec/auth"
 )
 
 // HTTP Handler for service token validation

@@ -10,9 +10,9 @@ import (
 	"strings"
 	"sync"
 
-	cas "linksmart.eu/auth/cas/obtainer"
-	auth "linksmart.eu/auth/obtainer"
 	catalog "linksmart.eu/lc/core/catalog/service"
+	cas "linksmart.eu/lc/sec/auth/cas/obtainer"
+	auth "linksmart.eu/lc/sec/auth/obtainer"
 )
 
 var (

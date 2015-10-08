@@ -17,12 +17,12 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/oleksandr/bonjour"
-	"linksmart.eu/auth/cas/obtainer"
-	"linksmart.eu/auth/cas/validator"
-	auth "linksmart.eu/auth/obtainer"
 	utils "linksmart.eu/lc/core/catalog"
 	catalog "linksmart.eu/lc/core/catalog/resource"
 	sc "linksmart.eu/lc/core/catalog/service"
+	"linksmart.eu/lc/sec/auth/cas/obtainer"
+	"linksmart.eu/lc/sec/auth/cas/validator"
+	auth "linksmart.eu/lc/sec/auth/obtainer"
 )
 
 var (

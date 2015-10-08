@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"linksmart.eu/auth/obtainer"
-	"linksmart.eu/auth/validator"
+	"linksmart.eu/lc/sec/auth/obtainer"
+	"linksmart.eu/lc/sec/auth/validator"
 )
 
 //

@@ -7,8 +7,8 @@ import (
 	"net/url"
 	"strings"
 
-	"linksmart.eu/auth/validator"
 	utils "linksmart.eu/lc/core/catalog"
+	"linksmart.eu/lc/sec/auth/validator"
 )
 
 type Config struct {

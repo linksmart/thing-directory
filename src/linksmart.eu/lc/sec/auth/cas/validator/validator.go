@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/kylewolfe/simplexml"
-	"linksmart.eu/auth"
-	"linksmart.eu/auth/validator"
+	"linksmart.eu/lc/sec/auth"
+	"linksmart.eu/lc/sec/auth/validator"
 )
 
 const (

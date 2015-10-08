@@ -13,8 +13,8 @@ import (
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
-	"linksmart.eu/auth/cas/validator"
 	catalog "linksmart.eu/lc/core/catalog/resource"
+	"linksmart.eu/lc/sec/auth/cas/validator"
 )
 
 // errorResponse used to serialize errors into JSON for RESTful responses

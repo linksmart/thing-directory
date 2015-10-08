@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"net/url"
 
-	auth "linksmart.eu/auth/obtainer"
+	auth "linksmart.eu/lc/sec/auth/obtainer"
 )
 
 type RemoteCatalogClient struct {

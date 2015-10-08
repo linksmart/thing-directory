@@ -17,9 +17,9 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/oleksandr/bonjour"
-	"linksmart.eu/auth/cas/validator"
 	utils "linksmart.eu/lc/core/catalog"
 	catalog "linksmart.eu/lc/core/catalog/service"
+	"linksmart.eu/lc/sec/auth/cas/validator"
 )
 
 var (

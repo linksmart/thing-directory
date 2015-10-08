@@ -8,8 +8,8 @@ import (
 	"os"
 	"path"
 
-	"linksmart.eu/auth"
-	"linksmart.eu/auth/obtainer"
+	"linksmart.eu/lc/sec/auth"
+	"linksmart.eu/lc/sec/auth/obtainer"
 )
 
 const (

@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	auth "linksmart.eu/auth/obtainer"
 	utils "linksmart.eu/lc/core/catalog"
+	auth "linksmart.eu/lc/sec/auth/obtainer"
 )
 
 const (
