@@ -20,9 +20,12 @@ import (
 	utils "linksmart.eu/lc/core/catalog"
 	catalog "linksmart.eu/lc/core/catalog/resource"
 	sc "linksmart.eu/lc/core/catalog/service"
-	"linksmart.eu/lc/sec/auth/cas/obtainer"
-	"linksmart.eu/lc/sec/auth/cas/validator"
-	auth "linksmart.eu/lc/sec/auth/obtainer"
+
+	_ "linksmart.eu/lc/sec/auth/cas/obtainer"
+	"linksmart.eu/lc/sec/auth/obtainer"
+
+	_ "linksmart.eu/lc/sec/auth/cas/validator"
+	"linksmart.eu/lc/sec/auth/validator"
 )
 
 var (
@@ -76,11 +79,15 @@ func main() {
 			if cat.Auth == nil {
 				go sc.RegisterServiceWithKeepalive(cat.Endpoint, cat.Discover, *service, sigCh, &wg, nil)
 			} else {
-				// Setup auth client with a CAS obtainer
+				// Setup ticket obtainer
+				o, err := obtainer.Setup(cat.Auth.Provider, cat.Auth.ProviderURL)
+				if err != nil {
+					fmt.Println(err.Error())
+					continue
+				}
+				// Register with a ticket obtainer client
 				go sc.RegisterServiceWithKeepalive(cat.Endpoint, cat.Discover, *service, sigCh, &wg,
-					auth.NewClient(
-						obtainer.New(cat.Auth.ServerAddr),
-						cat.Auth.Username, cat.Auth.Password, cat.Auth.ServiceID),
+					obtainer.NewClient(o, cat.Auth.Username, cat.Auth.Password, cat.Auth.ServiceID),
 				)
 			}
 			regChannels = append(regChannels, sigCh)
@@ -168,11 +175,13 @@ func setupRouter(config *Config) (*mux.Router, error) {
 
 	// Append auth handler if enabled
 	if config.Auth.Enabled {
-		v, err := validator.New(config.Auth)
+		// Setup ticket validator
+		v, err := validator.Setup(config.Auth.Provider, config.Auth.ProviderURL, config.Auth.ServiceID, config.Auth.Authz)
 		if err != nil {
 			fmt.Println(err.Error())
 			os.Exit(1)
 		}
+
 		commonHandlers = commonHandlers.Append(v.Handler)
 	}
 

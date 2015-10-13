@@ -14,23 +14,23 @@ import (
 
 const (
 	ticketPath = "/v1/tickets/"
+	driverName = "cas"
 )
 
-type Obtainer struct {
-	serverAddr string
-}
+type CASObtainer struct{}
 
-func New(serverAddr string) obtainer.Obtainer {
+func init() {
 	// Initialize the logger
-	auth.InitLogger(ioutil.Discard, os.Stdout, os.Stdout, os.Stderr, "CAS")
+	auth.InitLogger(ioutil.Discard, os.Stdout, os.Stdout, os.Stderr, driverName)
 
-	return &Obtainer{serverAddr}
+	// Register the driver as a auth/obtainer
+	obtainer.Register(driverName, &CASObtainer{})
 }
 
 // Request Ticker Granting Ticket (TGT) from CAS Server
-func (o *Obtainer) Login(username, password string) (string, error) {
+func (o *CASObtainer) Login(serverAddr, username, password string) (string, error) {
 	auth.Log.Println("Getting TGT...")
-	res, err := http.PostForm(o.serverAddr+ticketPath, url.Values{
+	res, err := http.PostForm(serverAddr+ticketPath, url.Values{
 		"username": {username},
 		"password": {password},
 	})
@@ -53,9 +53,9 @@ func (o *Obtainer) Login(username, password string) (string, error) {
 }
 
 // Request Service Token from CAS Server
-func (o *Obtainer) RequestTicket(TGT, serviceID string) (string, error) {
+func (o *CASObtainer) RequestTicket(serverAddr, TGT, serviceID string) (string, error) {
 	auth.Log.Println("Getting Service Ticket...")
-	res, err := http.PostForm(o.serverAddr+ticketPath+TGT, url.Values{
+	res, err := http.PostForm(serverAddr+ticketPath+TGT, url.Values{
 		"service": {serviceID},
 	})
 	if err != nil {
@@ -79,9 +79,9 @@ func (o *Obtainer) RequestTicket(TGT, serviceID string) (string, error) {
 }
 
 // Expire the Ticket Granting Ticket
-func (o *Obtainer) Logout(TGT string) error {
+func (o *CASObtainer) Logout(serverAddr, TGT string) error {
 	auth.Log.Println("Logging out (deleting TGT)...")
-	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s%s%s", o.serverAddr, ticketPath, TGT), nil)
+	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s%s%s", serverAddr, ticketPath, TGT), nil)
 	if err != nil {
 		return auth.Error(err)
 	}

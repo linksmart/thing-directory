@@ -11,8 +11,9 @@ import (
 	"sync"
 
 	catalog "linksmart.eu/lc/core/catalog/service"
-	cas "linksmart.eu/lc/sec/auth/cas/obtainer"
-	auth "linksmart.eu/lc/sec/auth/obtainer"
+
+	_ "linksmart.eu/lc/sec/auth/cas/obtainer"
+	"linksmart.eu/lc/sec/auth/obtainer"
 )
 
 var (
@@ -20,10 +21,11 @@ var (
 	endpoint = flag.String("endpoint", "", "Service Catalog endpoint")
 	discover = flag.Bool("discover", false, "Use DNS-SD service discovery to find Service Catalog endpoint")
 	// Authentication configuration
-	authServer = flag.String("authServer", "", "Authentication server address")
-	authUser   = flag.String("authUser", "", "Auth. server username")
-	authPass   = flag.String("authPass", "", "Auth. server password")
-	serviceID  = flag.String("serviceID", "", "Service ID at the auth. server")
+	authProvider    = flag.String("authProvider", "", "Authentication provider name")
+	authProviderURL = flag.String("authProviderURL", "", "Authentication provider url")
+	authUser        = flag.String("authUser", "", "Auth. server username")
+	authPass        = flag.String("authPass", "", "Auth. server password")
+	serviceID       = flag.String("serviceID", "", "Service ID at the auth. server")
 )
 
 func main() {
@@ -34,8 +36,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// requiresAuth if authServer is specified
-	var requiresAuth bool = (*authServer != "")
+	// requiresAuth if authProvider is specified
+	var requiresAuth bool = (*authProvider != "")
 
 	if *endpoint == "" && !*discover {
 		logger.Println("ERROR: -endpoint was not provided and discover flag not set.")
@@ -55,9 +57,14 @@ func main() {
 	if !requiresAuth {
 		go catalog.RegisterServiceWithKeepalive(*endpoint, *discover, *service, regCh, &wg, nil)
 	} else {
-		// Setup auth client with a CAS obtainer
-		catalog.RegisterServiceWithKeepalive(*endpoint, *discover, *service, regCh, &wg,
-			auth.NewClient(cas.New(*authServer), *authUser, *authPass, *serviceID),
+		// Setup ticket obtainer
+		o, err := obtainer.Setup(*authProvider, *authProviderURL)
+		if err != nil {
+			logger.Fatal(err.Error())
+		}
+		// Register with a ticket obtainer client
+		go catalog.RegisterServiceWithKeepalive(*endpoint, *discover, *service, regCh, &wg,
+			obtainer.NewClient(o, *authUser, *authPass, *serviceID),
 		)
 	}
 	wg.Add(1)

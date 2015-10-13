@@ -1,47 +1,54 @@
 {
-  "id": "demo-dgw",
-  "description": "Example Gateway",
-  "publicEndpoint": "http://fqdn-of-the-host:8080",
-  "staticDir": "./static",
-  "catalog": [
-    {
-      "discover": false,
-      "endpoint": "http://remotehost:8080/rc"
-    }
-  ],
-  "http": {
-    "bindAddr": "0.0.0.0",
-    "bindPort": 8080
-  },
-  "protocols": {
-    "REST": {
-      "location": "/rest"
-    },
-    "MQTT": {
-      "url": "tcp://127.0.0.1:1883",
-      "prefix": "/demo-dgw"
-    }
-  },
-   "auth": {
-     "enabled": true,
-     "serverAddr": "http://cas-server-addr:8000/cas",
-     "serviceID": "serviceID",
-     "authorization":  {
+	"id": "demo-dgw",
+	"description": "Example Gateway",
+	"publicEndpoint": "http://fqdn-of-the-host:8080",
+	"staticDir": "./static",
+	"catalog": [
+		{
+			"discover": false,
+			"endpoint": "http://remotehost:8081/rc",
+			"auth": {
+				"provider": "auth-provider-name",
+				"providerURL": "http://auth-provider-url:port/path",
+				"username": "username",
+				"password": "password",
+				"serviceID": "scID"
+			}
+		}
+	],
+	"http": {
+		"bindAddr": "0.0.0.0",
+		"bindPort": 8080
+	},
+	"protocols": {
+		"REST": {
+			"location": "/rest"
+		},
+		"MQTT": {
+			"url": "tcp://127.0.0.1:1883",
+			"prefix": "/demo-dgw"
+		}
+	},
+	"auth": {
 		"enabled": true,
-		"rules": [
-	      {
-	        "resources": ["/rc","/rest","/dashboard"],
-	        "methods": ["GET"],
-	        "users": [],
-	        "groups": ["rousers"]
-	      },
-	      {
-	        "resources": ["/rest"],
-	        "methods": ["PUT"],
-	        "users": [],
-	        "groups": ["rwusers"]
-	      }
-	   ]
+		"provider": "auth-provider-name",
+		"providerURL": "http://auth-provider-url:port/path",
+		"serviceID": "serviceID",
+		"authorization": {
+			"rules": [
+				{
+					"resources": ["/rc","/rest","/dashboard"],
+					"methods": ["GET"],
+					"users": [],
+					"groups": ["rousers"]
+				},
+				{
+					"resources": ["/rest"],
+					"methods": ["PUT"],
+					"users": [],
+					"groups": ["rwusers"]
+				}
+			]
+		}
 	}
-  }
 }

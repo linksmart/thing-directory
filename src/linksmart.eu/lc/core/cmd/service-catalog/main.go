@@ -19,7 +19,9 @@ import (
 	"github.com/oleksandr/bonjour"
 	utils "linksmart.eu/lc/core/catalog"
 	catalog "linksmart.eu/lc/core/catalog/service"
-	"linksmart.eu/lc/sec/auth/cas/validator"
+
+	_ "linksmart.eu/lc/sec/auth/cas/validator"
+	"linksmart.eu/lc/sec/auth/validator"
 )
 
 var (
@@ -132,11 +134,13 @@ func setupRouter(config *Config) (*mux.Router, error) {
 
 	// Append auth handler if enabled
 	if config.Auth.Enabled {
-		v, err := validator.New(config.Auth)
+		// Setup ticket validator
+		v, err := validator.Setup(config.Auth.Provider, config.Auth.ProviderURL, config.Auth.ServiceID, config.Auth.Authz)
 		if err != nil {
 			fmt.Println(err.Error())
 			os.Exit(1)
 		}
+
 		commonHandlers = commonHandlers.Append(v.Handler)
 	}
 

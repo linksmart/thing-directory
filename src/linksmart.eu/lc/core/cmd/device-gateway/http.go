@@ -14,7 +14,9 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	catalog "linksmart.eu/lc/core/catalog/resource"
-	"linksmart.eu/lc/sec/auth/cas/validator"
+
+	_ "linksmart.eu/lc/sec/auth/cas/validator"
+	"linksmart.eu/lc/sec/auth/validator"
 )
 
 // errorResponse used to serialize errors into JSON for RESTful responses
@@ -43,11 +45,13 @@ func newRESTfulAPI(conf *Config, dataCh chan<- DataRequest) *RESTfulAPI {
 
 	// Append auth handler if enabled
 	if conf.Auth.Enabled {
-		v, err := validator.New(conf.Auth)
+		// Setup ticket validator
+		v, err := validator.Setup(conf.Auth.Provider, conf.Auth.ProviderURL, conf.Auth.ServiceID, conf.Auth.Authz)
 		if err != nil {
-			logger.Println(err.Error())
+			fmt.Println(err.Error())
 			os.Exit(1)
 		}
+
 		commonHandlers = commonHandlers.Append(v.Handler)
 	}
 

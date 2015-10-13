@@ -4,8 +4,6 @@ import "errors"
 
 // Authorization struct
 type Conf struct {
-	// Authorization switch
-	Enabled bool `json:"enabled"`
 	// Authorization rules
 	Rules []Rule `json:"rules"`
 }
@@ -20,11 +18,6 @@ type Rule struct {
 
 // Validate authorization config
 func (authz *Conf) Validate() error {
-
-	// Minimum rules
-	if len(authz.Rules) == 0 {
-		return errors.New("Authz: At least one authorization rule must be defined.")
-	}
 
 	// Check each authorization rule
 	for _, rule := range authz.Rules {

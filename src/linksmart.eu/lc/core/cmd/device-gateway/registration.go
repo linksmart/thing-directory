@@ -5,8 +5,9 @@ import (
 	"sync"
 
 	catalog "linksmart.eu/lc/core/catalog/resource"
-	cas "linksmart.eu/lc/sec/auth/cas/obtainer"
-	auth "linksmart.eu/lc/sec/auth/obtainer"
+
+	_ "linksmart.eu/lc/sec/auth/cas/obtainer"
+	"linksmart.eu/lc/sec/auth/obtainer"
 )
 
 // Parses config into a slice of configured devices
@@ -82,9 +83,18 @@ func registerInRemoteCatalog(devices []catalog.Device, config *Config) ([]chan<-
 				if cat.Auth == nil {
 					go catalog.RegisterDeviceWithKeepalive(cat.Endpoint, cat.Discover, d, sigCh, &wg, nil)
 				} else {
-					// Setup auth client with a CAS obtainer
+					// TODO
+					// REGISTER ALL DEVICES WITH A SINGLE TICKET
+
+					// Setup ticket obtainer
+					o, err := obtainer.Setup(cat.Auth.Provider, cat.Auth.ProviderURL)
+					if err != nil {
+						fmt.Println(err.Error())
+						continue
+					}
+					// Register with a ticket obtainer client
 					go catalog.RegisterDeviceWithKeepalive(cat.Endpoint, cat.Discover, d, sigCh, &wg,
-						auth.NewClient(cas.New(cat.Auth.ServerAddr), cat.Auth.Username, cat.Auth.Password, cat.Auth.ServiceID),
+						obtainer.NewClient(o, cat.Auth.Username, cat.Auth.Password, cat.Auth.ServiceID),
 					)
 				}
 

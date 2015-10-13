@@ -2,13 +2,15 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/url"
 	"strings"
 
 	utils "linksmart.eu/lc/core/catalog"
-	"linksmart.eu/lc/sec/auth/validator"
+
+	"linksmart.eu/lc/sec/authz"
 )
 
 type Config struct {
@@ -20,8 +22,7 @@ type Config struct {
 	StaticDir    string        `json:"staticDir"`
 	Storage      StorageConfig `json:"storage"`
 	GC           GCConfig      `js:"gc"`
-	// Auth config
-	Auth validator.Conf `json:"auth"`
+	Auth         ValidatorConf `json:"auth"`
 }
 
 type StorageConfig struct {
@@ -91,4 +92,49 @@ func loadConfig(confPath string) (*Config, error) {
 		return nil, err
 	}
 	return config, nil
+}
+
+// Ticket Validator Config
+type ValidatorConf struct {
+	// Auth switch
+	Enabled bool `json:"enabled"`
+	// Authentication provider name
+	Provider string `json:"provider"`
+	// Authentication provider URL
+	ProviderURL string `json:"providerURL"`
+	// Service ID
+	ServiceID string `json:"serviceID"`
+	// Authorization config
+	Authz *authz.Conf `json:"authorization"`
+}
+
+func (c ValidatorConf) Validate() error {
+
+	// Validate Provider
+	if c.Provider == "" {
+		return errors.New("Ticket Validator: Auth provider name (provider) is not specified.")
+	}
+
+	// Validate ProviderURL
+	if c.ProviderURL == "" {
+		return errors.New("Ticket Validator: Auth provider URL (providerURL) is not specified.")
+	}
+	_, err := url.Parse(c.ProviderURL)
+	if err != nil {
+		return errors.New("Ticket Validator: Auth provider URL (providerURL) is invalid: " + err.Error())
+	}
+
+	// Validate ServiceID
+	if c.ServiceID == "" {
+		return errors.New("Ticket Validator: Auth Service ID (serviceID) is not specified.")
+	}
+
+	// Validate Authorization
+	if c.Authz != nil {
+		if err := c.Authz.Validate(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

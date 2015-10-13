@@ -15,31 +15,26 @@ import (
 const (
 	oauthProfilePath        = "/oauth2.0/profile"
 	casProtocolValidatePath = "/p3/serviceValidate"
+	driverName              = "cas"
 )
 
-type Validator struct {
-	*validator.Conf
-}
+type CASValidator struct{}
 
-func New(conf interface{}) (validator.Validator, error) {
+func init() {
 	// Initialize the logger
-	auth.InitLogger(ioutil.Discard, os.Stdout, os.Stdout, os.Stderr, "CAS")
+	auth.InitLogger(ioutil.Discard, os.Stdout, os.Stdout, os.Stderr, driverName)
 
-	authConf, ok := conf.(validator.Conf)
-	if !ok {
-		return nil, auth.Errorf("Bad config structure.")
-	}
-
-	return &Validator{&authConf}, nil
+	// Register the driver as a auth/validator
+	validator.Register(driverName, &CASValidator{})
 }
 
 // Validate Service Ticket (CAS Protocol)
-func (v *Validator) Validate(ticket string) (bool, map[string]string, error) {
+func (v *CASValidator) Validate(serverAddr, serviceID, ticket string) (bool, map[string]string, error) {
 	auth.Log.Println("Validating Service Token...")
 
 	bodyMap := make(map[string]string)
 	res, err := http.Get(fmt.Sprintf("%s%s?service=%s&ticket=%s",
-		v.ServerAddr, casProtocolValidatePath, v.ServiceID, ticket))
+		serverAddr, casProtocolValidatePath, serviceID, ticket))
 	if err != nil {
 		auth.Err.Println(err.Error())
 		return false, bodyMap, auth.Error(err)

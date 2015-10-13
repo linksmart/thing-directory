@@ -5,10 +5,11 @@ import (
 	"net/http"
 
 	"linksmart.eu/lc/sec/auth"
+	"linksmart.eu/lc/sec/authz"
 )
 
-// HTTP Handler for service token validation
-func (v *Validator) Handler(next http.Handler) http.Handler {
+// HTTP Handler for service ticket validation
+func (v *CASValidator) Handler(serverAddr, serviceID string, authz *authz.Conf, next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		X_Auth_Token := r.Header.Get("X-Auth-Token")
 
@@ -19,7 +20,7 @@ func (v *Validator) Handler(next http.Handler) http.Handler {
 		}
 
 		// Validate Token
-		valid, body, err := v.Validate(X_Auth_Token)
+		valid, body, err := v.Validate(serverAddr, serviceID, X_Auth_Token)
 		if err != nil {
 			auth.Log.Printf("[%s] %q %s\n", r.Method, r.URL.String(), "Authentication server error: "+err.Error())
 			auth.HTTPErrorResponse(http.StatusInternalServerError, "Authentication server error: "+err.Error(), w)
@@ -34,10 +35,11 @@ func (v *Validator) Handler(next http.Handler) http.Handler {
 			auth.HTTPErrorResponse(http.StatusUnauthorized, "Unauthorized request.", w)
 			return
 		}
-		// Authorization is enabled
-		if v.Authz.Enabled {
+
+		// Check for optional authorization
+		if authz != nil {
 			// Check if user matches authorization rules
-			authorized := v.Authz.Authorized(r.URL.Path, r.Method, body["user"], body["group"])
+			authorized := authz.Authorized(r.URL.Path, r.Method, body["user"], body["group"])
 			if !authorized {
 				auth.Log.Printf("[%s] %q %s `%s`/`%s`\n", r.Method, r.URL.String(),
 					"Access denied for", body["group"], body["user"])

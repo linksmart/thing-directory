@@ -1,7 +1,7 @@
 package obtainer
 
 type Client struct {
-	obtainer  Obtainer
+	obtainer  *Obtainer
 	username  string
 	password  string
 	serviceID string
@@ -9,7 +9,7 @@ type Client struct {
 	ticket    string
 }
 
-func NewClient(obtainer Obtainer, username, password, serviceID string) *Client {
+func NewClient(obtainer *Obtainer, username, password, serviceID string) *Client {
 	return &Client{
 		obtainer:  obtainer,
 		username:  username,
