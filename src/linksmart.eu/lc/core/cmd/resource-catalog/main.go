@@ -40,7 +40,7 @@ func main() {
 		logger.Fatalf("Error reading config file %v: %v", *confPath, err)
 	}
 
-	r, err := setupRouter(config)
+	r, shutdownAPI, err := setupRouter(config)
 	if err != nil {
 		logger.Fatal(err.Error())
 	}
@@ -125,6 +125,12 @@ func main() {
 			}
 			wg.Wait()
 
+			// Shutdown catalog API
+			err := shutdownAPI()
+			if err != nil {
+				logger.Println(err.Error())
+			}
+
 			logger.Println("Stopped")
 			os.Exit(0)
 		}
@@ -154,20 +160,32 @@ func main() {
 	n.Run(endpoint)
 }
 
-func setupRouter(config *Config) (*mux.Router, error) {
+func setupRouter(config *Config) (*mux.Router, func() error, error) {
+	// Setup API storage
+	var (
+		storage catalog.CatalogStorage
+		close   func() error = func() error { return nil }
+		err     error
+	)
+	switch config.Storage.Type {
+	case utils.CatalogBackendMemory:
+		storage = catalog.NewMemoryStorage()
+	case utils.CatalogBackendLevelDB:
+		storage, close, err = catalog.NewLevelDBStorage(config.Storage.DSN, nil)
+		if err != nil {
+			return nil, nil, fmt.Errorf("Failed to start LevelDB storage: %v", err.Error())
+		}
+	default:
+		return nil, nil, fmt.Errorf("Could not create catalog API storage. Unsupported type: %v", config.Storage.Type)
+	}
+
 	// Create catalog API object
-	var api *catalog.WritableCatalogAPI
-	if config.Storage.Type == utils.CatalogBackendMemory {
-		api = catalog.NewWritableCatalogAPI(
-			catalog.NewMemoryStorage(),
-			config.ApiLocation,
-			utils.StaticLocation,
-			config.Description,
-		)
-	}
-	if api == nil {
-		return nil, fmt.Errorf("Could not create catalog API structure. Unsupported storage type: %v", config.Storage.Type)
-	}
+	api := catalog.NewWritableCatalogAPI(
+		storage,
+		config.ApiLocation,
+		utils.StaticLocation,
+		config.Description,
+	)
 
 	commonHandlers := alice.New(
 		context.ClearHandler,
@@ -197,5 +215,5 @@ func setupRouter(config *Config) (*mux.Router, error) {
 	r.Methods("DELETE").Path(url).Handler(commonHandlers.ThenFunc(api.Delete)).Name("delete")
 	r.Methods("GET").Path(url + "/{resname}").Handler(commonHandlers.ThenFunc(api.GetResource)).Name("details")
 
-	return r, nil
+	return r, close, nil
 }

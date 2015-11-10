@@ -1,7 +1,8 @@
 package catalog
 
 const (
-	CatalogBackendMemory = "memory"
-	StaticLocation       = "/static"
-	loggerPrefix         = "[catalog] "
+	CatalogBackendMemory  = "memory"
+	CatalogBackendLevelDB = "leveldb"
+	StaticLocation        = "/static"
+	loggerPrefix          = "[catalog] "
 )

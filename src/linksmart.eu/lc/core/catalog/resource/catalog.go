@@ -109,3 +109,29 @@ type CatalogStorage interface {
 	pathFilterResource(path, op, value string) (Resource, error)
 	pathFilterResources(path, op, value string, page, perPage int) ([]Resource, int, error)
 }
+
+// Sorted-map data structure based on AVL Tree (go-avltree)
+type SortedMap struct {
+	key   interface{}
+	value interface{}
+}
+
+// Operator for string-type key
+func stringKeys(a interface{}, b interface{}) int {
+	if a.(SortedMap).key.(string) < b.(SortedMap).key.(string) {
+		return -1
+	} else if a.(SortedMap).key.(string) > b.(SortedMap).key.(string) {
+		return 1
+	}
+	return 0
+}
+
+// Operator for Time-type key
+func timeKeys(a interface{}, b interface{}) int {
+	if a.(SortedMap).key.(time.Time).Before(b.(SortedMap).key.(time.Time)) {
+		return -1
+	} else if a.(SortedMap).key.(time.Time).After(b.(SortedMap).key.(time.Time)) {
+		return 1
+	}
+	return 0
+}

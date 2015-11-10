@@ -34,10 +34,12 @@ type ServiceCatalog struct {
 
 type StorageConfig struct {
 	Type string `json:"type"`
+	DSN  string `json:"dsn"`
 }
 
 var supportedBackends = map[string]bool{
-	utils.CatalogBackendMemory: true,
+	utils.CatalogBackendMemory:  true,
+	utils.CatalogBackendLevelDB: true,
 }
 
 func (c *Config) Validate() error {
@@ -48,6 +50,10 @@ func (c *Config) Validate() error {
 	_, err = url.Parse(c.PublicEndpoint)
 	if err != nil {
 		err = fmt.Errorf("PublicEndpoint should be a valid URL")
+	}
+	_, err = url.Parse(c.Storage.DSN)
+	if err != nil {
+		err = fmt.Errorf("storage DSN should be a valid URL")
 	}
 	if !supportedBackends[c.Storage.Type] {
 		err = fmt.Errorf("Unsupported storage backend")
