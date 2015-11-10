@@ -52,7 +52,7 @@ func HTTPDoAuth(req *http.Request, ticket *obtainer.Client) (*http.Response, err
 	if err != nil {
 		return nil, err
 	}
-	if res != nil {
+	if res == nil {
 		return nil, errors.New("HTTPDoAuth() Unexpected empty HTTP response.")
 	}
 
