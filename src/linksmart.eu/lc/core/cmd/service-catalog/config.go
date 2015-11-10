@@ -27,10 +27,12 @@ type Config struct {
 
 type StorageConfig struct {
 	Type string `json:"type"`
+	DSN  string `json:"dsn"`
 }
 
 var supportedBackends = map[string]bool{
-	utils.CatalogBackendMemory: true,
+	utils.CatalogBackendMemory:  true,
+	utils.CatalogBackendLevelDB: true,
 }
 
 // GCConfig describes configuration of the GlobalConnect
@@ -46,6 +48,10 @@ func (c *Config) Validate() error {
 	}
 	if !supportedBackends[c.Storage.Type] {
 		err = fmt.Errorf("Unsupported storage backend")
+	}
+	_, err = url.Parse(c.Storage.DSN)
+	if err != nil {
+		err = fmt.Errorf("storage DSN should be a valid URL")
 	}
 	if c.ApiLocation == "" {
 		err = fmt.Errorf("apiLocation must be defined")

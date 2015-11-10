@@ -101,3 +101,19 @@ type Listener interface {
 	updated(s Service)
 	deleted(id string)
 }
+
+// Sorted-map data structure based on AVL Tree (go-avltree)
+type SortedMap struct {
+	key   interface{}
+	value interface{}
+}
+
+// Operator for Time-type key
+func timeKeys(a interface{}, b interface{}) int {
+	if a.(SortedMap).key.(time.Time).Before(b.(SortedMap).key.(time.Time)) {
+		return -1
+	} else if a.(SortedMap).key.(time.Time).After(b.(SortedMap).key.(time.Time)) {
+		return 1
+	}
+	return 0
+}

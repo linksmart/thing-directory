@@ -36,7 +36,7 @@ func main() {
 		logger.Fatalf("Error reading config file %v: %v", *confPath, err)
 	}
 
-	r, err := setupRouter(config)
+	r, shutdownAPI, err := setupRouter(config)
 	if err != nil {
 		logger.Fatal(err.Error())
 	}
@@ -76,6 +76,12 @@ func main() {
 				time.Sleep(1e9)
 			}
 
+			// Shutdown catalog API
+			err := shutdownAPI()
+			if err != nil {
+				logger.Println(err.Error())
+			}
+
 			logger.Println("Stopped")
 			os.Exit(0)
 		}
@@ -105,9 +111,7 @@ func main() {
 	n.Run(endpoint)
 }
 
-func setupRouter(config *Config) (*mux.Router, error) {
-	// Create catalog API object
-	var api *catalog.WritableCatalogAPI
+func setupRouter(config *Config) (*mux.Router, func() error, error) {
 	listeners := []catalog.Listener{}
 	// GC publisher if configured
 	if config.GC.TunnelingService != "" {
@@ -115,18 +119,32 @@ func setupRouter(config *Config) (*mux.Router, error) {
 		listeners = append(listeners, catalog.NewGCPublisher(*endpoint))
 	}
 
-	if config.Storage.Type == utils.CatalogBackendMemory {
-		api = catalog.NewWritableCatalogAPI(
-			catalog.NewMemoryStorage(),
-			config.ApiLocation,
-			utils.StaticLocation,
-			config.Description,
-			listeners...,
-		)
+	// Setup API storage
+	var (
+		storage catalog.CatalogStorage
+		close   func() error = func() error { return nil }
+		err     error
+	)
+	switch config.Storage.Type {
+	case utils.CatalogBackendMemory:
+		storage = catalog.NewMemoryStorage()
+	case utils.CatalogBackendLevelDB:
+		storage, close, err = catalog.NewLevelDBStorage(config.Storage.DSN, nil)
+		if err != nil {
+			return nil, nil, fmt.Errorf("Failed to start LevelDB storage: %v", err.Error())
+		}
+	default:
+		return nil, nil, fmt.Errorf("Could not create catalog API storage. Unsupported type: %v", config.Storage.Type)
 	}
-	if api == nil {
-		return nil, fmt.Errorf("Could not create catalog API structure. Unsupported storage type: %v", config.Storage.Type)
-	}
+
+	// Create catalog API object
+	api := catalog.NewWritableCatalogAPI(
+		storage,
+		config.ApiLocation,
+		utils.StaticLocation,
+		config.Description,
+		listeners...,
+	)
 
 	commonHandlers := alice.New(
 		context.ClearHandler,
@@ -155,5 +173,5 @@ func setupRouter(config *Config) (*mux.Router, error) {
 	r.Methods("PUT").Path(url).Handler(commonHandlers.ThenFunc(api.Update)).Name("update")
 	r.Methods("DELETE").Path(url).Handler(commonHandlers.ThenFunc(api.Delete)).Name("delete")
 
-	return r, nil
+	return r, close, nil
 }

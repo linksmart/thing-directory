@@ -6,7 +6,8 @@
 	"apiLocation": "/sc",
 	"staticDir": "./static",
 	"storage": {
-		"type": "memory"
+		"type": "memory",
+		"dsn": ""
 	},
 	"auth": {
 		"enabled": true,
