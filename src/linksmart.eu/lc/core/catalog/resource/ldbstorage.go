@@ -159,9 +159,6 @@ func (s *LevelDBStorage) update(id string, d Device) error {
 		sd.Resources = append(sd.Resources, res)
 	}
 
-	// Add new secondary indices
-	s.addIndices(&sd)
-
 	// Store the modified device
 	bytes, err := json.Marshal(&sd)
 	if err != nil {
@@ -171,6 +168,9 @@ func (s *LevelDBStorage) update(id string, d Device) error {
 	if err != nil {
 		return err
 	}
+
+	// Add new secondary indices
+	s.addIndices(&sd)
 
 	return nil
 }
@@ -277,7 +277,11 @@ func (s *LevelDBStorage) getResourceById(id string) (Resource, error) {
 	s.RLock()
 	defer s.RUnlock()
 
-	deviceID := s.resDevice.Find(SortedMap{key: id}).(SortedMap).value.(string)
+	res := s.resDevice.Find(SortedMap{key: id})
+	if res == nil {
+		return Resource{}, ErrorNotFound
+	}
+	deviceID := res.(SortedMap).value.(string)
 	device, err := s.get(deviceID)
 	if err != nil {
 		return Resource{}, err
@@ -506,39 +510,46 @@ func (s *LevelDBStorage) pathFilterResources(path, op, value string, page, perPa
 // Clean all remote registrations which expire time is larger than the given timestamp
 func (s *LevelDBStorage) cleanExpired(timestamp time.Time) {
 	s.Lock()
+
+	var expiredList []SortedMap
 	for m := range s.expDevice.Iter() {
 		if !m.(SortedMap).key.(time.Time).After(timestamp) {
-			id := m.(SortedMap).value.(string)
-			logger.Printf("LevelDBStorage.cleanExpired() Registration %v has expired\n", id)
-
-			oldDevice, err := s.get(id)
-			if err != nil {
-				continue
-			}
-
-			// Remove the device from db
-			err = s.db.Delete([]byte(id), nil)
-			if err != nil {
-				continue
-			}
-
-			// Remove resource indices
-			for _, r := range oldDevice.Resources {
-				s.resDevice.Remove(SortedMap{key: r.Id})
-			}
-
-			// Remove expiry index
-			s.expDevice.Remove(m)
+			expiredList = append(expiredList, m.(SortedMap))
 		} else {
-			// expDevice is sorted by time ascendingly,
-			//	so they will expire in order
+			// expDevice is sorted by time ascendingly: its elements expire in order
 			break
 		}
 	}
+
+	for _, m := range expiredList {
+		// Remove expiry index
+		id := s.expDevice.Remove(m).(SortedMap).value.(string)
+		logger.Printf("LevelDBStorage.cleanExpired() Registration %v has expired\n", id)
+
+		oldDevice, err := s.get(id)
+		if err != nil {
+			logger.Println("LevelDBStorage.cleanExpired()", err.Error())
+			continue
+		}
+
+		// Remove the device from db
+		err = s.db.Delete([]byte(id), nil)
+		if err != nil {
+			logger.Println("LevelDBStorage.cleanExpired()", err.Error())
+			continue
+		}
+
+		// Remove resource indices
+		for _, r := range oldDevice.Resources {
+			s.resDevice.Remove(SortedMap{key: r.Id})
+		}
+	}
+
 	s.Unlock()
 }
 
 // Creates secondary indices
+// WARNING: the caller must obtain the lock before calling
 func (s *LevelDBStorage) addIndices(d *Device) {
 	for _, r := range d.Resources {
 		s.resDevice.Add(SortedMap{r.Id, d.Id})
@@ -551,6 +562,7 @@ func (s *LevelDBStorage) addIndices(d *Device) {
 }
 
 // Removes secondary indices
+// WARNING: the caller must obtain the lock before calling
 func (s *LevelDBStorage) removeIndices(d *Device) {
 	// Remove resource indices
 	for _, r := range d.Resources {
@@ -559,11 +571,24 @@ func (s *LevelDBStorage) removeIndices(d *Device) {
 
 	// Remove the expiry time index
 	if d.Ttl >= 0 {
+		var temp []SortedMap // Keep duplicates in temp and store them back
 		for m := range s.expDevice.Iter() {
-			if m.(SortedMap).value.(string) == d.Id {
-				s.expDevice.Remove(m)
+			id := m.(SortedMap).value.(string)
+			if id == d.Id {
+				for { // go through all duplicates
+					r := s.expDevice.Remove(m)
+					if r == nil {
+						break
+					}
+					if id != d.Id {
+						temp = append(temp, r.(SortedMap))
+					}
+				}
 				break
 			}
+		}
+		for _, r := range temp {
+			s.expDevice.Add(r)
 		}
 	}
 }

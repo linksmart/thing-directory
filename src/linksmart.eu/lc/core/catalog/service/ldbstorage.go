@@ -51,7 +51,7 @@ func NewLevelDBStorage(dsn string, opts *opt.Options) (CatalogStorage, func() er
 		if err != nil {
 			return &LevelDBStorage{}, nil, err
 		}
-		s.expDevice.Add(SortedMap{srv.Expires, srv.Id})
+		s.addIndices(&srv)
 	}
 	iter.Release()
 	s.wg.Done()
@@ -84,8 +84,6 @@ func (s *LevelDBStorage) add(srv Service) error {
 	srv.Updated = srv.Created
 	if srv.Ttl >= 0 {
 		srv.Expires = srv.Created.Add(time.Duration(srv.Ttl) * time.Second)
-		// Add expiry index
-		s.expDevice.Add(SortedMap{srv.Expires, srv.Id})
 	}
 
 	// Add to database
@@ -97,6 +95,9 @@ func (s *LevelDBStorage) add(srv Service) error {
 	if err != nil {
 		return err
 	}
+
+	// Create secondary indices
+	s.addIndices(&srv)
 
 	return nil
 }
@@ -131,13 +132,8 @@ func (s *LevelDBStorage) update(id string, srv Service) error {
 		return err
 	}
 
-	// Remove expiry index
-	for m := range s.expDevice.Iter() {
-		if m.(SortedMap).value.(string) == storedSrv.Id {
-			s.expDevice.Remove(m)
-			break
-		}
-	}
+	// Remove old secondary indices
+	s.removeIndices(&storedSrv)
 
 	storedSrv.Type = srv.Type
 	storedSrv.Name = srv.Name
@@ -146,8 +142,6 @@ func (s *LevelDBStorage) update(id string, srv Service) error {
 	storedSrv.Updated = time.Now()
 	if srv.Ttl >= 0 {
 		storedSrv.Expires = storedSrv.Updated.Add(time.Duration(srv.Ttl) * time.Second)
-		// Add expiry index
-		s.expDevice.Add(SortedMap{storedSrv.Expires, storedSrv.Id})
 	}
 
 	// Store the modified service
@@ -160,6 +154,9 @@ func (s *LevelDBStorage) update(id string, srv Service) error {
 		return err
 	}
 
+	// Add new secondary indices
+	s.addIndices(&storedSrv)
+
 	return nil
 }
 
@@ -167,7 +164,7 @@ func (s *LevelDBStorage) delete(id string) error {
 	s.Lock()
 	defer s.Unlock()
 
-	_, err := s.get(id)
+	oldSrv, err := s.get(id)
 	if err == leveldb.ErrNotFound {
 		return ErrorNotFound
 	} else if err != nil {
@@ -179,13 +176,8 @@ func (s *LevelDBStorage) delete(id string) error {
 		return err
 	}
 
-	// Remove expiry index
-	for m := range s.expDevice.Iter() {
-		if m.(SortedMap).value.(string) == id {
-			s.expDevice.Remove(m)
-			break
-		}
-	}
+	// Remove secondary indices
+	s.removeIndices(&oldSrv)
 
 	return nil
 }
@@ -336,26 +328,67 @@ func (s *LevelDBStorage) pathFilter(path, op, value string, page, perPage int) (
 // Clean all remote registrations which expire time is larger than the given timestamp
 func (s *LevelDBStorage) cleanExpired(timestamp time.Time) {
 	s.Lock()
+
+	var expiredList []SortedMap
 	for m := range s.expDevice.Iter() {
 		if !m.(SortedMap).key.(time.Time).After(timestamp) {
-			id := m.(SortedMap).value.(string)
-			logger.Printf("LevelDBStorage.cleanExpired() Registration %v has expired\n", id)
-
-			// Remove the device from db
-			err := s.db.Delete([]byte(id), nil)
-			if err != nil {
-				continue
-			}
-
-			// Remove expiry index
-			s.expDevice.Remove(m)
+			expiredList = append(expiredList, m.(SortedMap))
 		} else {
-			// expDevice is sorted by time ascendingly,
-			//	so they will expire in order
+			// expDevice is sorted by time ascendingly: its elements expire in order
 			break
 		}
 	}
+
+	for _, m := range expiredList {
+		// Remove expiry index
+		id := s.expDevice.Remove(m).(SortedMap).value.(string)
+		logger.Printf("LevelDBStorage.cleanExpired() Registration %v has expired\n", id)
+
+		// Remove the device from db
+		err := s.db.Delete([]byte(id), nil)
+		if err != nil {
+			logger.Println("LevelDBStorage.cleanExpired()", err.Error())
+			continue
+		}
+	}
+
 	s.Unlock()
+}
+
+// Creates secondary indices
+// WARNING: the caller must obtain the lock before calling
+func (s *LevelDBStorage) addIndices(srv *Service) {
+	// Add expiry time index
+	if srv.Ttl >= 0 {
+		s.expDevice.Add(SortedMap{srv.Expires, srv.Id})
+	}
+}
+
+// Removes secondary indices
+// WARNING: the caller must obtain the lock before calling
+func (s *LevelDBStorage) removeIndices(srv *Service) {
+	// Remove the expiry time index
+	if srv.Ttl >= 0 {
+		var temp []SortedMap // Keep duplicates in temp and store them back
+		for m := range s.expDevice.Iter() {
+			id := m.(SortedMap).value.(string)
+			if id == srv.Id {
+				for { // go through all duplicates
+					r := s.expDevice.Remove(m)
+					if r == nil {
+						break
+					}
+					if id != srv.Id {
+						temp = append(temp, r.(SortedMap))
+					}
+				}
+				break
+			}
+		}
+		for _, r := range temp {
+			s.expDevice.Add(r)
+		}
+	}
 }
 
 func (s *LevelDBStorage) close() error {
