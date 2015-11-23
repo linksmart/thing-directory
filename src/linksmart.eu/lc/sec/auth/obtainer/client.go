@@ -1,5 +1,9 @@
 package obtainer
 
+import (
+	"sync"
+)
+
 type Client struct {
 	obtainer  *Obtainer
 	username  string
@@ -7,44 +11,58 @@ type Client struct {
 	serviceID string
 	tgt       string
 	ticket    string
+	sync.Mutex
 }
 
-func NewClient(obtainer *Obtainer, username, password, serviceID string) *Client {
+func NewClient(providerName, providerURL, username, password, serviceID string) (*Client, error) {
+	// Setup obtainer
+	o, err := Setup(providerName, providerURL)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Client{
-		obtainer:  obtainer,
+		obtainer:  o,
 		username:  username,
 		password:  password,
 		serviceID: serviceID,
-	}
+	}, nil
 }
 
 func (c *Client) Ticket() string {
 	return c.ticket
 }
 
-// Obtain a new ticket
+// Obtain the ticket, create one if it's not available
 func (c *Client) Obtain() (string, error) {
-	// Get Ticket Granting Ticket
-	TGT, err := c.obtainer.Login(c.username, c.password)
-	if err != nil {
-		return "", err
+	c.Lock()
+	defer c.Unlock()
+
+	if c.ticket == "" {
+		// Get Ticket Granting Ticket
+		TGT, err := c.obtainer.Login(c.username, c.password)
+		if err != nil {
+			return "", err
+		}
+		c.tgt = TGT
+
+		// Get Service Ticket
+		ticket, err := c.obtainer.RequestTicket(TGT, c.serviceID)
+		if err != nil {
+			return "", err
+		}
+		c.ticket = ticket
+
 	}
 
-	// Get Service Ticket
-	ticket, err := c.obtainer.RequestTicket(TGT, c.serviceID)
-	if err != nil {
-		return "", err
-	}
-	c.ticket = ticket
-
-	// Keep a copy for renewal references
-	c.tgt = TGT
-
-	return ticket, nil
+	return c.ticket, nil
 }
 
 // Renew the ticket
 func (c *Client) Renew() (string, error) {
+	c.Lock()
+	defer c.Unlock()
+
 	// Renew Service Ticket using previous TGT
 	ticket, err := c.obtainer.RequestTicket(c.tgt, c.serviceID)
 	if err != nil {
@@ -53,26 +71,30 @@ func (c *Client) Renew() (string, error) {
 		if err != nil {
 			return "", err
 		}
+		c.tgt = TGT
 
 		// Get Service Ticket
-		ticket, err := c.obtainer.RequestTicket(TGT, c.serviceID)
+		ticket, err = c.obtainer.RequestTicket(TGT, c.serviceID)
 		if err != nil {
 			return "", err
 		}
-		c.ticket = ticket
-		// Keep a copy for future renewal references
-		c.tgt = TGT
-
-		return ticket, nil
 	}
-	return ticket, nil
+	c.ticket = ticket
+
+	return c.ticket, nil
 }
 
 // Delete the ticket granting ticket
 func (c *Client) Delete() error {
+	c.Lock()
+	defer c.Unlock()
+
 	err := c.obtainer.Logout(c.tgt)
 	if err != nil {
 		return err
 	}
+	c.tgt = ""
+	c.ticket = ""
+
 	return nil
 }

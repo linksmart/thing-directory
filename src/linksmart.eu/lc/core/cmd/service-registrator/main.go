@@ -57,15 +57,13 @@ func main() {
 	if !requiresAuth {
 		go catalog.RegisterServiceWithKeepalive(*endpoint, *discover, *service, regCh, &wg, nil)
 	} else {
-		// Setup ticket obtainer
-		o, err := obtainer.Setup(*authProvider, *authProviderURL)
+		// Setup ticket client
+		ticket, err := obtainer.NewClient(*authProvider, *authProviderURL, *authUser, *authPass, *serviceID)
 		if err != nil {
 			logger.Fatal(err.Error())
 		}
 		// Register with a ticket obtainer client
-		go catalog.RegisterServiceWithKeepalive(*endpoint, *discover, *service, regCh, &wg,
-			obtainer.NewClient(o, *authUser, *authPass, *serviceID),
-		)
+		go catalog.RegisterServiceWithKeepalive(*endpoint, *discover, *service, regCh, &wg, ticket)
 	}
 	wg.Add(1)
 

@@ -76,22 +76,20 @@ func main() {
 			// Set TTL
 			service.Ttl = cat.Ttl
 			sigCh := make(chan bool)
+			wg.Add(1)
 			if cat.Auth == nil {
 				go sc.RegisterServiceWithKeepalive(cat.Endpoint, cat.Discover, *service, sigCh, &wg, nil)
 			} else {
-				// Setup ticket obtainer
-				o, err := obtainer.Setup(cat.Auth.Provider, cat.Auth.ProviderURL)
+				// Setup ticket client
+				ticket, err := obtainer.NewClient(cat.Auth.Provider, cat.Auth.ProviderURL, cat.Auth.Username, cat.Auth.Password, cat.Auth.ServiceID)
 				if err != nil {
-					fmt.Println(err.Error())
+					logger.Println(err.Error())
 					continue
 				}
 				// Register with a ticket obtainer client
-				go sc.RegisterServiceWithKeepalive(cat.Endpoint, cat.Discover, *service, sigCh, &wg,
-					obtainer.NewClient(o, cat.Auth.Username, cat.Auth.Password, cat.Auth.ServiceID),
-				)
+				go sc.RegisterServiceWithKeepalive(cat.Endpoint, cat.Discover, *service, sigCh, &wg, ticket)
 			}
 			regChannels = append(regChannels, sigCh)
-			wg.Add(1)
 		}
 
 	}
@@ -196,8 +194,7 @@ func setupRouter(config *Config) (*mux.Router, func() error, error) {
 		// Setup ticket validator
 		v, err := validator.Setup(config.Auth.Provider, config.Auth.ProviderURL, config.Auth.ServiceID, config.Auth.Authz)
 		if err != nil {
-			fmt.Println(err.Error())
-			os.Exit(1)
+			return nil, nil, err
 		}
 
 		commonHandlers = commonHandlers.Append(v.Handler)

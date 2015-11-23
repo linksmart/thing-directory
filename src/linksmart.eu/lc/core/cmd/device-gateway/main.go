@@ -44,7 +44,11 @@ func main() {
 	go agentManager.start()
 
 	// Expose device's resources via REST (include statics and local catalog)
-	restServer := newRESTfulAPI(config, agentManager.DataRequestInbox())
+	restServer, err := newRESTfulAPI(config, agentManager.DataRequestInbox())
+	if err != nil {
+		logger.Println(err.Error())
+		os.Exit(1)
+	}
 	catalogStorage := catalog.NewMemoryStorage()
 	go restServer.start(catalogStorage)
 

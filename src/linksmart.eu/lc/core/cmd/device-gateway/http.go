@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"mime"
 	"net/http"
-	"os"
 	"path/filepath"
 
 	"github.com/codegangsta/negroni"
@@ -35,7 +34,7 @@ type RESTfulAPI struct {
 }
 
 // Constructs a RESTfulAPI data structure
-func newRESTfulAPI(conf *Config, dataCh chan<- DataRequest) *RESTfulAPI {
+func newRESTfulAPI(conf *Config, dataCh chan<- DataRequest) (*RESTfulAPI, error) {
 	restConfig, _ := conf.Protocols[ProtocolTypeREST].(RestProtocol)
 
 	// Common handlers
@@ -48,8 +47,7 @@ func newRESTfulAPI(conf *Config, dataCh chan<- DataRequest) *RESTfulAPI {
 		// Setup ticket validator
 		v, err := validator.Setup(conf.Auth.Provider, conf.Auth.ProviderURL, conf.Auth.ServiceID, conf.Auth.Authz)
 		if err != nil {
-			fmt.Println(err.Error())
-			os.Exit(1)
+			return nil, err
 		}
 
 		commonHandlers = commonHandlers.Append(v.Handler)
@@ -62,7 +60,7 @@ func newRESTfulAPI(conf *Config, dataCh chan<- DataRequest) *RESTfulAPI {
 		dataCh:         dataCh,
 		commonHandlers: commonHandlers,
 	}
-	return api
+	return api, nil
 }
 
 // Setup all routers, handlers and start a HTTP server (blocking call)

@@ -77,29 +77,22 @@ func registerInRemoteCatalog(devices []catalog.Device, config *Config) ([]chan<-
 		logger.Println("Will now register in the configured remote catalogs")
 
 		for _, cat := range config.Catalog {
+			var ticket *obtainer.Client
+			var err error
+			if cat.Auth != nil {
+				// Setup ticket client
+				ticket, err = obtainer.NewClient(cat.Auth.Provider, cat.Auth.ProviderURL, cat.Auth.Username, cat.Auth.Password, cat.Auth.ServiceID)
+				if err != nil {
+					logger.Println(err.Error())
+					continue
+				}
+			}
+
 			for _, d := range devices {
 				sigCh := make(chan bool)
-
-				if cat.Auth == nil {
-					go catalog.RegisterDeviceWithKeepalive(cat.Endpoint, cat.Discover, d, sigCh, &wg, nil)
-				} else {
-					// TODO
-					// REGISTER ALL DEVICES WITH A SINGLE TICKET
-
-					// Setup ticket obtainer
-					o, err := obtainer.Setup(cat.Auth.Provider, cat.Auth.ProviderURL)
-					if err != nil {
-						fmt.Println(err.Error())
-						continue
-					}
-					// Register with a ticket obtainer client
-					go catalog.RegisterDeviceWithKeepalive(cat.Endpoint, cat.Discover, d, sigCh, &wg,
-						obtainer.NewClient(o, cat.Auth.Username, cat.Auth.Password, cat.Auth.ServiceID),
-					)
-				}
-
-				regChannels = append(regChannels, sigCh)
 				wg.Add(1)
+				go catalog.RegisterDeviceWithKeepalive(cat.Endpoint, cat.Discover, d, sigCh, &wg, ticket)
+				regChannels = append(regChannels, sigCh)
 			}
 		}
 	}

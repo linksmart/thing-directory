@@ -46,8 +46,13 @@ func HTTPRequest(method string, url string, headers map[string][]string, body io
 // Send an HTTP request with X-Auth-Token entity-header.
 //	Ticket is renewed once in case of failure.
 func HTTPDoAuth(req *http.Request, ticket *obtainer.Client) (*http.Response, error) {
+	X_Auth_Token, err := ticket.Obtain()
+	if err != nil {
+		return nil, err
+	}
+
 	// Set auth header and send the request
-	req.Header.Set("X-Auth-Token", ticket.Ticket())
+	req.Header.Set("X-Auth-Token", X_Auth_Token)
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -59,7 +64,7 @@ func HTTPDoAuth(req *http.Request, ticket *obtainer.Client) (*http.Response, err
 	if res.StatusCode == http.StatusUnauthorized {
 		// Get a new ticket and retry again
 		logger.Println("HTTPDoAuth() Invalid authentication ticket.")
-		X_Auth_Token, err := ticket.Renew()
+		X_Auth_Token, err = ticket.Renew()
 		if err != nil {
 			return nil, err
 		}

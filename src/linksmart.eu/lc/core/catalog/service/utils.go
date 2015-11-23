@@ -55,15 +55,6 @@ func RegisterServiceWithKeepalive(endpoint string, discover bool, s Service,
 		}
 	}
 
-	// Get a new service auth ticket, maintained by the obtainer client
-	if ticket != nil {
-		_, err := ticket.Obtain()
-		if err != nil {
-			logger.Println("RegisterServiceWithKeepalive() Unable to get service ticket from auth client:", err.Error())
-			return
-		}
-	}
-
 	// Configure client
 	client := NewRemoteCatalogClient(endpoint, ticket)
 

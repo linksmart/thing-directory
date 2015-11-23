@@ -155,8 +155,7 @@ func setupRouter(config *Config) (*mux.Router, func() error, error) {
 		// Setup ticket validator
 		v, err := validator.Setup(config.Auth.Provider, config.Auth.ProviderURL, config.Auth.ServiceID, config.Auth.Authz)
 		if err != nil {
-			fmt.Println(err.Error())
-			os.Exit(1)
+			return nil, nil, err
 		}
 
 		commonHandlers = commonHandlers.Append(v.Handler)

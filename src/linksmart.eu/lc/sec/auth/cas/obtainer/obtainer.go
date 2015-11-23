@@ -29,7 +29,6 @@ func init() {
 
 // Request Ticker Granting Ticket (TGT) from CAS Server
 func (o *CASObtainer) Login(serverAddr, username, password string) (string, error) {
-	auth.Log.Println("Getting TGT...")
 	res, err := http.PostForm(serverAddr+ticketPath, url.Values{
 		"username": {username},
 		"password": {password},
@@ -37,7 +36,7 @@ func (o *CASObtainer) Login(serverAddr, username, password string) (string, erro
 	if err != nil {
 		return "", auth.Error(err)
 	}
-	auth.Log.Println(res.Status)
+	auth.Log.Println("Login()", res.Status)
 
 	// Check for credentials
 	if res.StatusCode != http.StatusCreated {
@@ -54,21 +53,19 @@ func (o *CASObtainer) Login(serverAddr, username, password string) (string, erro
 
 // Request Service Token from CAS Server
 func (o *CASObtainer) RequestTicket(serverAddr, TGT, serviceID string) (string, error) {
-	auth.Log.Println("Getting Service Ticket...")
 	res, err := http.PostForm(serverAddr+ticketPath+TGT, url.Values{
 		"service": {serviceID},
 	})
 	if err != nil {
 		return "", auth.Error(err)
 	}
-	auth.Log.Println(res.Status)
+	auth.Log.Println("RequestTicket()", res.Status)
 
 	body, err := ioutil.ReadAll(res.Body)
 	defer res.Body.Close()
 	if err != nil {
 		return "", auth.Error(err)
 	}
-	res.Body.Close()
 
 	// Check for TGT errors
 	if res.StatusCode != http.StatusOK {
@@ -80,7 +77,6 @@ func (o *CASObtainer) RequestTicket(serverAddr, TGT, serviceID string) (string, 
 
 // Expire the Ticket Granting Ticket
 func (o *CASObtainer) Logout(serverAddr, TGT string) error {
-	auth.Log.Println("Logging out (deleting TGT)...")
 	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s%s%s", serverAddr, ticketPath, TGT), nil)
 	if err != nil {
 		return auth.Error(err)
@@ -89,7 +85,7 @@ func (o *CASObtainer) Logout(serverAddr, TGT string) error {
 	if err != nil {
 		return auth.Error(err)
 	}
-	auth.Log.Println(res.Status)
+	auth.Log.Println("Logout()", res.Status)
 
 	// Check for server errors
 	if res.StatusCode != http.StatusOK {
