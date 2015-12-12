@@ -25,16 +25,16 @@ type LevelDBStorage struct {
 	expDevice *avl.Tree
 }
 
-func NewLevelDBStorage(dsn string, opts *opt.Options) (CatalogStorage, func() error, error) {
+func NewLevelDBStorage(dsn string, opts *opt.Options) (CatalogStorage, error) {
 	url, err := url.Parse(dsn)
 	if err != nil {
-		return &LevelDBStorage{}, nil, err
+		return &LevelDBStorage{}, err
 	}
 
 	// Open the database file
 	db, err := leveldb.OpenFile(url.Path, opts)
 	if err != nil {
-		return &LevelDBStorage{}, nil, err
+		return &LevelDBStorage{}, err
 	}
 
 	s := &LevelDBStorage{
@@ -49,7 +49,7 @@ func NewLevelDBStorage(dsn string, opts *opt.Options) (CatalogStorage, func() er
 		var srv Service
 		err = json.Unmarshal(iter.Value(), &srv)
 		if err != nil {
-			return &LevelDBStorage{}, nil, err
+			return &LevelDBStorage{}, err
 		}
 		s.addIndices(&srv)
 	}
@@ -57,7 +57,7 @@ func NewLevelDBStorage(dsn string, opts *opt.Options) (CatalogStorage, func() er
 	s.wg.Done()
 	err = iter.Error()
 	if err != nil {
-		return &LevelDBStorage{}, nil, err
+		return &LevelDBStorage{}, err
 	}
 
 	// schedule cleaner
@@ -68,7 +68,7 @@ func NewLevelDBStorage(dsn string, opts *opt.Options) (CatalogStorage, func() er
 		}
 	}()
 
-	return s, s.close, nil
+	return s, nil
 }
 
 // CRUD
@@ -83,7 +83,10 @@ func (s *LevelDBStorage) add(srv Service) error {
 	srv.Created = time.Now()
 	srv.Updated = srv.Created
 	if srv.Ttl >= 0 {
-		srv.Expires = srv.Created.Add(time.Duration(srv.Ttl) * time.Second)
+		expires := srv.Created.Add(time.Duration(srv.Ttl) * time.Second)
+		srv.Expires = &expires
+	} else {
+		srv.Expires = nil
 	}
 
 	// Add to database
@@ -141,7 +144,10 @@ func (s *LevelDBStorage) update(id string, srv Service) error {
 	storedSrv.Ttl = srv.Ttl
 	storedSrv.Updated = time.Now()
 	if srv.Ttl >= 0 {
-		storedSrv.Expires = storedSrv.Updated.Add(time.Duration(srv.Ttl) * time.Second)
+		expires := storedSrv.Updated.Add(time.Duration(srv.Ttl) * time.Second)
+		storedSrv.Expires = &expires
+	} else {
+		storedSrv.Expires = nil
 	}
 
 	// Store the modified service
@@ -220,7 +226,7 @@ func (s *LevelDBStorage) getMany(page int, perPage int) ([]Service, int, error) 
 	return services, len(keys), nil
 }
 
-func (s *LevelDBStorage) getCount() int {
+func (s *LevelDBStorage) getCount() (int, error) {
 	c := 0
 	s.wg.Add(1)
 	iter := s.db.NewIterator(nil, nil)
@@ -231,11 +237,10 @@ func (s *LevelDBStorage) getCount() int {
 	s.wg.Done()
 	err := iter.Error()
 	if err != nil {
-		logger.Println("LevelDBStorage.getDevicesCount()", err.Error())
-		return 0
+		return 0, err
 	}
 
-	return c
+	return c, nil
 }
 
 // Path filtering
@@ -360,7 +365,7 @@ func (s *LevelDBStorage) cleanExpired(timestamp time.Time) {
 func (s *LevelDBStorage) addIndices(srv *Service) {
 	// Add expiry time index
 	if srv.Ttl >= 0 {
-		s.expDevice.Add(SortedMap{srv.Expires, srv.Id})
+		s.expDevice.Add(SortedMap{*srv.Expires, srv.Id})
 	}
 }
 
@@ -391,7 +396,7 @@ func (s *LevelDBStorage) removeIndices(srv *Service) {
 	}
 }
 
-func (s *LevelDBStorage) close() error {
+func (s *LevelDBStorage) Close() error {
 	s.wg.Wait()
 	return s.db.Close()
 }

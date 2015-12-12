@@ -5,10 +5,14 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/oleksandr/bonjour"
+	"github.com/syndtr/goleveldb/leveldb/opt"
+
+	utils "linksmart.eu/lc/core/catalog"
 	catalog "linksmart.eu/lc/core/catalog/resource"
 )
 
@@ -49,7 +53,26 @@ func main() {
 		logger.Println(err.Error())
 		os.Exit(1)
 	}
-	catalogStorage := catalog.NewMemoryStorage()
+
+	// Setup Storage backend
+	var (
+		catalogStorage catalog.CatalogStorage
+	)
+	switch config.Storage.Type {
+	case utils.CatalogBackendMemory:
+		catalogStorage = catalog.NewMemoryStorage()
+	case utils.CatalogBackendLevelDB:
+		tempDir := fmt.Sprintf("%s/lslc/dgw-%d.ldb", strings.Replace(os.TempDir(), "\\", "/", -1), time.Now().UnixNano())
+		defer os.RemoveAll(tempDir)
+
+		catalogStorage, err = catalog.NewLevelDBStorage(tempDir, &opt.Options{Compression: opt.NoCompression})
+		if err != nil {
+			logger.Fatalf("Failed to start LevelDB storage: %v\n", err.Error())
+		}
+	default:
+		logger.Fatalf("Could not create catalog API storage. Unsupported type: %v\n", config.Storage.Type)
+	}
+
 	go restServer.start(catalogStorage)
 
 	// Parse device configurations
@@ -102,6 +125,12 @@ func main() {
 		mqttPublisher.stop()
 	}
 
+	// Shutdown catalog API
+	err = catalogStorage.Close()
+	if err != nil {
+		logger.Println(err.Error())
+	}
+
 	// Unregister in the remote catalog(s)
 	for _, sigCh := range regChannels {
 		// Notify if the routine hasn't returned already
@@ -113,5 +142,5 @@ func main() {
 	wg.Wait()
 
 	logger.Println("Stopped")
-	os.Exit(0)
+	return
 }

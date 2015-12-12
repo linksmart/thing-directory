@@ -26,7 +26,10 @@ func (self *MemoryStorage) add(s Service) error {
 	s.Created = time.Now()
 	s.Updated = s.Created
 	if s.Ttl >= 0 {
-		s.Expires = s.Created.Add(time.Duration(s.Ttl) * time.Second)
+		expires := s.Created.Add(time.Duration(s.Ttl) * time.Second)
+		s.Expires = &expires
+	} else {
+		s.Expires = nil
 	}
 
 	self.mutex.Lock()
@@ -52,7 +55,10 @@ func (self *MemoryStorage) update(id string, s Service) error {
 	su.Ttl = s.Ttl
 	su.Updated = time.Now()
 	if s.Ttl >= 0 {
-		su.Expires = su.Updated.Add(time.Duration(s.Ttl) * time.Second)
+		expires := su.Updated.Add(time.Duration(s.Ttl) * time.Second)
+		su.Expires = &expires
+	} else {
+		su.Expires = nil
 	}
 	self.data[id] = su
 	self.mutex.Unlock()
@@ -106,11 +112,11 @@ func (self *MemoryStorage) getMany(page int, perPage int) ([]Service, int, error
 	return svcs, total, nil
 }
 
-func (self *MemoryStorage) getCount() int {
+func (self *MemoryStorage) getCount() (int, error) {
 	self.mutex.RLock()
 	l := len(self.data)
 	self.mutex.RUnlock()
-	return l
+	return l, nil
 }
 
 // Clean all remote registrations which expire time is larger than the given timestamp
@@ -205,4 +211,8 @@ func NewMemoryStorage() *MemoryStorage {
 	}()
 
 	return storage
+}
+
+func (self *MemoryStorage) Close() error {
+	return nil
 }

@@ -28,16 +28,16 @@ type LevelDBStorage struct {
 	expDevice *avl.Tree
 }
 
-func NewLevelDBStorage(dsn string, opts *opt.Options) (CatalogStorage, func() error, error) {
+func NewLevelDBStorage(dsn string, opts *opt.Options) (CatalogStorage, error) {
 	url, err := url.Parse(dsn)
 	if err != nil {
-		return &LevelDBStorage{}, nil, err
+		return &LevelDBStorage{}, err
 	}
 
 	// Open the database file
 	db, err := leveldb.OpenFile(url.Path, opts)
 	if err != nil {
-		return &LevelDBStorage{}, nil, err
+		return &LevelDBStorage{}, err
 	}
 
 	s := &LevelDBStorage{
@@ -53,7 +53,7 @@ func NewLevelDBStorage(dsn string, opts *opt.Options) (CatalogStorage, func() er
 		var d Device
 		err = json.Unmarshal(iter.Value(), &d)
 		if err != nil {
-			return &LevelDBStorage{}, nil, err
+			return &LevelDBStorage{}, err
 		}
 		s.addIndices(&d)
 	}
@@ -61,7 +61,7 @@ func NewLevelDBStorage(dsn string, opts *opt.Options) (CatalogStorage, func() er
 	s.wg.Done()
 	err = iter.Error()
 	if err != nil {
-		return &LevelDBStorage{}, nil, err
+		return &LevelDBStorage{}, err
 	}
 
 	// schedule cleaner
@@ -72,7 +72,7 @@ func NewLevelDBStorage(dsn string, opts *opt.Options) (CatalogStorage, func() er
 		}
 	}()
 
-	return s, s.close, nil
+	return s, nil
 }
 
 // CRUD
@@ -84,7 +84,10 @@ func (s *LevelDBStorage) add(d Device) error {
 	d.Created = time.Now()
 	d.Updated = d.Created
 	if d.Ttl >= 0 {
-		d.Expires = d.Created.Add(time.Duration(d.Ttl) * time.Second)
+		expires := d.Created.Add(time.Duration(d.Ttl) * time.Second)
+		d.Expires = &expires
+	} else {
+		d.Expires = nil
 	}
 
 	// Add device id to resources
@@ -149,7 +152,10 @@ func (s *LevelDBStorage) update(id string, d Device) error {
 	sd.Ttl = d.Ttl
 	sd.Updated = time.Now()
 	if sd.Ttl >= 0 {
-		sd.Expires = sd.Updated.Add(time.Duration(sd.Ttl) * time.Second)
+		expires := sd.Updated.Add(time.Duration(sd.Ttl) * time.Second)
+		sd.Expires = &expires
+	} else {
+		sd.Expires = nil
 	}
 
 	// Update device IDs in resources
@@ -200,7 +206,7 @@ func (s *LevelDBStorage) delete(id string) error {
 // Utilities
 
 func (s *LevelDBStorage) getMany(page int, perPage int) ([]Device, int, error) {
-	total := s.getResourcesCount() // already mutex locked
+	total, _ := s.getResourcesCount() // already mutex locked
 	s.RLock()
 	defer s.RUnlock()
 	// Slice resources map
@@ -248,7 +254,7 @@ func (s *LevelDBStorage) getMany(page int, perPage int) ([]Device, int, error) {
 	return devices, total, nil
 }
 
-func (s *LevelDBStorage) getDevicesCount() int {
+func (s *LevelDBStorage) getDevicesCount() (int, error) {
 	c := 0
 	s.wg.Add(1)
 	iter := s.db.NewIterator(nil, nil)
@@ -259,18 +265,16 @@ func (s *LevelDBStorage) getDevicesCount() int {
 	s.wg.Done()
 	err := iter.Error()
 	if err != nil {
-		logger.Println("LevelDBStorage.getDevicesCount()", err.Error())
-		return 0
+		return 0, err
 	}
-
-	return c
+	return c, nil
 }
 
-func (s *LevelDBStorage) getResourcesCount() int {
+func (s *LevelDBStorage) getResourcesCount() (int, error) {
 	s.RLock()
 	l := s.resDevice.Len()
 	s.RUnlock()
-	return l
+	return l, nil
 }
 
 func (s *LevelDBStorage) getResourceById(id string) (Resource, error) {
@@ -296,19 +300,19 @@ func (s *LevelDBStorage) getResourceById(id string) (Resource, error) {
 	return Resource{}, ErrorNotFound
 }
 
-func (s *LevelDBStorage) devicesFromResources(resources []Resource) []Device {
+func (s *LevelDBStorage) devicesFromResources(resources []Resource) ([]Device, error) {
 	// Max len(devices) == len(resources)
 	devices := make([]Device, 0, len(resources))
 	deviceExists := make(map[string]bool)
 
 	for _, r := range resources {
-		d, err := s.get(r.Device)
-		if err != nil {
-			logger.Println("LevelDBStorage.devicesFromResources()", err.Error())
-			continue
-		}
 		_, exists := deviceExists[r.Device]
 		if !exists {
+			d, err := s.get(r.Device)
+			if err != nil {
+				return []Device{}, err
+			}
+
 			deviceExists[r.Device] = true
 
 			// only take resources that are provided as input
@@ -323,7 +327,7 @@ func (s *LevelDBStorage) devicesFromResources(resources []Resource) []Device {
 		}
 	}
 
-	return devices
+	return devices, nil
 }
 
 // Path filtering
@@ -459,10 +463,13 @@ func (s *LevelDBStorage) pathFilterResource(path, op, value string) (Resource, e
 	return Resource{}, nil
 }
 
-func (s *LevelDBStorage) pathFilterResources(path, op, value string, page, perPage int) ([]Resource, int, error) {
+func (s *LevelDBStorage) pathFilterResources(path, op, value string, page, perPage int) ([]Device, int, error) {
 	pathTknz := strings.Split(path, ".")
 	var resourceIDs []string
 	resources := make(map[string]Resource)
+
+	s.RLock()
+	defer s.RUnlock()
 
 	// Iterate over a latest snapshot of the database
 	s.wg.Add(1)
@@ -473,7 +480,7 @@ func (s *LevelDBStorage) pathFilterResources(path, op, value string, page, perPa
 		if err != nil {
 			iter.Release()
 			s.wg.Done()
-			return []Resource{}, 0, err
+			return []Device{}, 0, err
 		}
 
 		for _, res := range d.Resources {
@@ -481,7 +488,7 @@ func (s *LevelDBStorage) pathFilterResources(path, op, value string, page, perPa
 			if err != nil {
 				iter.Release()
 				s.wg.Done()
-				return []Resource{}, 0, err
+				return []Device{}, 0, err
 			}
 			if matched {
 				resourceIDs = append(resourceIDs, res.Id)
@@ -493,7 +500,7 @@ func (s *LevelDBStorage) pathFilterResources(path, op, value string, page, perPa
 	s.wg.Done()
 	err := iter.Error()
 	if err != nil {
-		return []Resource{}, 0, err
+		return []Device{}, 0, err
 	}
 
 	// Slice sorted resources
@@ -504,7 +511,12 @@ func (s *LevelDBStorage) pathFilterResources(path, op, value string, page, perPa
 		ress = append(ress, resources[id])
 	}
 
-	return ress, len(resourceIDs), nil
+	devs, err := s.devicesFromResources(ress)
+	if err != nil {
+		return []Device{}, 0, err
+	}
+
+	return devs, len(resourceIDs), nil
 }
 
 // Clean all remote registrations which expire time is larger than the given timestamp
@@ -557,7 +569,7 @@ func (s *LevelDBStorage) addIndices(d *Device) {
 
 	// Add expiry time index
 	if d.Ttl >= 0 {
-		s.expDevice.Add(SortedMap{d.Expires, d.Id})
+		s.expDevice.Add(SortedMap{*d.Expires, d.Id})
 	}
 }
 
@@ -593,7 +605,7 @@ func (s *LevelDBStorage) removeIndices(d *Device) {
 	}
 }
 
-func (s *LevelDBStorage) close() error {
+func (s *LevelDBStorage) Close() error {
 	s.wg.Wait()
 	return s.db.Close()
 }

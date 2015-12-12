@@ -5,40 +5,27 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
+
+	"github.com/pborman/uuid"
 )
 
-// Path to Temp directory
-// Replace Windows-based backslashes with slash (not parsed as Path by net/url)
-var TEMP_TEST_DIR = fmt.Sprintf("%s/sc-test", strings.Replace(os.TempDir(), "\\", "/", -1))
-
-// Remove temporary files
-func cleanTestFiles() {
-	temp_dir := fmt.Sprintf("%s%csc-test", os.TempDir(), os.PathSeparator)
-	err := os.RemoveAll(temp_dir)
+func setupLevelDB() (CatalogStorage, string, error) {
+	tempDir := fmt.Sprintf("%s/lslc/test-%s.ldb",
+		strings.Replace(os.TempDir(), "\\", "/", -1), uuid.New())
+	storage, err := NewLevelDBStorage(tempDir, nil)
 	if err != nil {
-		fmt.Println(err.Error())
+		return nil, tempDir, err
 	}
-}
-
-func setupLevelDB() (CatalogStorage, func() error, error) {
-	// Temp database file
-	// Replace Windows-based backslashes with slash (not parsed as Path by net/url)
-	storage, closeDB, err := NewLevelDBStorage(fmt.Sprintf("%s/%d.ldb", TEMP_TEST_DIR, time.Now().UnixNano()), nil)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return storage, closeDB, nil
+	return storage, tempDir, nil
 }
 
 func TestLevelDBAddService(t *testing.T) {
-	storage, closeDB, err := setupLevelDB()
+	storage, tempDir, err := setupLevelDB()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer cleanTestFiles()
-	defer closeDB()
+	defer os.RemoveAll(tempDir)
+	defer storage.Close()
 
 	r := &Service{}
 	uuid := "E9203BE9-D705-42A8-8B12-F28E7EA2FC99"
@@ -53,12 +40,12 @@ func TestLevelDBAddService(t *testing.T) {
 }
 
 func TestLevelDBUpdateService(t *testing.T) {
-	storage, closeDB, err := setupLevelDB()
+	storage, tempDir, err := setupLevelDB()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer cleanTestFiles()
-	defer closeDB()
+	defer os.RemoveAll(tempDir)
+	defer storage.Close()
 
 	r := &Service{}
 	uuid := "E9203BE9-D705-42A8-8B12-F28E7EA2FC99"
@@ -88,12 +75,12 @@ func TestLevelDBUpdateService(t *testing.T) {
 }
 
 func TestLevelDBGetService(t *testing.T) {
-	storage, closeDB, err := setupLevelDB()
+	storage, tempDir, err := setupLevelDB()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer cleanTestFiles()
-	defer closeDB()
+	defer os.RemoveAll(tempDir)
+	defer storage.Close()
 
 	r := &Service{
 		Name: "TestName",
@@ -119,12 +106,12 @@ func TestLevelDBGetService(t *testing.T) {
 }
 
 func TestLevelDBDeleteService(t *testing.T) {
-	storage, closeDB, err := setupLevelDB()
+	storage, tempDir, err := setupLevelDB()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer cleanTestFiles()
-	defer closeDB()
+	defer os.RemoveAll(tempDir)
+	defer storage.Close()
 
 	r := &Service{}
 	uuid := "E9203BE9-D705-42A8-8B12-F28E7EA2FC99"
@@ -148,12 +135,12 @@ func TestLevelDBDeleteService(t *testing.T) {
 }
 
 func TestLevelDBGetManyServices(t *testing.T) {
-	storage, closeDB, err := setupLevelDB()
+	storage, tempDir, err := setupLevelDB()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer cleanTestFiles()
-	defer closeDB()
+	defer os.RemoveAll(tempDir)
+	defer storage.Close()
 
 	r := &Service{}
 	// Add 10 entries

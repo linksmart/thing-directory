@@ -98,20 +98,54 @@ func (self ReadableCatalogAPI) collectionFromServices(services []Service, page, 
 	}
 }
 
+// Error describes an API error (serializable in JSON)
+type Error struct {
+	// Code is the (http) code of the error
+	Code int `json:"code"`
+	// Message is the (human-readable) error message
+	Message string `json:"message"`
+}
+
+// ErrorResponse writes error to HTTP ResponseWriter
+func ErrorResponse(w http.ResponseWriter, code int, msgs ...string) {
+	msg := strings.Join(msgs, " ")
+	e := &Error{
+		code,
+		msg,
+	}
+	logger.Println("ERROR:", msg)
+	b, _ := json.Marshal(e)
+	w.Header().Set("Content-Type", "application/json;version="+ApiVersion)
+	w.WriteHeader(code)
+	w.Write(b)
+}
+
 func (self ReadableCatalogAPI) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 }
 
 func (self ReadableCatalogAPI) List(w http.ResponseWriter, req *http.Request) {
-	req.ParseForm()
+	err := req.ParseForm()
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query:", err.Error())
+		return
+	}
 	page, _ := strconv.Atoi(req.Form.Get(GetParamPage))
 	perPage, _ := strconv.Atoi(req.Form.Get(GetParamPerPage))
 	page, perPage = catalog.ValidatePagingParams(page, perPage, MaxPerPage)
 
-	services, total, _ := self.catalogStorage.getMany(page, perPage)
+	services, total, err := self.catalogStorage.getMany(page, perPage)
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
 	coll := self.collectionFromServices(services, page, perPage, total)
 
-	b, _ := json.Marshal(coll)
+	b, err := json.Marshal(coll)
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
 	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
 	w.Write(b)
 }
@@ -123,13 +157,16 @@ func (self ReadableCatalogAPI) Filter(w http.ResponseWriter, req *http.Request) 
 	fop := params["op"]
 	fvalue := params["value"]
 
-	req.ParseForm()
+	err := req.ParseForm()
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query:", err.Error())
+		return
+	}
 	page, _ := strconv.Atoi(req.Form.Get(GetParamPage))
 	perPage, _ := strconv.Atoi(req.Form.Get(GetParamPerPage))
 	page, perPage = catalog.ValidatePagingParams(page, perPage, MaxPerPage)
 
 	var data interface{}
-	var err error
 
 	switch ftype {
 	case FTypeService:
@@ -151,18 +188,20 @@ func (self ReadableCatalogAPI) Filter(w http.ResponseWriter, req *http.Request) 
 	}
 
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "Error processing the request: %s\n", err.Error())
+		ErrorResponse(w, http.StatusInternalServerError, "Error processing the request:", err.Error())
 		return
 	}
 
 	if data == nil {
-		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprintf(w, "No matched entries found\n")
+		ErrorResponse(w, http.StatusNotFound, "No matched entries found.")
 		return
 	}
 
-	b, _ := json.Marshal(data)
+	b, err := json.Marshal(data)
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
 	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
 	w.Write(b)
 }
@@ -173,16 +212,18 @@ func (self ReadableCatalogAPI) Get(w http.ResponseWriter, req *http.Request) {
 
 	r, err := self.catalogStorage.get(id)
 	if err == ErrorNotFound {
-		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprintf(w, "Service not found\n")
+		ErrorResponse(w, http.StatusNotFound, "Service not found.")
 		return
 	} else if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Error requesting the service: %s\n", err.Error())
+		ErrorResponse(w, http.StatusInternalServerError, "Error requesting the service:", err.Error())
 		return
 	}
 
-	b, _ := json.Marshal(r.ldify(self.apiLocation))
+	b, err := json.Marshal(r.ldify(self.apiLocation))
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
 	w.Write(b)
@@ -191,20 +232,22 @@ func (self ReadableCatalogAPI) Get(w http.ResponseWriter, req *http.Request) {
 
 func (self WritableCatalogAPI) Add(w http.ResponseWriter, req *http.Request) {
 	body, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	req.Body.Close()
 
 	var s Service
 	err = json.Unmarshal(body, &s)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "Error processing the request: %s\n", err.Error())
+		ErrorResponse(w, http.StatusBadRequest, "Error processing the request:", err.Error())
 		return
 	}
 
 	err = self.catalogStorage.add(s)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Error creating the service: %s\n", err.Error())
+		ErrorResponse(w, http.StatusInternalServerError, "Error creating the service:", err.Error())
 		return
 	}
 
@@ -224,24 +267,25 @@ func (self WritableCatalogAPI) Update(w http.ResponseWriter, req *http.Request) 
 	id := fmt.Sprintf("%v/%v", params["hostid"], params["regid"])
 
 	body, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	req.Body.Close()
 
 	var s Service
 	err = json.Unmarshal(body, &s)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "Error processing the request:: %s\n", err.Error())
+		ErrorResponse(w, http.StatusBadRequest, "Error processing the request:", err.Error())
 		return
 	}
 
 	err = self.catalogStorage.update(id, s)
 	if err == ErrorNotFound {
-		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprintf(w, "Service not found\n")
+		ErrorResponse(w, http.StatusNotFound, "Service not found.")
 		return
 	} else if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Error requesting the service: %s\n", err.Error())
+		ErrorResponse(w, http.StatusInternalServerError, "Error requesting the service:", err.Error())
 		return
 	}
 
@@ -261,12 +305,10 @@ func (self WritableCatalogAPI) Delete(w http.ResponseWriter, req *http.Request) 
 
 	err := self.catalogStorage.delete(id)
 	if err == ErrorNotFound {
-		w.WriteHeader(http.StatusNotFound)
-		fmt.Fprintf(w, "Not found\n")
+		ErrorResponse(w, http.StatusNotFound, "Not found.")
 		return
 	} else if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Error deleting the device: %s\n", err.Error())
+		ErrorResponse(w, http.StatusInternalServerError, "Error deleting the device:", err.Error())
 		return
 	}
 

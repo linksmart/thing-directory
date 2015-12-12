@@ -20,7 +20,7 @@ type Device struct {
 	Ttl         int                    `json:"ttl"`
 	Created     time.Time              `json:"created"`
 	Updated     time.Time              `json:"updated"`
-	Expires     time.Time              `json:"expires"`
+	Expires     *time.Time             `json:"expires"`
 	Resources   []Resource             `json:"resources"`
 }
 
@@ -97,17 +97,17 @@ type CatalogStorage interface {
 
 	// Utility functions
 	getMany(page, perPage int) ([]Device, int, error)
-	getDevicesCount() int
-	getResourcesCount() int
+	getDevicesCount() (int, error)
+	getResourcesCount() (int, error)
 	getResourceById(id string) (Resource, error)
-	devicesFromResources(resources []Resource) []Device
 	cleanExpired(ts time.Time)
+	Close() error
 
 	// Path filtering
 	pathFilterDevice(path, op, value string) (Device, error)
 	pathFilterDevices(path, op, value string, page, perPage int) ([]Device, int, error)
 	pathFilterResource(path, op, value string) (Resource, error)
-	pathFilterResources(path, op, value string, page, perPage int) ([]Resource, int, error)
+	pathFilterResources(path, op, value string, page, perPage int) ([]Device, int, error)
 }
 
 // Sorted-map data structure based on AVL Tree (go-avltree)

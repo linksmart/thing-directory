@@ -16,6 +16,9 @@
 			}
 		}
 	],
+	"storage": {
+		"type": "memory"
+	},
 	"http": {
 		"bindAddr": "0.0.0.0",
 		"bindPort": 8080

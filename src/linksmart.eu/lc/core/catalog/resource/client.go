@@ -29,7 +29,10 @@ type CatalogClient interface {
 	// Returns a slice of Devices given:
 	// page - page in the collection
 	// perPage - number of entries per page
-	GetDevices(page, perPage int) ([]Device, int, error)
+	GetMany(page, perPage int) ([]Device, int, error)
+
+	// Returns a single resource
+	GetResource(id string) (*Resource, error)
 
 	// Returns a single Device given: path, operation, value
 	FindDevice(path, op, value string) (*Device, error)
@@ -41,5 +44,5 @@ type CatalogClient interface {
 	FindResource(path, op, value string) (*Resource, error)
 
 	// Returns a slice of Resources given: path, operation, value, page, perPage
-	FindResources(path, op, value string, page, perPage int) ([]Resource, int, error)
+	FindResources(path, op, value string, page, perPage int) ([]Device, int, error)
 }

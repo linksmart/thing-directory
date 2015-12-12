@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"linksmart.eu/lc/core/catalog"
 	"linksmart.eu/lc/sec/auth/obtainer"
@@ -43,14 +44,15 @@ func devicesFromResponse(res *http.Response, apiLocation string) ([]Device, int,
 	for k, v := range coll.Devices {
 		d := *v.Device
 		for _, res := range coll.Resources {
-			if res.Device == k {
+			resDevice := strings.TrimPrefix(res.Device, apiLocation+"/")
+			if resDevice == k {
 				d.Resources = append(d.Resources, res)
 			}
 		}
 		devs = append(devs, d.unLdify(apiLocation))
 	}
 
-	return devs, len(coll.Devices), nil
+	return devs, coll.Total, nil
 }
 
 func resourceFromResponse(res *http.Response, apiLocation string) (*Resource, error) {
@@ -170,7 +172,7 @@ func (self *RemoteCatalogClient) Delete(id string) error {
 	return nil
 }
 
-func (self *RemoteCatalogClient) GetDevices(page int, perPage int) ([]Device, int, error) {
+func (self *RemoteCatalogClient) GetMany(page int, perPage int) ([]Device, int, error) {
 	res, err := catalog.HTTPRequest("GET",
 		fmt.Sprintf("%v?%v=%v&%v=%v", self.serverEndpoint, GetParamPage, page, GetParamPerPage, perPage),
 		nil,
@@ -182,6 +184,25 @@ func (self *RemoteCatalogClient) GetDevices(page int, perPage int) ([]Device, in
 	}
 
 	return devicesFromResponse(res, self.serverEndpoint.Path)
+}
+
+func (self *RemoteCatalogClient) GetResource(id string) (*Resource, error) {
+	res, err := catalog.HTTPRequest("GET",
+		fmt.Sprintf("%v/%v", self.serverEndpoint, id),
+		nil,
+		nil,
+		self.ticket,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode == http.StatusNotFound {
+		return nil, ErrorNotFound
+	} else if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("%v", res.StatusCode)
+	}
+	return resourceFromResponse(res, self.serverEndpoint.Path)
 }
 
 func (self *RemoteCatalogClient) FindDevice(path, op, value string) (*Device, error) {
@@ -237,7 +258,7 @@ func (self *RemoteCatalogClient) FindResource(path, op, value string) (*Resource
 	return resourceFromResponse(res, self.serverEndpoint.Path)
 }
 
-func (self *RemoteCatalogClient) FindResources(path, op, value string, page, perPage int) ([]Resource, int, error) {
+func (self *RemoteCatalogClient) FindResources(path, op, value string, page, perPage int) ([]Device, int, error) {
 	res, err := catalog.HTTPRequest("GET",
 		fmt.Sprintf("%v/%v/%v/%v/%v?%v=%v&%v=%v",
 			self.serverEndpoint, FTypeResources, path, op, value, GetParamPage, page, GetParamPerPage, perPage),
@@ -249,5 +270,5 @@ func (self *RemoteCatalogClient) FindResources(path, op, value string, page, per
 		return nil, 0, err
 	}
 
-	return resourcesFromResponse(res, self.serverEndpoint.Path)
+	return devicesFromResponse(res, self.serverEndpoint.Path)
 }

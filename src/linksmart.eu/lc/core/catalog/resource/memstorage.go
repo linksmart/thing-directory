@@ -45,7 +45,10 @@ func (self *MemoryStorage) add(d Device) error {
 	sd.Created = time.Now()
 	sd.Updated = sd.Created
 	if d.Ttl >= 0 {
-		sd.Expires = sd.Created.Add(time.Duration(sd.Ttl) * time.Second)
+		expires := sd.Created.Add(time.Duration(sd.Ttl) * time.Second)
+		sd.Expires = &expires
+	} else {
+		sd.Expires = nil
 	}
 
 	self.mutex.Lock()
@@ -77,7 +80,10 @@ func (self *MemoryStorage) update(id string, d Device) error {
 	sd.Ttl = d.Ttl
 	sd.Updated = time.Now()
 	if sd.Ttl >= 0 {
-		sd.Expires = sd.Updated.Add(time.Duration(sd.Ttl) * time.Second)
+		expires := sd.Updated.Add(time.Duration(sd.Ttl) * time.Second)
+		sd.Expires = &expires
+	} else {
+		sd.Expires = nil
 	}
 
 	sd.Resources = nil
@@ -157,25 +163,25 @@ func (self *MemoryStorage) getMany(page int, perPage int) ([]Device, int, error)
 	for _, k := range keys {
 		ress = append(ress, self.resources[k])
 	}
-	devs := self.devicesFromResources(ress)
+	devs, _ := self.devicesFromResources(ress)
 
 	self.mutex.RUnlock()
 	return devs, total, nil
 }
 
-func (self *MemoryStorage) getDevicesCount() int {
+func (self *MemoryStorage) getDevicesCount() (int, error) {
 	self.mutex.RLock()
 	l := len(self.devices)
 	self.mutex.RUnlock()
-	return l
+	return l, nil
 }
 
 // Returns the total number of resources (from all devices)
-func (self *MemoryStorage) getResourcesCount() int {
+func (self *MemoryStorage) getResourcesCount() (int, error) {
 	self.mutex.RLock()
 	l := len(self.resources)
 	self.mutex.RUnlock()
-	return l
+	return l, nil
 }
 
 // Clean all remote registrations which expire time is larger than the given timestamp
@@ -215,7 +221,7 @@ func (self *MemoryStorage) getResourceById(id string) (Resource, error) {
 	return res, nil
 }
 
-func (self *MemoryStorage) devicesFromResources(resources []Resource) []Device {
+func (self *MemoryStorage) devicesFromResources(resources []Resource) ([]Device, error) {
 	// Max len(devices) == len(resources)
 	devs := make([]Device, 0, len(resources))
 	added := make(map[string]bool)
@@ -236,7 +242,7 @@ func (self *MemoryStorage) devicesFromResources(resources []Resource) []Device {
 			devs = append(devs, d)
 		}
 	}
-	return devs
+	return devs, nil
 }
 
 // Path filtering
@@ -289,7 +295,7 @@ func (self *MemoryStorage) pathFilterDevices(path, op, value string, page, perPa
 	}
 
 	// convert to devices
-	devs := self.devicesFromResources(ress)
+	devs, _ := self.devicesFromResources(ress)
 	self.mutex.RUnlock()
 	return devs, len(resourceIds), nil
 }
@@ -317,7 +323,7 @@ func (self *MemoryStorage) pathFilterResource(path, op, value string) (Resource,
 	return Resource{}, nil
 }
 
-func (self *MemoryStorage) pathFilterResources(path, op, value string, page, perPage int) ([]Resource, int, error) {
+func (self *MemoryStorage) pathFilterResources(path, op, value string, page, perPage int) ([]Device, int, error) {
 	self.mutex.RLock()
 	resourceIds := make([]string, 0, len(self.resources))
 	pathTknz := strings.Split(path, ".")
@@ -326,7 +332,7 @@ func (self *MemoryStorage) pathFilterResources(path, op, value string, page, per
 		matched, err := catalog.MatchObject(res, pathTknz, op, value)
 		if err != nil {
 			self.mutex.RUnlock()
-			return []Resource{}, 0, err
+			return []Device{}, 0, err
 		}
 		if matched {
 			resourceIds = append(resourceIds, res.Id)
@@ -339,8 +345,9 @@ func (self *MemoryStorage) pathFilterResources(path, op, value string, page, per
 		ress = append(ress, self.resources[id])
 	}
 
+	devs, _ := self.devicesFromResources(ress)
 	self.mutex.RUnlock()
-	return ress, len(resourceIds), nil
+	return devs, len(resourceIds), nil
 }
 
 func NewMemoryStorage() *MemoryStorage {
@@ -360,4 +367,8 @@ func NewMemoryStorage() *MemoryStorage {
 	}()
 
 	return storage
+}
+
+func (self *MemoryStorage) Close() error {
+	return nil
 }

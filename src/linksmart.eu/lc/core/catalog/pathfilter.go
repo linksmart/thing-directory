@@ -3,6 +3,7 @@ package catalog
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -58,16 +59,8 @@ func MatchObject(object interface{}, path []string, op string, value string) (bo
 		return false, nil
 	}
 
-	// check the value
-	// should be string
-	var stringValue string
-
-	switch v.(type) {
-	case string:
-		stringValue = v.(string)
-	default:
-		return false, errors.New("recursiveMatch returned a non-string value")
-	}
+	// convert everything to string
+	var stringValue string = fmt.Sprint(v)
 
 	switch op {
 	case FOpEquals:

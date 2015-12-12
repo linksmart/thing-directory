@@ -9,9 +9,9 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/pborman/uuid"
 	utils "linksmart.eu/lc/core/catalog"
 )
 
@@ -38,15 +38,16 @@ func TestMain(m *testing.M) {
 
 func setupRouter() (*mux.Router, func(), error) {
 	var (
-		storage      CatalogStorage
-		closeStorage func() error = func() error { return nil }
-		err          error
+		storage CatalogStorage
+		err     error
+		tempDir string = fmt.Sprintf("%s/lslc/test-%s.ldb",
+			strings.Replace(os.TempDir(), "\\", "/", -1), uuid.New())
 	)
 	switch storageType {
 	case utils.CatalogBackendMemory:
 		storage = NewMemoryStorage()
 	case utils.CatalogBackendLevelDB:
-		storage, closeStorage, err = NewLevelDBStorage(fmt.Sprintf("%s/%d.ldb", TEMP_TEST_DIR, time.Now().UnixNano()), nil)
+		storage, err = NewLevelDBStorage(tempDir, nil)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -70,8 +71,8 @@ func setupRouter() (*mux.Router, func(), error) {
 	r.Methods("DELETE").Path(url).HandlerFunc(api.Delete).Name("delete")
 
 	return r, func() {
-		closeStorage()
-		cleanTestFiles() // Cleans temp files
+		storage.Close()
+		os.RemoveAll(tempDir) // Remove temp files
 	}, nil
 }
 

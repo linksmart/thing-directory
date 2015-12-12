@@ -5,40 +5,27 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
+
+	"github.com/pborman/uuid"
 )
 
-// Path to Temp directory
-// Replace Windows-based backslashes with slash (not parsed as Path by net/url)
-var TEMP_TEST_DIR = fmt.Sprintf("%s/rc-test", strings.Replace(os.TempDir(), "\\", "/", -1))
-
-// Remove temporary files
-func cleanTestFiles() {
-	temp_dir := fmt.Sprintf("%s%crc-test", os.TempDir(), os.PathSeparator)
-	err := os.RemoveAll(temp_dir)
+func setupLevelDB() (CatalogStorage, string, error) {
+	tempDir := fmt.Sprintf("%s/lslc/test-%s.ldb",
+		strings.Replace(os.TempDir(), "\\", "/", -1), uuid.New())
+	storage, err := NewLevelDBStorage(tempDir, nil)
 	if err != nil {
-		fmt.Println(err.Error())
+		return nil, tempDir, err
 	}
-}
-
-func setupLevelDB() (CatalogStorage, func() error, error) {
-	// Temp database file
-	// Replace Windows-based backslashes with slash (not parsed as Path by net/url)
-	storage, closeDB, err := NewLevelDBStorage(fmt.Sprintf("%s/%d.ldb", TEMP_TEST_DIR, time.Now().UnixNano()), nil)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return storage, closeDB, nil
+	return storage, tempDir, nil
 }
 
 func TestLevelDBAddDevice(t *testing.T) {
-	storage, closeDB, err := setupLevelDB()
+	storage, tempDir, err := setupLevelDB()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer cleanTestFiles()
-	defer closeDB()
+	defer os.RemoveAll(tempDir)
+	defer storage.Close()
 
 	r := &Device{}
 	uuid := "E9203BE9-D705-42A8-8B12-F28E7EA2FC99"
@@ -54,12 +41,12 @@ func TestLevelDBAddDevice(t *testing.T) {
 }
 
 func TestLevelDBUpdateDevice(t *testing.T) {
-	storage, closeDB, err := setupLevelDB()
+	storage, tempDir, err := setupLevelDB()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer cleanTestFiles()
-	defer closeDB()
+	defer os.RemoveAll(tempDir)
+	defer storage.Close()
 
 	r := &Device{}
 	uuid := "E9203BE9-D705-42A8-8B12-F28E7EA2FC99"
@@ -81,12 +68,12 @@ func TestLevelDBUpdateDevice(t *testing.T) {
 }
 
 func TestLevelDBGetDevice(t *testing.T) {
-	storage, closeDB, err := setupLevelDB()
+	storage, tempDir, err := setupLevelDB()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer cleanTestFiles()
-	defer closeDB()
+	defer os.RemoveAll(tempDir)
+	defer storage.Close()
 
 	r := &Device{
 		Name: "TestName",
@@ -113,12 +100,12 @@ func TestLevelDBGetDevice(t *testing.T) {
 }
 
 func TestLevelDBDeleteDevice(t *testing.T) {
-	storage, closeDB, err := setupLevelDB()
+	storage, tempDir, err := setupLevelDB()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer cleanTestFiles()
-	defer closeDB()
+	defer os.RemoveAll(tempDir)
+	defer storage.Close()
 
 	r := &Device{}
 	uuid := "E9203BE9-D705-42A8-8B12-F28E7EA2FC99"
@@ -143,12 +130,12 @@ func TestLevelDBDeleteDevice(t *testing.T) {
 }
 
 func TestLevelDBGetManyDevices(t *testing.T) {
-	storage, closeDB, err := setupLevelDB()
+	storage, tempDir, err := setupLevelDB()
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	defer cleanTestFiles()
-	defer closeDB()
+	defer os.RemoveAll(tempDir)
+	defer storage.Close()
 
 	r := Resource{
 		Name: "TestResource",

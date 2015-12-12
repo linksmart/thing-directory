@@ -122,14 +122,13 @@ func setupRouter(config *Config) (*mux.Router, func() error, error) {
 	// Setup API storage
 	var (
 		storage catalog.CatalogStorage
-		close   func() error = func() error { return nil }
 		err     error
 	)
 	switch config.Storage.Type {
 	case utils.CatalogBackendMemory:
 		storage = catalog.NewMemoryStorage()
 	case utils.CatalogBackendLevelDB:
-		storage, close, err = catalog.NewLevelDBStorage(config.Storage.DSN, nil)
+		storage, err = catalog.NewLevelDBStorage(config.Storage.DSN, nil)
 		if err != nil {
 			return nil, nil, fmt.Errorf("Failed to start LevelDB storage: %v", err.Error())
 		}
@@ -172,5 +171,5 @@ func setupRouter(config *Config) (*mux.Router, func() error, error) {
 	r.Methods("PUT").Path(url).Handler(commonHandlers.ThenFunc(api.Update)).Name("update")
 	r.Methods("DELETE").Path(url).Handler(commonHandlers.ThenFunc(api.Delete)).Name("delete")
 
-	return r, close, nil
+	return r, storage.Close, nil
 }
