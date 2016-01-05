@@ -48,7 +48,14 @@ func configureDevices(config *Config) []catalog.Device {
 					mqtt, ok := config.Protocols[ProtocolTypeMQTT].(MqttProtocol)
 					if ok {
 						p.Endpoint["url"] = mqtt.URL
-						p.Endpoint["topic"] = fmt.Sprintf("%s/%v/%v", mqtt.Prefix, device.Name, resource.Name)
+						if proto.PubTopic != "" {
+							p.Endpoint["pub_topic"] = proto.PubTopic
+						} else {
+							p.Endpoint["pub_topic"] = fmt.Sprintf("%s/%v/%v", mqtt.Prefix, device.Name, resource.Name)
+						}
+						if proto.SubTopic != "" {
+							p.Endpoint["sub_topic"] = proto.SubTopic
+						}
 					}
 				}
 				res.Protocols = append(res.Protocols, *p)

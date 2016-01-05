@@ -37,11 +37,11 @@ func main() {
 	// Agents' process manager
 	agentManager := newAgentManager(config)
 
-	// Configure MQTT publishing if required
-	mqttPublisher := newMQTTPublisher(config)
-	if mqttPublisher != nil {
-		agentManager.setPublishingChannel(mqttPublisher.dataInbox())
-		go mqttPublisher.start()
+	// Configure MQTT if required
+	mqttConnector := newMQTTConnector(config, agentManager.DataRequestInbox())
+	if mqttConnector != nil {
+		agentManager.setPublishingChannel(mqttConnector.dataInbox())
+		go mqttConnector.start()
 	}
 
 	// Start agents
@@ -58,8 +58,9 @@ func main() {
 	var (
 		catalogStorage catalog.CatalogStorage
 	)
+	// use memory storage if not defined otherwise
 	switch config.Storage.Type {
-	case utils.CatalogBackendMemory:
+	case "", utils.CatalogBackendMemory:
 		catalogStorage = catalog.NewMemoryStorage()
 	case utils.CatalogBackendLevelDB:
 		tempDir := fmt.Sprintf("%s/lslc/dgw-%d.ldb", strings.Replace(os.TempDir(), "\\", "/", -1), time.Now().UnixNano())
@@ -121,8 +122,8 @@ func main() {
 
 	// Shutdown all
 	agentManager.stop()
-	if mqttPublisher != nil {
-		mqttPublisher.stop()
+	if mqttConnector != nil {
+		mqttConnector.stop()
 	}
 
 	// Shutdown catalog API
@@ -142,5 +143,5 @@ func main() {
 	wg.Wait()
 
 	logger.Println("Stopped")
-	return
+	os.Exit(0)
 }

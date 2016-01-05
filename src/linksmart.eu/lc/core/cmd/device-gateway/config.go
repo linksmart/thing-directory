@@ -237,7 +237,7 @@ var supportedBackends = map[string]bool{
 }
 
 func (c *StorageConfig) Validate() error {
-	if !supportedBackends[c.Type] {
+	if c.Type != "" && !supportedBackends[c.Type] {
 		return fmt.Errorf("Unsupported storage backend")
 	}
 	return nil
@@ -340,6 +340,8 @@ type SupportedProtocol struct {
 	Type         ProtocolType
 	Methods      []string
 	ContentTypes []string `json:"content-types"`
+	PubTopic     string   `json:"pub_topic"`
+	SubTopic     string   `json:"sub_topic"`
 }
 
 //

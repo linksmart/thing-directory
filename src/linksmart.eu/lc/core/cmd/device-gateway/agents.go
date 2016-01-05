@@ -144,10 +144,12 @@ func (am *AgentManager) start() {
 			resource, ok := am.config.FindResource(req.ResourceId)
 			if !ok {
 				logger.Printf("AgentManager.start() ERROR: resource %s not found!", req.ResourceId)
-				req.Reply <- AgentResponse{
-					ResourceId: req.ResourceId,
-					Payload:    []byte("Resource not found"),
-					IsError:    true,
+				if req.Reply != nil {
+					req.Reply <- AgentResponse{
+						ResourceId: req.ResourceId,
+						Payload:    []byte("Resource not found"),
+						IsError:    true,
+					}
 				}
 				continue
 			}
@@ -156,46 +158,61 @@ func (am *AgentManager) start() {
 			if req.Type == DataRequestTypeWrite {
 				if resource.Agent.Type == ExecTypeTimer || resource.Agent.Type == ExecTypeTask {
 					am.executeTask(req.ResourceId, resource.Agent, req.Arguments)
-					req.Reply <- AgentResponse{
-						ResourceId: req.ResourceId,
-						Payload:    nil,
-						IsError:    false,
+					// Respond only if the Reply channel is not nil
+					if req.Reply != nil {
+						req.Reply <- AgentResponse{
+							ResourceId: req.ResourceId,
+							Payload:    nil,
+							IsError:    false,
+						}
 					}
 
 				} else if resource.Agent.Type == ExecTypeService {
 					pipe, ok := am.serviceInpipes[req.ResourceId]
 					if !ok {
-						req.Reply <- AgentResponse{
-							ResourceId: req.ResourceId,
-							Payload:    []byte("Service input pipe not found"),
-							IsError:    true,
+						// Respond only if the Reply channel is not nil
+						if req.Reply != nil {
+							req.Reply <- AgentResponse{
+								ResourceId: req.ResourceId,
+								Payload:    []byte("Service input pipe not found"),
+								IsError:    true,
+							}
 						}
 						continue
 					}
 					pipe.Write(req.Arguments)
 					_, err := pipe.Write([]byte("\n"))
 					if err != nil {
-						// failed to access stdin pipe
-						reply := AgentResponse{}
-						reply.ResourceId = req.ResourceId
-						reply.Cached = time.Now()
-						reply.IsError = true
-						reply.Payload = []byte(err.Error())
-						req.Reply <- reply
+						// Respond only if the Reply channel is not nil
+						if req.Reply != nil {
+							// failed to access stdin pipe
+							req.Reply <- AgentResponse{
+								ResourceId: req.ResourceId,
+								Cached:     time.Now(),
+								IsError:    true,
+								Payload:    []byte(err.Error()),
+							}
+						}
 						continue
 					}
-					req.Reply <- AgentResponse{
-						ResourceId: req.ResourceId,
-						Payload:    nil,
-						IsError:    false,
+					// Respond only if the Reply channel is not nil
+					if req.Reply != nil {
+						req.Reply <- AgentResponse{
+							ResourceId: req.ResourceId,
+							Payload:    nil,
+							IsError:    false,
+						}
 					}
 
 				} else {
 					logger.Printf("AgentManager.start() ERROR: Unsupported execution type %s for resource %s!", resource.Agent.Type, req.ResourceId)
-					req.Reply <- AgentResponse{
-						ResourceId: req.ResourceId,
-						Payload:    []byte("Unsupported execution type"),
-						IsError:    true,
+					// Respond only if the Reply channel is not nil
+					if req.Reply != nil {
+						req.Reply <- AgentResponse{
+							ResourceId: req.ResourceId,
+							Payload:    []byte("Unsupported execution type"),
+							IsError:    true,
+						}
 					}
 				}
 				continue

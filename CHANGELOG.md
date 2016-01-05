@@ -37,3 +37,7 @@
       + Added Close() to storage interface (service/resource catalogs)
       + Changed Device.Expires/Service.Expires to pointer, set to null if TTL < 0 (resource/service catalog)
       + Path Filtering supports data types other than string (e.g. int, float, bool)
+    - MQTT:
+      + Configurable MQTT topic via 'pub_topc' in the device protocol (see sample configs)
+      + Updated git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git (minor API changes in the newer package version)
+      + MQTT SUB: allow changing resource state via MQTT (similar to HTTP PUT)
