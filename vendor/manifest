@@ -4,7 +4,7 @@
 		{
 			"importpath": "git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git",
 			"repository": "https://git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git",
-			"revision": "0d6c6e73b249ca8d48fde878b4d1cfbb4cd45a5e",
+			"revision": "546c47a6d0e9492e77f6f37473d59c36a708e08b",
 			"branch": "HEAD"
 		},
 		{
