@@ -41,3 +41,4 @@
       + Configurable MQTT topic via 'pub_topc' in the device protocol (see sample configs)
       + Updated git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git (minor API changes in the newer package version)
       + MQTT SUB: allow changing resource state via MQTT (similar to HTTP PUT)
+    - Added Dockerfile to build a docker container directly from the source code
