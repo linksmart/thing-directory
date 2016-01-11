@@ -149,6 +149,7 @@ func (s *LevelDBStorage) update(id string, d Device) error {
 	sd.Type = d.Type
 	sd.Name = d.Name
 	sd.Description = d.Description
+	sd.Meta = d.Meta
 	sd.Ttl = d.Ttl
 	sd.Updated = time.Now()
 	if sd.Ttl >= 0 {

@@ -52,6 +52,7 @@ func (self *MemoryStorage) update(id string, s Service) error {
 	su.Type = s.Type
 	su.Name = s.Name
 	su.Description = s.Description
+	su.Meta = s.Meta
 	su.Ttl = s.Ttl
 	su.Updated = time.Now()
 	if s.Ttl >= 0 {

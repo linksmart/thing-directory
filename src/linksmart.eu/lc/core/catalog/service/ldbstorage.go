@@ -141,6 +141,7 @@ func (s *LevelDBStorage) update(id string, srv Service) error {
 	storedSrv.Type = srv.Type
 	storedSrv.Name = srv.Name
 	storedSrv.Description = srv.Description
+	storedSrv.Meta = srv.Meta
 	storedSrv.Ttl = srv.Ttl
 	storedSrv.Updated = time.Now()
 	if srv.Ttl >= 0 {
