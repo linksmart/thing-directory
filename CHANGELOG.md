@@ -1,5 +1,9 @@
 # CHANGELOG
 
+* 0.3.0-SNAPHSOT
+    - Fixed a minor bug whereby 'meta' of registrations in RC and SC were not updated
+    - Added Dockerfile to build docker container directly from the source code
+
 * 0.2.0
     - Migration from Godepts to GB vendor
     - Updated github.com/oleksandr/bonjour package and its usage:
