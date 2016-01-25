@@ -81,7 +81,7 @@ func (self *RemoteCatalogClient) Get(id string) (*Service, error) {
 
 func (self *RemoteCatalogClient) Add(s *Service) error {
 	b, _ := json.Marshal(s)
-	_, err := catalog.HTTPRequest("POST",
+	res, err := catalog.HTTPRequest("POST",
 		self.serverEndpoint.String()+"/",
 		nil,
 		bytes.NewReader(b),
@@ -89,6 +89,9 @@ func (self *RemoteCatalogClient) Add(s *Service) error {
 	)
 	if err != nil {
 		return err
+	}
+	if res.StatusCode != http.StatusCreated {
+		return fmt.Errorf("Cannot add registration: %v", res.StatusCode)
 	}
 	return nil
 }
