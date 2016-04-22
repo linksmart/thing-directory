@@ -115,6 +115,41 @@ func GetPageOfSlice(slice []string, page, perPage, maxPerPage int) []string {
 	return keys
 }
 
+// Returns offset and limit representing a subset of the given slice total size
+//	 based on the requested 'page'
+func GetPagingAttr(total, page, perPage, maxPerPage int) (int, int) {
+	//keys := []string{}
+	page, perPage = ValidatePagingParams(page, perPage, maxPerPage)
+
+	// Never return more than the defined maximum
+	if perPage > maxPerPage || perPage == 0 {
+		perPage = maxPerPage
+	}
+
+	// if 1, not specified or negative - return the first page
+	if page < 2 {
+		// first page
+		if perPage > total {
+			//keys = slice
+			return 0, total
+		} else {
+			//keys = slice[:perPage]
+			return 0, perPage
+		}
+	} else if page == int(total/perPage)+1 {
+		// last page
+		//keys = slice[perPage*(page-1):]
+		return perPage * (page - 1), total - perPage*(page-1)
+	} else if page <= total/perPage && page*perPage <= total {
+		// slice
+		r := page * perPage
+		l := r - perPage
+		//keys = slice[l:r]
+		return l, r - l
+	}
+	return 0, 0
+}
+
 func ValidatePagingParams(page, perPage, maxPerPage int) (int, int) {
 	// use defaults if not specified
 	if page == 0 {
