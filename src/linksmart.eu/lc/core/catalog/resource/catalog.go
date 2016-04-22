@@ -2,7 +2,7 @@ package resource
 
 import (
 	"errors"
-	"strings"
+	"fmt"
 	"time"
 )
 
@@ -10,29 +10,38 @@ var ErrorNotFound = errors.New("NotFound")
 
 // Structs
 
+type Resources []Resource
+
 // Device entry in the catalog
 type Device struct {
 	Id          string                 `json:"id"`
+	URL         string                 `json:"url"`
 	Type        string                 `json:"type"`
-	Name        string                 `json:"name"`
+	Name        string                 `json:"name,omitempty"`
 	Meta        map[string]interface{} `json:"meta"`
-	Description string                 `json:"description"`
+	Description string                 `json:"description,omitempty"`
 	Ttl         int                    `json:"ttl"`
 	Created     time.Time              `json:"created"`
 	Updated     time.Time              `json:"updated"`
-	Expires     *time.Time             `json:"expires"`
-	Resources   []Resource             `json:"resources"`
+	Expires     *time.Time             `json:"expires,omitempty"`
+	Resources   Resources              `json:"resources"`
+}
+
+type SimpleDevice struct {
+	*Device
+	Resources []string `json:"resources"`
 }
 
 // Resource exposed by a device
 type Resource struct {
 	Id             string                 `json:"id"`
+	URL            string                 `json:"url"`
 	Type           string                 `json:"type"`
-	Name           string                 `json:"name"`
+	Name           string                 `json:"name,omitempty"`
 	Meta           map[string]interface{} `json:"meta"`
 	Protocols      []Protocol             `json:"protocols"`
-	Representation map[string]interface{} `json:"representation"`
-	Device         string                 `json:"device,omitempty"` // link to device
+	Representation map[string]interface{} `json:"representation,omitempty"`
+	Device         string                 `json:"device"` // URL of device
 }
 
 // Protocol describes the resource API
@@ -54,17 +63,20 @@ func (self *Device) copy() Device {
 }
 
 // Validates the Device configuration
-func (d *Device) validate() bool {
-	if d.Id == "" || len(strings.Split(d.Id, "/")) != 2 || d.Name == "" || d.Ttl == 0 {
-		return false
+func (d *Device) validate() error {
+
+	if d.Ttl == 0 {
+		return fmt.Errorf("Device TTL must not be zero")
 	}
+
 	// validate all resources
 	for _, r := range d.Resources {
-		if !r.validate() {
-			return false
+		if err := r.validate(); err != nil {
+			return err
 		}
 	}
-	return true
+
+	return nil
 }
 
 // Deep copy of the resource
@@ -78,36 +90,58 @@ func (self *Resource) copy() Resource {
 }
 
 // Validates the Resource configuration
-func (r *Resource) validate() bool {
-	if r.Id == "" || len(strings.Split(r.Id, "/")) != 3 || r.Name == "" {
-		return false
-	}
-	return true
+func (r *Resource) validate() error {
+
+	return nil
 }
 
 // Interfaces
 
+type CatalogController interface {
+	listDevices(page, perPage int) ([]SimpleDevice, int, error)
+	addDevice(d *Device) error
+	getDevice(id string) (*SimpleDevice, error)
+	updateDevice(id string, d *Device) error
+	deleteDevice(id string) error
+	filterDevices(path, op, value string, page, perPage int) ([]SimpleDevice, int, error)
+	totalDevices() (int, error)
+	deviceCleaner()
+
+	listResources(page, perPage int) ([]Resource, int, error)
+	getResource(id string) (*Resource, error)
+	filterResources(path, op, value string, page, perPage int) ([]Resource, int, error)
+	totalResources() (int, error)
+}
+
 // Storage interface
 type CatalogStorage interface {
-	// CRUD
-	add(d Device) error
-	update(id string, d Device) error
+	// Devices
+	list(page, perPage int) ([]Device, int, error)
+	add(d *Device) error
+	update(id string, d *Device) error
 	delete(id string) error
-	get(id string) (Device, error)
+	get(id string) (*Device, error)
+	total() (int, error)
+	//filter(path, op, value string, page, perPage int) ([]Device, int, error)
+
+	// Resources
+	//listResources(page, perPage int) ([]Resource, int, error)
+	//getResource(id string) (Resource, error)
+	//filterResources(path, op, value string, page, perPage int) ([]Resource, int, error)
 
 	// Utility functions
-	getMany(page, perPage int) ([]Device, int, error)
-	getDevicesCount() (int, error)
-	getResourcesCount() (int, error)
-	getResourceById(id string) (Resource, error)
-	cleanExpired(ts time.Time)
+	//getMany(page, perPage int) ([]Device, int, error)
+	//getDevicesCount() (int, error)
+	//getResourcesCount() (int, error)
+	//getResourceById(id string) (Resource, error)
+	//cleanExpired(ts time.Time)
 	Close() error
 
 	// Path filtering
-	pathFilterDevice(path, op, value string) (Device, error)
-	pathFilterDevices(path, op, value string, page, perPage int) ([]Device, int, error)
-	pathFilterResource(path, op, value string) (Resource, error)
-	pathFilterResources(path, op, value string, page, perPage int) ([]Device, int, error)
+	//pathFilterDevice(path, op, value string) (Device, error)
+	//pathFilterDevices(path, op, value string, page, perPage int) ([]Device, int, error)
+	//pathFilterResource(path, op, value string) (Resource, error)
+	//pathFilterResources(path, op, value string, page, perPage int) ([]Device, int, error)
 }
 
 // Sorted-map data structure based on AVL Tree (go-avltree)
