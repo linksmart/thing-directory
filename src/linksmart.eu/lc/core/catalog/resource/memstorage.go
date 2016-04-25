@@ -74,7 +74,6 @@ func (s *MemoryStorage) get(id string) (*Device, error) {
 	s.RLock()
 	defer s.RUnlock()
 
-	fmt.Println(id)
 	d := s.devices.Find(Device{Id: id})
 	if d == nil {
 		return nil, &NotFoundError{fmt.Sprintf("Device with id %s is not found", id)}

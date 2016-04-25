@@ -1,57 +1,54 @@
 package resource
 
 type LocalCatalogClient struct {
-	localStorage CatalogStorage
+	controller CatalogController
 }
 
 func (self *LocalCatalogClient) Add(r *Device) error {
 	// set ttl to -1
 	r.Ttl = -1
-	return self.localStorage.add(*r)
+	return self.controller.add(r)
 }
 
 func (self *LocalCatalogClient) Update(id string, r *Device) error {
-	return self.localStorage.update(id, *r)
+	return self.controller.update(id, r)
 }
 
 func (self *LocalCatalogClient) Delete(id string) error {
-	return self.localStorage.delete(id)
+	return self.controller.delete(id)
 }
 
-func (self *LocalCatalogClient) Get(id string) (*Device, error) {
-	d, err := self.localStorage.get(id)
-	return &d, err
+func (self *LocalCatalogClient) Get(id string) (*SimpleDevice, error) {
+	return self.controller.get(id)
 }
 
-func (self *LocalCatalogClient) GetMany(page int, perPage int) ([]Device, int, error) {
-	return self.localStorage.getMany(page, perPage)
+func (self *LocalCatalogClient) List(page int, perPage int) ([]SimpleDevice, int, error) {
+	return self.controller.list(page, perPage)
 }
 
 func (self *LocalCatalogClient) GetResource(id string) (*Resource, error) {
-	r, err := self.localStorage.getResourceById(id)
-	return &r, err
+	return self.controller.getResource(id)
 }
 
-func (self *LocalCatalogClient) FindDevice(path, op, value string) (*Device, error) {
-	d, err := self.localStorage.pathFilterDevice(path, op, value)
-	return &d, err
+func (self *LocalCatalogClient) ListResources(page int, perPage int) ([]Resource, int, error) {
+	return self.controller.listResources(page, perPage)
 }
 
-func (self *LocalCatalogClient) FindDevices(path, op, value string, page, perPage int) ([]Device, int, error) {
-	return self.localStorage.pathFilterDevices(path, op, value, page, perPage)
+func (self *LocalCatalogClient) Filter(path, op, value string, page, perPage int) ([]SimpleDevice, int, error) {
+	return self.controller.filter(path, op, value, page, perPage)
 }
 
-func (self *LocalCatalogClient) FindResource(path, op, value string) (*Resource, error) {
-	r, err := self.localStorage.pathFilterResource(path, op, value)
-	return &r, err
+func (self *LocalCatalogClient) FilterResources(path, op, value string, page, perPage int) ([]Resource, int, error) {
+	return self.controller.filterResources(path, op, value, page, perPage)
 }
 
-func (self *LocalCatalogClient) FindResources(path, op, value string, page, perPage int) ([]Device, int, error) {
-	return self.localStorage.pathFilterResources(path, op, value, page, perPage)
-}
-
-func NewLocalCatalogClient(storage CatalogStorage) *LocalCatalogClient {
-	return &LocalCatalogClient{
-		localStorage: storage,
+func NewLocalCatalogClient(storage CatalogStorage, apiLocation string) (*LocalCatalogClient, error) {
+	controller, err := NewController(storage, apiLocation)
+	if err != nil {
+		return nil, err
 	}
+
+	return &LocalCatalogClient{
+		controller: controller,
+	}, nil
 }

@@ -13,10 +13,8 @@ import (
 )
 
 const (
-	//FTypeDevice     = "device"
-	//FTypeDevices    = "devices"
-	//FTypeResource   = "resource"
-	//FTypeResources  = "resources"
+	FTypeDevices    = "devices"
+	FTypeResources  = "resources"
 	GetParamPage    = "page"
 	GetParamPerPage = "per_page"
 	CtxRootDir      = "/ctx"
@@ -35,7 +33,7 @@ type DeviceCollection struct {
 
 type ResourceCollection struct {
 	Context   string     `json:"@context,omitempty"`
-	ID        string     `json:"id"`
+	Id        string     `json:"id"`
 	Type      string     `json:"type"`
 	Resources []Resource `json:"resources"`
 	Page      int        `json:"page"`
@@ -76,7 +74,7 @@ func NewWritableCatalogAPI(storage CatalogStorage, apiLocation, staticLocation, 
 	}
 }
 
-func (self ReadableCatalogAPI) List(w http.ResponseWriter, req *http.Request) {
+func (a ReadableCatalogAPI) List(w http.ResponseWriter, req *http.Request) {
 	err := req.ParseForm()
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query:", err.Error())
@@ -86,16 +84,16 @@ func (self ReadableCatalogAPI) List(w http.ResponseWriter, req *http.Request) {
 	perPage, _ := strconv.Atoi(req.Form.Get(GetParamPerPage))
 	page, perPage = catalog.ValidatePagingParams(page, perPage, MaxPerPage)
 
-	simpleDevices, total, err := self.controller.listDevices(page, perPage)
+	simpleDevices, total, err := a.controller.list(page, perPage)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	coll := &DeviceCollection{
-		Context: self.ctxPathRoot + CtxPathCatalog,
-		Id:      self.apiLocation,
-		Type:    ApiCollectionType,
+		Context: a.ctxPathRoot + CtxPathCatalog,
+		Id:      a.apiLocation,
+		Type:    ApiDeviceCollectionType,
 		Devices: simpleDevices,
 		Page:    page,
 		PerPage: perPage,
@@ -108,96 +106,65 @@ func (self ReadableCatalogAPI) List(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
+	w.Header().Set("Content-Type", ApiMIMEType)
 	w.Write(b)
-	return
 }
 
-//func (self ReadableCatalogAPI) Filter(w http.ResponseWriter, req *http.Request) {
-//	params := mux.Vars(req)
-//	ftype := params["type"]
-//	fpath := params["path"]
-//	fop := params["op"]
-//	fvalue := params["value"]
-//
-//	err := req.ParseForm()
-//	if err != nil {
-//		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query:", err.Error())
-//		return
-//	}
-//	page, _ := strconv.Atoi(req.Form.Get(GetParamPage))
-//	perPage, _ := strconv.Atoi(req.Form.Get(GetParamPerPage))
-//	page, perPage = catalog.ValidatePagingParams(page, perPage, MaxPerPage)
-//
-//	var (
-//		data  interface{}
-//		total int
-//	)
-//
-//	switch ftype {
-//	case FTypeDevice:
-//		data, err = self.catalogStorage.pathFilterDevice(fpath, fop, fvalue)
-//		if data.(Device).Id != "" {
-//			data = self.paginatedDeviceFromDevice(data.(Device), page, perPage)
-//		} else {
-//			data = nil
-//		}
-//
-//	case FTypeDevices:
-//		data, total, err = self.catalogStorage.pathFilterDevices(fpath, fop, fvalue, page, perPage)
-//		data = self.collectionFromDevices(data.([]Device), page, perPage, total)
-//		if data.(*Collection).Total == 0 {
-//			data = nil
-//		}
-//
-//	case FTypeResource:
-//		data, err = self.catalogStorage.pathFilterResource(fpath, fop, fvalue)
-//		if data.(Resource).Id != "" {
-//			res := data.(Resource)
-//			data = res.ldify(self.apiLocation)
-//		} else {
-//			data = nil
-//		}
-//
-//	case FTypeResources:
-//		data, total, err = self.catalogStorage.pathFilterResources(fpath, fop, fvalue, page, perPage)
-//		data = self.collectionFromDevices(data.([]Device), page, perPage, total)
-//		if data.(*Collection).Total == 0 {
-//			data = nil
-//		}
-//	}
-//
-//	if err != nil {
-//		ErrorResponse(w, http.StatusInternalServerError, "Error processing the request:", err.Error())
-//		return
-//	}
-//
-//	if data == nil {
-//		ErrorResponse(w, http.StatusNotFound, "No matched entries found.")
-//		return
-//	}
-//
-//	b, err := json.Marshal(data)
-//	if err != nil {
-//		ErrorResponse(w, http.StatusInternalServerError, err.Error())
-//		return
-//	}
-//	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
-//	w.Write(b)
-//}
+func (a ReadableCatalogAPI) Filter(w http.ResponseWriter, req *http.Request) {
+	params := mux.Vars(req)
+	path := params["path"]
+	op := params["op"]
+	value := params["value"]
 
-func (self ReadableCatalogAPI) Get(w http.ResponseWriter, req *http.Request) {
+	err := req.ParseForm()
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query:", err.Error())
+		return
+	}
+	page, _ := strconv.Atoi(req.Form.Get(GetParamPage))
+	perPage, _ := strconv.Atoi(req.Form.Get(GetParamPerPage))
+	page, perPage = catalog.ValidatePagingParams(page, perPage, MaxPerPage)
+
+	simpleDevices, total, err := a.controller.filter(path, op, value, page, perPage)
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	coll := &DeviceCollection{
+		Context: a.ctxPathRoot + CtxPathCatalog,
+		Id:      a.apiLocation,
+		Type:    ApiDeviceCollectionType,
+		Devices: simpleDevices,
+		Page:    page,
+		PerPage: perPage,
+		Total:   total,
+	}
+
+	b, err := json.Marshal(coll)
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", ApiMIMEType)
+	w.Write(b)
+}
+
+func (a ReadableCatalogAPI) Get(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 	//id := fmt.Sprintf("%v/%v", params["dgwid"], params["id"])
 
-	d, err := self.controller.getDevice(params["id"])
-	switch err.(type) {
-	case *NotFoundError:
-		ErrorResponse(w, http.StatusNotFound, err.Error())
-		return
-	default:
-		ErrorResponse(w, http.StatusInternalServerError, "Error retrieving the device:", err.Error())
-		return
+	d, err := a.controller.get(params["id"])
+	if err != nil {
+		switch err.(type) {
+		case *NotFoundError:
+			ErrorResponse(w, http.StatusNotFound, err.Error())
+			return
+		default:
+			ErrorResponse(w, http.StatusInternalServerError, "Error retrieving the device:", err.Error())
+			return
+		}
 	}
 
 	b, err := json.Marshal(d)
@@ -206,22 +173,23 @@ func (self ReadableCatalogAPI) Get(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
+	w.Header().Set("Content-Type", ApiMIMEType)
 	w.Write(b)
-	return
 }
 
-func (self ReadableCatalogAPI) GetResource(w http.ResponseWriter, req *http.Request) {
+func (a ReadableCatalogAPI) GetResource(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 
-	r, err := self.controller.getResource(params["id"])
-	switch err.(type) {
-	case *NotFoundError:
-		ErrorResponse(w, http.StatusNotFound, err.Error())
-		return
-	default:
-		ErrorResponse(w, http.StatusInternalServerError, "Error retrieving the device:", err.Error())
-		return
+	r, err := a.controller.getResource(params["id"])
+	if err != nil {
+		switch err.(type) {
+		case *NotFoundError:
+			ErrorResponse(w, http.StatusNotFound, err.Error())
+			return
+		default:
+			ErrorResponse(w, http.StatusInternalServerError, "Error retrieving the device:", err.Error())
+			return
+		}
 	}
 
 	b, err := json.Marshal(r)
@@ -232,10 +200,9 @@ func (self ReadableCatalogAPI) GetResource(w http.ResponseWriter, req *http.Requ
 
 	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
 	w.Write(b)
-	return
 }
 
-func (self WritableCatalogAPI) Add(w http.ResponseWriter, req *http.Request) {
+func (a WritableCatalogAPI) Add(w http.ResponseWriter, req *http.Request) {
 	body, err := ioutil.ReadAll(req.Body)
 	req.Body.Close()
 	if err != nil {
@@ -250,19 +217,18 @@ func (self WritableCatalogAPI) Add(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	err = self.controller.addDevice(&d)
+	err = a.controller.add(&d)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, "Error creating the registration:", err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
-	w.Header().Set("Location", fmt.Sprintf("%s/%s", self.apiLocation, d.Id))
+	w.Header().Set("Content-Type", ApiMIMEType)
+	w.Header().Set("Location", fmt.Sprintf("%s/%s", a.apiLocation, d.Id))
 	w.WriteHeader(http.StatusCreated)
-	return
 }
 
-func (self WritableCatalogAPI) Update(w http.ResponseWriter, req *http.Request) {
+func (a WritableCatalogAPI) Update(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 	id := fmt.Sprintf("%v/%v", params["dgwid"], params["regid"])
 
@@ -280,39 +246,43 @@ func (self WritableCatalogAPI) Update(w http.ResponseWriter, req *http.Request) 
 		return
 	}
 
-	err = self.controller.updateDevice(id, &d)
-	if err == ErrorNotFound {
-		ErrorResponse(w, http.StatusNotFound, "Not found.")
-		return
-	} else if err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, "Error updating the device:", err.Error())
-		return
+	err = a.controller.update(id, &d)
+	if err != nil {
+		switch err.(type) {
+		case *NotFoundError:
+			ErrorResponse(w, http.StatusNotFound, err.Error())
+			return
+		default:
+			ErrorResponse(w, http.StatusInternalServerError, "Error updating the device:", err.Error())
+			return
+		}
 	}
 
-	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
+	w.Header().Set("Content-Type", ApiMIMEType)
 	w.WriteHeader(http.StatusOK)
-	return
 }
 
-func (self WritableCatalogAPI) Delete(w http.ResponseWriter, req *http.Request) {
+func (a WritableCatalogAPI) Delete(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 	id := fmt.Sprintf("%v/%v", params["dgwid"], params["regid"])
 
-	err := self.controller.deleteDevice(id)
-	if err == ErrorNotFound {
-		ErrorResponse(w, http.StatusNotFound, "Not found.")
-		return
-	} else if err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, "Error deleting the device:", err.Error())
-		return
+	err := a.controller.delete(id)
+	if err != nil {
+		switch err.(type) {
+		case *NotFoundError:
+			ErrorResponse(w, http.StatusNotFound, err.Error())
+			return
+		default:
+			ErrorResponse(w, http.StatusInternalServerError, "Error deleting the device:", err.Error())
+			return
+		}
 	}
 
-	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
+	w.Header().Set("Content-Type", ApiMIMEType)
 	w.WriteHeader(http.StatusOK)
-	return
 }
 
-func (self ReadableCatalogAPI) ListResources(w http.ResponseWriter, req *http.Request) {
+func (a ReadableCatalogAPI) ListResources(w http.ResponseWriter, req *http.Request) {
 	err := req.ParseForm()
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query:", err.Error())
@@ -322,15 +292,16 @@ func (self ReadableCatalogAPI) ListResources(w http.ResponseWriter, req *http.Re
 	perPage, _ := strconv.Atoi(req.Form.Get(GetParamPerPage))
 	page, perPage = catalog.ValidatePagingParams(page, perPage, MaxPerPage)
 
-	resources, total, err := self.controller.listResources(page, perPage)
+	resources, total, err := a.controller.listResources(page, perPage)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	coll := &ResourceCollection{
-		Context:   self.ctxPathRoot + CtxPathCatalog,
-		Type:      ApiCollectionType,
+		Context:   a.ctxPathRoot + CtxPathCatalog,
+		Id:        a.apiLocation,
+		Type:      ApiResourceCollectionType,
 		Resources: resources,
 		Page:      page,
 		PerPage:   perPage,
@@ -343,7 +314,47 @@ func (self ReadableCatalogAPI) ListResources(w http.ResponseWriter, req *http.Re
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
+	w.Header().Set("Content-Type", ApiMIMEType)
 	w.Write(b)
-	return
+}
+
+func (a ReadableCatalogAPI) FilterResources(w http.ResponseWriter, req *http.Request) {
+	params := mux.Vars(req)
+	path := params["path"]
+	op := params["op"]
+	value := params["value"]
+
+	err := req.ParseForm()
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query:", err.Error())
+		return
+	}
+	page, _ := strconv.Atoi(req.Form.Get(GetParamPage))
+	perPage, _ := strconv.Atoi(req.Form.Get(GetParamPerPage))
+	page, perPage = catalog.ValidatePagingParams(page, perPage, MaxPerPage)
+
+	resources, total, err := a.controller.filterResources(path, op, value, page, perPage)
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, "Error processing the request:", err.Error())
+		return
+	}
+
+	coll := &ResourceCollection{
+		Context:   a.ctxPathRoot + CtxPathCatalog,
+		Id:        a.apiLocation,
+		Type:      ApiResourceCollectionType,
+		Resources: resources,
+		Page:      page,
+		PerPage:   perPage,
+		Total:     total,
+	}
+
+	b, err := json.Marshal(coll)
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", ApiMIMEType)
+	w.Write(b)
 }

@@ -1,24 +1,25 @@
 package resource
 
 import (
+	"encoding/json"
 	"net/http"
 	"strings"
-	"encoding/json"
 )
 
 // Not Found
-type NotFoundError struct { s string }
+type NotFoundError struct{ s string }
+
 func (e *NotFoundError) Error() string { return e.s }
 
 // Not Unique
-type NotUniqueError struct { s string }
+type NotUniqueError struct{ s string }
+
 func (e *NotUniqueError) Error() string { return e.s }
 
 // Conflict (assignment to read-only data, etc)
-type ConflictError struct { s string }
-func (e *ConflictError) Error() string {	return e.s }
+type ConflictError struct{ s string }
 
-
+func (e *ConflictError) Error() string { return e.s }
 
 // Error describes an API error (serializable in JSON)
 type Error struct {

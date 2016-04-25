@@ -1,12 +1,9 @@
 package resource
 
 import (
-	"errors"
 	"fmt"
 	"time"
 )
-
-var ErrorNotFound = errors.New("NotFound")
 
 // Structs
 
@@ -18,9 +15,9 @@ type Device struct {
 	URL         string                 `json:"url"`
 	Type        string                 `json:"type"`
 	Name        string                 `json:"name,omitempty"`
-	Meta        map[string]interface{} `json:"meta"`
+	Meta        map[string]interface{} `json:"meta,omitempty"`
 	Description string                 `json:"description,omitempty"`
-	Ttl         int                    `json:"ttl"`
+	Ttl         int                    `json:"ttl,omitempty"`
 	Created     time.Time              `json:"created"`
 	Updated     time.Time              `json:"updated"`
 	Expires     *time.Time             `json:"expires,omitempty"`
@@ -38,7 +35,7 @@ type Resource struct {
 	URL            string                 `json:"url"`
 	Type           string                 `json:"type"`
 	Name           string                 `json:"name,omitempty"`
-	Meta           map[string]interface{} `json:"meta"`
+	Meta           map[string]interface{} `json:"meta,omitempty"`
 	Protocols      []Protocol             `json:"protocols"`
 	Representation map[string]interface{} `json:"representation,omitempty"`
 	Device         string                 `json:"device"` // URL of device
@@ -52,15 +49,15 @@ type Protocol struct {
 	ContentTypes []string               `json:"content-types"`
 }
 
-// Deep copy of the device
-func (self *Device) copy() Device {
-	var dc Device
-	dc = *self
-	res := make([]Resource, len(self.Resources))
-	copy(res, self.Resources)
-	dc.Resources = res
-	return dc
-}
+//// Deep copy of the device
+//func (self *Device) copy() Device {
+//	var dc Device
+//	dc = *self
+//	res := make([]Resource, len(self.Resources))
+//	copy(res, self.Resources)
+//	dc.Resources = res
+//	return dc
+//}
 
 // Validates the Device configuration
 func (d *Device) validate() error {
@@ -79,15 +76,15 @@ func (d *Device) validate() error {
 	return nil
 }
 
-// Deep copy of the resource
-func (self *Resource) copy() Resource {
-	var rc Resource
-	rc = *self
-	proto := make([]Protocol, len(self.Protocols))
-	copy(proto, self.Protocols)
-	rc.Protocols = proto
-	return rc
-}
+//// Deep copy of the resource
+//func (self *Resource) copy() Resource {
+//	var rc Resource
+//	rc = *self
+//	proto := make([]Protocol, len(self.Protocols))
+//	copy(proto, self.Protocols)
+//	rc.Protocols = proto
+//	return rc
+//}
 
 // Validates the Resource configuration
 func (r *Resource) validate() error {
@@ -98,14 +95,14 @@ func (r *Resource) validate() error {
 // Interfaces
 
 type CatalogController interface {
-	listDevices(page, perPage int) ([]SimpleDevice, int, error)
-	addDevice(d *Device) error
-	getDevice(id string) (*SimpleDevice, error)
-	updateDevice(id string, d *Device) error
-	deleteDevice(id string) error
-	filterDevices(path, op, value string, page, perPage int) ([]SimpleDevice, int, error)
-	totalDevices() (int, error)
-	deviceCleaner()
+	list(page, perPage int) ([]SimpleDevice, int, error)
+	add(d *Device) error
+	get(id string) (*SimpleDevice, error)
+	update(id string, d *Device) error
+	delete(id string) error
+	filter(path, op, value string, page, perPage int) ([]SimpleDevice, int, error)
+	total() (int, error)
+	cleanExpired(d time.Duration)
 
 	listResources(page, perPage int) ([]Resource, int, error)
 	getResource(id string) (*Resource, error)
@@ -115,33 +112,13 @@ type CatalogController interface {
 
 // Storage interface
 type CatalogStorage interface {
-	// Devices
 	list(page, perPage int) ([]Device, int, error)
 	add(d *Device) error
 	update(id string, d *Device) error
 	delete(id string) error
 	get(id string) (*Device, error)
 	total() (int, error)
-	//filter(path, op, value string, page, perPage int) ([]Device, int, error)
-
-	// Resources
-	//listResources(page, perPage int) ([]Resource, int, error)
-	//getResource(id string) (Resource, error)
-	//filterResources(path, op, value string, page, perPage int) ([]Resource, int, error)
-
-	// Utility functions
-	//getMany(page, perPage int) ([]Device, int, error)
-	//getDevicesCount() (int, error)
-	//getResourcesCount() (int, error)
-	//getResourceById(id string) (Resource, error)
-	//cleanExpired(ts time.Time)
 	Close() error
-
-	// Path filtering
-	//pathFilterDevice(path, op, value string) (Device, error)
-	//pathFilterDevices(path, op, value string, page, perPage int) ([]Device, int, error)
-	//pathFilterResource(path, op, value string) (Resource, error)
-	//pathFilterResources(path, op, value string, page, perPage int) ([]Device, int, error)
 }
 
 // Sorted-map data structure based on AVL Tree (go-avltree)
@@ -149,7 +126,6 @@ type SortedMap struct {
 	key   interface{}
 	value interface{}
 }
-
 // Operator for string-type key
 func stringKeys(a interface{}, b interface{}) int {
 	if a.(SortedMap).key.(string) < b.(SortedMap).key.(string) {
@@ -159,7 +135,6 @@ func stringKeys(a interface{}, b interface{}) int {
 	}
 	return 0
 }
-
 // Operator for Time-type key
 func timeKeys(a interface{}, b interface{}) int {
 	if a.(SortedMap).key.(time.Time).Before(b.(SortedMap).key.(time.Time)) {

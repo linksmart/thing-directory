@@ -16,18 +16,20 @@ const (
 // Registers device given a configured Catalog Client
 func RegisterDevice(client CatalogClient, d *Device) error {
 	_, err := client.Get(d.Id)
-
-	// If not in the catalog - add
-	if err == ErrorNotFound {
-		err = client.Add(d)
-		if err != nil {
+	if err != nil {
+		switch err.(type) {
+		case *NotFoundError:
+			// If not in the catalog - add
+			err = client.Add(d)
+			if err != nil {
+				logger.Printf("RegisterDevice() ERROR: %v", err)
+				return err
+			}
+			logger.Printf("RegisterDevice() Added Device registration %v", d.Id)
+		default:
 			logger.Printf("RegisterDevice() ERROR: %v", err)
 			return err
 		}
-		logger.Printf("RegisterDevice() Added Device registration %v", d.Id)
-	} else if err != nil {
-		logger.Printf("RegisterDevice() ERROR: %v", err)
-		return err
 	} else {
 		// otherwise - Update
 		err = client.Update(d.Id, d)
@@ -125,20 +127,23 @@ func keepAlive(client CatalogClient, d *Device, sigCh <-chan bool, errCh chan<- 
 		select {
 		case <-ticker.C:
 			err := client.Update(d.Id, d)
-
-			if err == ErrorNotFound {
-				logger.Printf("keepAlive() ERROR: Registration %v not found in the remote catalog. TTL expired?", d.Id)
-				err = client.Add(d)
-				if err != nil {
+			if err != nil {
+				switch err.(type) {
+				case *NotFoundError:
+					// If not in the catalog - add
+					logger.Printf("keepAlive() ERROR: Registration %v not found in the remote catalog. TTL expired?", d.Id)
+					err = client.Add(d)
+					if err != nil {
+						logger.Printf("keepAlive() ERROR: %v", err)
+						errTries += 1
+					} else {
+						logger.Printf("keepAlive() Added Device registration %v", d.Id)
+						errTries = 0
+					}
+				default:
 					logger.Printf("keepAlive() ERROR: %v", err)
 					errTries += 1
-				} else {
-					logger.Printf("keepAlive() Added Device registration %v", d.Id)
-					errTries = 0
 				}
-			} else if err != nil {
-				logger.Printf("keepAlive() ERROR: %v", err)
-				errTries += 1
 			} else {
 				logger.Printf("keepAlive() Updated Device registration %v", d.Id)
 				errTries = 0

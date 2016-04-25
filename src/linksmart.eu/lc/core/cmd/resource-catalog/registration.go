@@ -44,7 +44,7 @@ func registrationFromConfig(conf *Config) (*sc.Service, error) {
 	c := &sc.ServiceConfig{}
 
 	json.Unmarshal([]byte(registrationTemplate), c)
-	c.Name = catalog.ApiCollectionType
+	c.Name = catalog.ApiName
 	publicURL, _ := url.Parse(conf.PublicEndpoint)
 	c.Host = strings.Split(publicURL.Host, ":")[0]
 	c.Description = conf.Description

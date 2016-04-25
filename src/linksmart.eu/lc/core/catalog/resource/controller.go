@@ -1,12 +1,11 @@
 package resource
 
 import (
-	"sync"
-
-	"time"
-
 	"fmt"
 	"sort"
+	"strings"
+	"sync"
+	"time"
 
 	avl "github.com/ancientlore/go-avltree"
 	"linksmart.eu/lc/core/catalog"
@@ -37,18 +36,14 @@ func NewController(storage CatalogStorage, apiLocation string) (CatalogControlle
 		return nil, err
 	}
 
-	// schedule cleaner
-	//t := time.Tick(time.Duration(5) * time.Second)
-	//go func() {
-	//	for now := range t {
-	//		storage.cleanExpired(now)
-	//	}
-	//}()
+	go c.cleanExpired(5 * time.Second)
 
 	return &c, nil
 }
 
-func (c *Controller) listDevices(page, perPage int) ([]SimpleDevice, int, error) {
+// DEVICES
+
+func (c *Controller) list(page, perPage int) ([]SimpleDevice, int, error) {
 	devices, total, err := c.storage.list(page, perPage)
 	if err != nil {
 		return nil, 0, err
@@ -57,15 +52,16 @@ func (c *Controller) listDevices(page, perPage int) ([]SimpleDevice, int, error)
 	return c.simplifyDevices(devices), total, nil
 }
 
-func (c *Controller) addDevice(d *Device) error {
+func (c *Controller) add(d *Device) error {
 	if err := d.validate(); err != nil {
 		return fmt.Errorf("Invalid Device registration: %s", err)
 	}
 
-	// System generated id
 	c.Lock()
+	defer c.Unlock()
+
+	// System generated id
 	d.Id = fmt.Sprintf("urn:is_device:%x", time.Now().UnixNano())
-	c.Unlock()
 
 	d.URL = fmt.Sprintf("%s/devices/%s", c.apiLocation, d.Id)
 	d.Created = time.Now()
@@ -79,9 +75,7 @@ func (c *Controller) addDevice(d *Device) error {
 
 	for i := range d.Resources {
 		// System generated id
-		c.Lock()
 		d.Resources[i].Id = fmt.Sprintf("urn:is_resource:%x", time.Now().UnixNano())
-		c.Unlock()
 
 		d.Resources[i].URL = fmt.Sprintf("%s/resources/%s", c.apiLocation, d.Resources[i].Id)
 		d.Resources[i].Device = d.URL
@@ -100,7 +94,7 @@ func (c *Controller) addDevice(d *Device) error {
 	return nil
 }
 
-func (c *Controller) getDevice(id string) (*SimpleDevice, error) {
+func (c *Controller) get(id string) (*SimpleDevice, error) {
 	d, err := c.storage.get(id)
 	if err != nil {
 		return nil, err
@@ -109,10 +103,13 @@ func (c *Controller) getDevice(id string) (*SimpleDevice, error) {
 	return c.simplifyDevice(d), nil
 }
 
-func (c *Controller) updateDevice(id string, d *Device) error {
+func (c *Controller) update(id string, d *Device) error {
 	if err := d.validate(); err != nil {
 		return fmt.Errorf("Invalid Device registration: %s", err)
 	}
+
+	c.Lock()
+	defer c.Unlock()
 
 	// Get the stored device
 	sd, err := c.storage.get(id)
@@ -147,9 +144,7 @@ func (c *Controller) updateDevice(id string, d *Device) error {
 	for i := range sd.Resources {
 		if sd.Resources[i].Id == "" {
 			// System generated id
-			c.Lock()
 			sd.Resources[i].Id = fmt.Sprintf("urn:is_resource:%x", time.Now().UnixNano())
-			c.Unlock()
 		} else {
 			// User-defined id
 			if match := c.resDevice.Find(SortedMap{key: d.Resources[i].Id}); match != nil {
@@ -174,7 +169,10 @@ func (c *Controller) updateDevice(id string, d *Device) error {
 	return nil
 }
 
-func (c *Controller) deleteDevice(id string) error {
+func (c *Controller) delete(id string) error {
+	c.Lock()
+	defer c.Unlock()
+
 	oldDevice, err := c.storage.get(id)
 	if err != nil {
 		return err
@@ -191,27 +189,90 @@ func (c *Controller) deleteDevice(id string) error {
 	return nil
 }
 
-func (c *Controller) filterDevices(path, op, value string, page, perPage int) ([]SimpleDevice, int, error) {
-	return nil, 0, nil
+func (c *Controller) filter(path, op, value string, page, perPage int) ([]SimpleDevice, int, error) {
+	c.RLock()
+	defer c.RUnlock()
+
+	var matches []SimpleDevice
+	pp := 100
+	for p := 1; ; p++ {
+		slice, t, err := c.storage.list(p, pp)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		simplified := c.simplifyDevices(slice)
+		for i := range simplified {
+			matched, err := catalog.MatchObject(simplified[i], strings.Split(path, "."), op, value)
+			if err != nil {
+				return nil, 0, err
+			}
+			if matched {
+				matches = append(matches, simplified[i])
+			}
+		}
+
+		if p*pp >= t {
+			break
+		}
+	}
+
+	offset, limit := catalog.GetPagingAttr(len(matches), page, perPage, MaxPerPage)
+
+	fmt.Println(matches[offset:offset+limit], offset, limit)
+
+	return matches[offset : offset+limit], len(matches), nil
 }
 
-func (c *Controller) totalDevices() (int, error) {
+func (c *Controller) total() (int, error) {
 	c.RLock()
 	defer c.RUnlock()
 
 	return c.storage.total()
 }
 
-func (c *Controller) deviceCleaner() {
+func (c *Controller) cleanExpired(d time.Duration) {
+	t := time.Tick(d)
+	for timestamp := range t {
+		c.Lock()
 
+		var expiredList []SortedMap
+		for m := range c.expDevice.Iter() {
+			if !m.(SortedMap).key.(time.Time).After(timestamp) {
+				expiredList = append(expiredList, m.(SortedMap))
+			} else {
+				// expDevice is sorted by time ascendingly: its elements expire in order
+				break
+			}
+		}
+
+		for _, m := range expiredList {
+			id := m.value.(string)
+			logger.Printf("cleanExpired() Registration %v has expired\n", id)
+
+			oldDevice, err := c.storage.get(id)
+			if err != nil {
+				logger.Println("cleanExpired() Error retrieving device %v:", id, err.Error())
+			}
+			err = c.storage.delete(id)
+			if err != nil {
+				logger.Println("cleanExpired() Error removing device %v:", id, err.Error())
+			}
+			// Remove secondary indices
+			c.removeIndices(oldDevice)
+		}
+
+		c.Unlock()
+	}
 }
 
+// RESOURCES
+
 func (c *Controller) listResources(page, perPage int) ([]Resource, int, error) {
-
-	total, _ := c.totalResources() // already mutex locked
-
 	c.RLock()
 	defer c.RUnlock()
+
+	total := c.resDevice.Len()
 
 	// Slice resources map
 	keys := make([]string, total)
@@ -220,41 +281,45 @@ func (c *Controller) listResources(page, perPage int) ([]Resource, int, error) {
 	}
 	slice := catalog.GetPageOfSlice(keys, page, perPage, MaxPerPage)
 
+	// Blank page
 	if len(slice) == 0 {
-		return nil, total, nil
+		return []Resource{}, total, nil
 	}
 
-	// Retrieve devices that are in the slice
-	sliceMap := make(map[string]bool)
-	for _, x := range slice {
-		sliceMap[x] = true
-	}
+	// Retrieve resources from devices
 	devices := make(map[string]*Device)
 	var resources []Resource
 	for _, k := range slice {
 		deviceID := c.resDevice.Find(SortedMap{key: k}).(SortedMap).value.(string)
 
+		var err error
 		d, exists := devices[deviceID]
 		if !exists {
-			d, err := c.storage.get(deviceID)
+			d, err = c.storage.get(deviceID)
 			if err != nil {
 				return nil, total, err
 			}
 			devices[deviceID] = d
 		}
 
-		ri := sort.Search(len(d.Resources), func(i int) bool { return d.Resources[i].Id == k })
-		resources = append(resources, d.Resources[ri])
+		for i := range d.Resources {
+			if d.Resources[i].Id == k {
+				resources = append(resources, d.Resources[i])
+				break
+			}
+		}
 	}
 
 	return resources, total, nil
 }
 
 func (c *Controller) getResource(id string) (*Resource, error) {
+	c.RLock()
+	defer c.RUnlock()
 
 	res := c.resDevice.Find(SortedMap{key: id})
 	if res == nil {
-		return nil, ErrorNotFound
+		return nil, &NotFoundError{"Resource not found"}
 	}
 	deviceID := res.(SortedMap).value.(string)
 
@@ -269,12 +334,48 @@ func (c *Controller) getResource(id string) (*Resource, error) {
 		}
 	}
 
-	return nil, ErrorNotFound
+	return nil, &NotFoundError{"Parent device not found"} // should never happen
 
 }
 
 func (c *Controller) filterResources(path, op, value string, page, perPage int) ([]Resource, int, error) {
-	return nil, 0, nil
+	c.RLock()
+	defer c.RUnlock()
+
+	// Retrieve resources from devices
+	devices := make(map[string]*Device)
+	var matches []Resource
+	for x := range c.resDevice.Iter() {
+		resourceID := x.(SortedMap).key.(string)
+		deviceID := x.(SortedMap).value.(string)
+
+		var err error
+		d, exists := devices[deviceID]
+		if !exists {
+			d, err = c.storage.get(deviceID)
+			if err != nil {
+				return nil, 0, err
+			}
+			devices[deviceID] = d
+		}
+
+		for i := range d.Resources {
+			if d.Resources[i].Id == resourceID {
+
+				matched, err := catalog.MatchObject(d.Resources[i], strings.Split(path, "."), op, value)
+				if err != nil {
+					return nil, 0, err
+				}
+				if matched {
+					matches = append(matches, d.Resources[i])
+				}
+			}
+		}
+	}
+
+	offset, limit := catalog.GetPagingAttr(len(matches), page, perPage, MaxPerPage)
+
+	return matches[offset : offset+limit], len(matches), nil
 }
 
 func (c *Controller) totalResources() (int, error) {
@@ -283,7 +384,6 @@ func (c *Controller) totalResources() (int, error) {
 	c.RUnlock()
 	return l, nil
 }
-
 
 // UTILITY FUNCTIONS
 
@@ -333,9 +433,6 @@ func (c *Controller) initIndices() error {
 // Creates secondary indices
 // WARNING: the caller must obtain the lock before calling
 func (c *Controller) addIndices(d *Device) {
-	c.Lock()
-	defer c.Unlock()
-
 	for _, r := range d.Resources {
 		c.resDevice.Add(SortedMap{r.Id, d.Id})
 	}
@@ -349,9 +446,6 @@ func (c *Controller) addIndices(d *Device) {
 // Removes secondary indices
 // WARNING: the caller must obtain the lock before calling
 func (c *Controller) removeIndices(d *Device) {
-	c.Lock()
-	defer c.Unlock()
-
 	// Remove resource indices
 	for _, r := range d.Resources {
 		c.resDevice.Remove(SortedMap{key: r.Id})
@@ -380,44 +474,3 @@ func (c *Controller) removeIndices(d *Device) {
 		}
 	}
 }
-
-//// Clean all remote registrations which expire time is larger than the given timestamp
-//func (s *LevelDBStorage) cleanExpired(timestamp time.Time) {
-//	s.Lock()
-//
-//	var expiredList []SortedMap
-//	for m := range s.expDevice.Iter() {
-//		if !m.(SortedMap).key.(time.Time).After(timestamp) {
-//			expiredList = append(expiredList, m.(SortedMap))
-//		} else {
-//			// expDevice is sorted by time ascendingly: its elements expire in order
-//			break
-//		}
-//	}
-//
-//	for _, m := range expiredList {
-//		// Remove expiry index
-//		id := s.expDevice.Remove(m).(SortedMap).value.(string)
-//		logger.Printf("LevelDBStorage.cleanExpired() Registration %v has expired\n", id)
-//
-//		oldDevice, err := s.get(id)
-//		if err != nil {
-//			logger.Println("LevelDBStorage.cleanExpired()", err.Error())
-//			continue
-//		}
-//
-//		// Remove the device from db
-//		err = s.db.Delete([]byte(id), nil)
-//		if err != nil {
-//			logger.Println("LevelDBStorage.cleanExpired()", err.Error())
-//			continue
-//		}
-//
-//		// Remove resource indices
-//		for _, r := range oldDevice.Resources {
-//			s.resDevice.Remove(SortedMap{key: r.Id})
-//		}
-//	}
-//
-//	s.Unlock()
-//}
