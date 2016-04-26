@@ -5,8 +5,6 @@ type LocalCatalogClient struct {
 }
 
 func (self *LocalCatalogClient) Add(r *Device) error {
-	// set ttl to -1
-	r.Ttl = -1
 	return self.controller.add(r)
 }
 

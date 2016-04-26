@@ -74,6 +74,135 @@ func NewWritableCatalogAPI(storage CatalogStorage, apiLocation, staticLocation, 
 	}
 }
 
+// DEVICES
+
+// Adds a Device
+func (a WritableCatalogAPI) Add(w http.ResponseWriter, req *http.Request) {
+	body, err := ioutil.ReadAll(req.Body)
+	req.Body.Close()
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	var d Device
+	err = json.Unmarshal(body, &d)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "Error processing the request:", err.Error())
+		return
+	}
+
+	err = a.controller.add(&d)
+	if err != nil {
+		switch err.(type) {
+		case *ConflictError:
+			ErrorResponse(w, http.StatusConflict, "Error creating the registration:", err.Error())
+			return
+		default:
+			ErrorResponse(w, http.StatusInternalServerError, "Error creating the registration:", err.Error())
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
+	w.Header().Set("Location", fmt.Sprintf("%s/%s", a.apiLocation, d.Id))
+	w.WriteHeader(http.StatusCreated)
+}
+
+// Gets a single Device
+func (a ReadableCatalogAPI) Get(w http.ResponseWriter, req *http.Request) {
+	params := mux.Vars(req)
+
+	d, err := a.controller.get(params["id"])
+	if err != nil {
+		switch err.(type) {
+		case *NotFoundError:
+			ErrorResponse(w, http.StatusNotFound, err.Error())
+			return
+		default:
+			ErrorResponse(w, http.StatusInternalServerError, "Error retrieving the device:", err.Error())
+			return
+		}
+	}
+
+	b, err := json.Marshal(d)
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
+	w.Write(b)
+}
+
+// Updates an existing device (Response: StatusOK)
+// If the device does not exist, a new one will be created with the given id (Response: StatusCreated)
+func (a WritableCatalogAPI) Update(w http.ResponseWriter, req *http.Request) {
+	params := mux.Vars(req)
+
+	body, err := ioutil.ReadAll(req.Body)
+	req.Body.Close()
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	var d Device
+	err = json.Unmarshal(body, &d)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "Error processing the request:", err.Error())
+		return
+	}
+
+	err = a.controller.update(params["id"], &d)
+	if err != nil {
+		switch err.(type) {
+		case *NotFoundError:
+			// Create a new device with the given id
+			d.Id = params["id"]
+			err = a.controller.add(&d)
+			if err != nil {
+				ErrorResponse(w, http.StatusInternalServerError, "Error creating the registration:", err.Error())
+				return
+			}
+			w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
+			w.Header().Set("Location", fmt.Sprintf("%s/%s", a.apiLocation, d.Id))
+			w.WriteHeader(http.StatusCreated)
+			return
+		case *ConflictError:
+			ErrorResponse(w, http.StatusConflict, "Error updating the device:", err.Error())
+			return
+		default:
+			ErrorResponse(w, http.StatusInternalServerError, "Error updating the device:", err.Error())
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
+	w.WriteHeader(http.StatusOK)
+}
+
+// Deletes a device
+func (a WritableCatalogAPI) Delete(w http.ResponseWriter, req *http.Request) {
+	params := mux.Vars(req)
+
+	err := a.controller.delete(params["id"])
+	if err != nil {
+		switch err.(type) {
+		case *NotFoundError:
+			ErrorResponse(w, http.StatusNotFound, err.Error())
+			return
+		default:
+			ErrorResponse(w, http.StatusInternalServerError, "Error deleting the device:", err.Error())
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
+	w.WriteHeader(http.StatusOK)
+}
+
+// Lists devices in a DeviceCollection
 func (a ReadableCatalogAPI) List(w http.ResponseWriter, req *http.Request) {
 	err := req.ParseForm()
 	if err != nil {
@@ -106,10 +235,11 @@ func (a ReadableCatalogAPI) List(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", ApiMIMEType)
+	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
 	w.Write(b)
 }
 
+// Lists filtered devices in a DeviceCollection
 func (a ReadableCatalogAPI) Filter(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 	path := params["path"]
@@ -147,35 +277,13 @@ func (a ReadableCatalogAPI) Filter(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", ApiMIMEType)
+	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
 	w.Write(b)
 }
 
-func (a ReadableCatalogAPI) Get(w http.ResponseWriter, req *http.Request) {
-	params := mux.Vars(req)
+// RESOURCES
 
-	d, err := a.controller.get(params["id"])
-	if err != nil {
-		switch err.(type) {
-		case *NotFoundError:
-			ErrorResponse(w, http.StatusNotFound, err.Error())
-			return
-		default:
-			ErrorResponse(w, http.StatusInternalServerError, "Error retrieving the device:", err.Error())
-			return
-		}
-	}
-
-	b, err := json.Marshal(d)
-	if err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	w.Header().Set("Content-Type", ApiMIMEType)
-	w.Write(b)
-}
-
+// Gets a single Resource
 func (a ReadableCatalogAPI) GetResource(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 
@@ -201,84 +309,7 @@ func (a ReadableCatalogAPI) GetResource(w http.ResponseWriter, req *http.Request
 	w.Write(b)
 }
 
-func (a WritableCatalogAPI) Add(w http.ResponseWriter, req *http.Request) {
-	body, err := ioutil.ReadAll(req.Body)
-	req.Body.Close()
-	if err != nil {
-		ErrorResponse(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	var d Device
-	err = json.Unmarshal(body, &d)
-	if err != nil {
-		ErrorResponse(w, http.StatusBadRequest, "Error processing the request:", err.Error())
-		return
-	}
-
-	err = a.controller.add(&d)
-	if err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, "Error creating the registration:", err.Error())
-		return
-	}
-
-	w.Header().Set("Content-Type", ApiMIMEType)
-	w.Header().Set("Location", fmt.Sprintf("%s/%s", a.apiLocation, d.Id))
-	w.WriteHeader(http.StatusCreated)
-}
-
-func (a WritableCatalogAPI) Update(w http.ResponseWriter, req *http.Request) {
-	params := mux.Vars(req)
-
-	body, err := ioutil.ReadAll(req.Body)
-	req.Body.Close()
-	if err != nil {
-		ErrorResponse(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	var d Device
-	err = json.Unmarshal(body, &d)
-	if err != nil {
-		ErrorResponse(w, http.StatusBadRequest, "Error processing the request:", err.Error())
-		return
-	}
-
-	err = a.controller.update(params["id"], &d)
-	if err != nil {
-		switch err.(type) {
-		case *NotFoundError:
-			ErrorResponse(w, http.StatusNotFound, err.Error())
-			return
-		default:
-			ErrorResponse(w, http.StatusInternalServerError, "Error updating the device:", err.Error())
-			return
-		}
-	}
-
-	w.Header().Set("Content-Type", ApiMIMEType)
-	w.WriteHeader(http.StatusOK)
-}
-
-func (a WritableCatalogAPI) Delete(w http.ResponseWriter, req *http.Request) {
-	params := mux.Vars(req)
-
-	err := a.controller.delete(params["id"])
-	if err != nil {
-		switch err.(type) {
-		case *NotFoundError:
-			ErrorResponse(w, http.StatusNotFound, err.Error())
-			return
-		default:
-			ErrorResponse(w, http.StatusInternalServerError, "Error deleting the device:", err.Error())
-			return
-		}
-	}
-
-	w.Header().Set("Content-Type", ApiMIMEType)
-	w.WriteHeader(http.StatusOK)
-}
-
+// Lists resources in a ResourceCollection
 func (a ReadableCatalogAPI) ListResources(w http.ResponseWriter, req *http.Request) {
 	err := req.ParseForm()
 	if err != nil {
@@ -311,10 +342,11 @@ func (a ReadableCatalogAPI) ListResources(w http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	w.Header().Set("Content-Type", ApiMIMEType)
+	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
 	w.Write(b)
 }
 
+// Lists filtered resources in a ResourceCollection
 func (a ReadableCatalogAPI) FilterResources(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 	path := params["path"]
@@ -352,6 +384,6 @@ func (a ReadableCatalogAPI) FilterResources(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	w.Header().Set("Content-Type", ApiMIMEType)
+	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
 	w.Write(b)
 }

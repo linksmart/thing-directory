@@ -40,31 +40,7 @@ func (s *MemoryStorage) add(d *Device) error {
 
 	_, duplicate := s.devices.Add(*d)
 	if duplicate {
-		return &NotUniqueError{fmt.Sprintf("Device id %s is not unique", d.Id)}
-	}
-
-	return nil
-}
-
-func (s *MemoryStorage) update(id string, d *Device) error {
-	s.Lock()
-	defer s.Unlock()
-
-	err := s.delete(id)
-	if err != nil {
-		return err
-	}
-
-	return s.add(d)
-}
-
-func (s *MemoryStorage) delete(id string) error {
-	s.Lock()
-	defer s.Unlock()
-
-	r := s.devices.Remove(Device{Id: id})
-	if r == nil {
-		return &NotFoundError{fmt.Sprintf("Device with id %s is not found", id)}
+		return &ConflictError{fmt.Sprintf("Device id %s is not unique", d.Id)}
 	}
 
 	return nil
@@ -81,6 +57,32 @@ func (s *MemoryStorage) get(id string) (*Device, error) {
 	device := d.(Device)
 
 	return &device, nil
+}
+
+func (s *MemoryStorage) update(id string, d *Device) error {
+	s.Lock()
+	defer s.Unlock()
+
+	r := s.devices.Remove(Device{Id: id})
+	if r == nil {
+		return &NotFoundError{fmt.Sprintf("Device with id %s is not found", id)}
+	}
+
+	s.devices.Add(*d)
+
+	return nil
+}
+
+func (s *MemoryStorage) delete(id string) error {
+	s.Lock()
+	defer s.Unlock()
+
+	r := s.devices.Remove(Device{Id: id})
+	if r == nil {
+		return &NotFoundError{fmt.Sprintf("Device with id %s is not found", id)}
+	}
+
+	return nil
 }
 
 func (s *MemoryStorage) list(page int, perPage int) ([]Device, int, error) {

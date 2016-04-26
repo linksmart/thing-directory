@@ -61,8 +61,8 @@ func RegisterDeviceWithKeepalive(endpoint string, discover bool, d Device, sigCh
 	// Configure client
 	client := NewRemoteCatalogClient(endpoint, ticket)
 
-	// Will not keepalive registration with a negative TTL
-	if d.Ttl <= 0 {
+	// Will not keepalive registration without a TTL
+	if d.Ttl == nil {
 		logger.Println("RegisterDeviceWithKeepalive() WARNING: Registration has ttl <= 0. Will not start the keepalive routine")
 		RegisterDevice(client, &d)
 		return
@@ -116,7 +116,7 @@ func RegisterDeviceWithKeepalive(endpoint string, discover bool, d Device, sigCh
 // sigCh: channel for shutdown signalisation from upstream
 // errCh: channel for error signalisation to upstream
 func keepAlive(client CatalogClient, d *Device, sigCh <-chan bool, errCh chan<- error) {
-	dur := utils.KeepAliveDuration(d.Ttl)
+	dur := utils.KeepAliveDuration(*d.Ttl)
 	ticker := time.NewTicker(dur)
 	errTries := 0
 

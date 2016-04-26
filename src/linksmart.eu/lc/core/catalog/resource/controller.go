@@ -21,18 +21,18 @@ type Controller struct {
 	startTime int64
 	counter   int64
 
-	// sorted resourceID->deviceID map
-	resDevice *avl.Tree
-	// sorted expiryTime->deviceID map
-	expDevice *avl.Tree
+	// sorted resourceID->deviceID maps
+	rid_did *avl.Tree
+	// sorted expiryTime->deviceID maps
+	exp_did *avl.Tree
 }
 
 func NewController(storage CatalogStorage, apiLocation string) (CatalogController, error) {
 	c := Controller{
 		storage:     storage,
 		apiLocation: apiLocation,
-		resDevice:   avl.New(stringKeys, 0),
-		expDevice:   avl.New(timeKeys, avl.AllowDuplicates),
+		rid_did:   avl.New(stringKeys, 0),
+		exp_did:   avl.New(timeKeys, avl.AllowDuplicates),
 		startTime:   time.Now().UTC().Unix(),
 	}
 
@@ -48,15 +48,6 @@ func NewController(storage CatalogStorage, apiLocation string) (CatalogControlle
 
 // DEVICES
 
-func (c *Controller) list(page, perPage int) ([]SimpleDevice, int, error) {
-	devices, total, err := c.storage.list(page, perPage)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return c.simplifyDevices(devices), total, nil
-}
-
 func (c *Controller) add(d *Device) error {
 	if err := d.validate(); err != nil {
 		return fmt.Errorf("Invalid Device registration: %s", err)
@@ -65,23 +56,34 @@ func (c *Controller) add(d *Device) error {
 	c.Lock()
 	defer c.Unlock()
 
-	// System generated id
-	d.Id = fmt.Sprintf("urn:is_device:%s", c.newID())
-	d.URL = fmt.Sprintf("%s/devices/%s", c.apiLocation, d.Id)
+	if d.Id == "" {
+		// System generated id
+		d.Id = fmt.Sprintf("urn:is_device:%s", c.newID())
+	}
+	d.URL = fmt.Sprintf("%s/%s/%s", c.apiLocation, FTypeDevices, d.Id)
+	d.Type = ApiDeviceType
 	d.Created = time.Now().UTC()
 	d.Updated = d.Created
-	if d.Ttl >= 0 {
-		expires := d.Created.Add(time.Duration(d.Ttl) * time.Second)
-		d.Expires = &expires
-	} else {
+	if d.Ttl == nil {
 		d.Expires = nil
+	} else {
+		expires := d.Created.Add(time.Duration(*d.Ttl) * time.Second)
+		d.Expires = &expires
 	}
 
 	for i := range d.Resources {
-		// System generated id
-		d.Resources[i].Id = fmt.Sprintf("urn:is_resource:%s", c.newID())
 
-		d.Resources[i].URL = fmt.Sprintf("%s/resources/%s", c.apiLocation, d.Resources[i].Id)
+		if d.Resources[i].Id == "" {
+			// System generated id
+			d.Resources[i].Id = fmt.Sprintf("urn:is_resource:%s", c.newID())
+		} else {
+			// User-defined id, check for uniqueness
+			if match := c.rid_did.Find(Map{key: d.Resources[i].Id}); match != nil {
+				return &ConflictError{fmt.Sprintf("Resource id %s is not unique", d.Resources[i].Id)}
+			}
+		}
+		d.Resources[i].URL = fmt.Sprintf("%s/%s/%s", c.apiLocation, FTypeResources, d.Resources[i].Id)
+		d.Resources[i].Type = ApiResourceType
 		d.Resources[i].Device = d.URL
 	}
 
@@ -118,46 +120,39 @@ func (c *Controller) update(id string, d *Device) error {
 	// Get the stored device
 	sd, err := c.storage.get(id)
 	if err != nil {
-		switch err.(type) {
-		case *NotFoundError:
-			// Create a device with user-defined id
-			sd.Id = d.Id
-			sd.URL = fmt.Sprintf("%s/devices/%s", c.apiLocation, d.Id)
-		default:
-			return err
-		}
-	} else {
-		// Remove old secondary indices
-		c.removeIndices(sd)
+		return err
 	}
 
-	sd.Type = d.Type
+	// Remove existing secondary indices
+	c.removeIndices(sd)
+
+	sd.Type = ApiDeviceType
 	sd.Name = d.Name
 	sd.Description = d.Description
 	sd.Meta = d.Meta
-	sd.Resources = d.Resources
 	sd.Ttl = d.Ttl
 	sd.Updated = time.Now().UTC()
-	if sd.Ttl >= 0 {
-		expires := sd.Updated.Add(time.Duration(sd.Ttl) * time.Second)
-		sd.Expires = &expires
-	} else {
+	if sd.Ttl == nil {
 		sd.Expires = nil
+	} else {
+		expires := sd.Updated.Add(time.Duration(*sd.Ttl) * time.Second)
+		sd.Expires = &expires
 	}
 
+	sd.Resources = d.Resources
 	for i := range sd.Resources {
 		if sd.Resources[i].Id == "" {
 			// System generated id
 			sd.Resources[i].Id = fmt.Sprintf("urn:is_resource:%s", c.newID())
 		} else {
 			// User-defined id
-			if match := c.resDevice.Find(SortedMap{key: d.Resources[i].Id}); match != nil {
-				return &NotUniqueError{fmt.Sprintf("Resource id %s is not unique", d.Resources[i].Id)}
+			if match := c.rid_did.Find(Map{key: sd.Resources[i].Id}); match != nil {
+				return &ConflictError{fmt.Sprintf("Resource id %s is not unique", sd.Resources[i].Id)}
 			}
-			sd.Resources[i].Id = d.Resources[i].Id
 		}
-		d.Resources[i].URL = fmt.Sprintf("%s/resources/%s", c.apiLocation, d.Resources[i].Id)
-		sd.Resources[i].Device = d.URL
+		sd.Resources[i].URL = fmt.Sprintf("%s/%s/%s", c.apiLocation, FTypeResources, sd.Resources[i].Id)
+		sd.Resources[i].Type = ApiResourceType
+		sd.Resources[i].Device = sd.URL
 	}
 
 	sort.Sort(sd.Resources)
@@ -191,6 +186,16 @@ func (c *Controller) delete(id string) error {
 	c.removeIndices(oldDevice)
 
 	return nil
+}
+
+
+func (c *Controller) list(page, perPage int) ([]SimpleDevice, int, error) {
+	devices, total, err := c.storage.list(page, perPage)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return c.simplifyDevices(devices), total, nil
 }
 
 func (c *Controller) filter(path, op, value string, page, perPage int) ([]SimpleDevice, int, error) {
@@ -235,12 +240,12 @@ func (c *Controller) cleanExpired(d time.Duration) {
 	for timestamp := range t {
 		c.Lock()
 
-		var expiredList []SortedMap
-		for m := range c.expDevice.Iter() {
-			if !m.(SortedMap).key.(time.Time).After(timestamp.UTC()) {
-				expiredList = append(expiredList, m.(SortedMap))
+		var expiredList []Map
+		for m := range c.exp_did.Iter() {
+			if !m.(Map).key.(time.Time).After(timestamp.UTC()) {
+				expiredList = append(expiredList, m.(Map))
 			} else {
-				// expDevice is sorted by time ascendingly: its elements expire in order
+				// exp_did is sorted by time ascendingly: its elements expire in order
 				break
 			}
 		}
@@ -271,14 +276,14 @@ func (c *Controller) listResources(page, perPage int) ([]Resource, int, error) {
 	c.RLock()
 	defer c.RUnlock()
 
-	total := c.resDevice.Len()
+	total := c.rid_did.Len()
 
 	// Retrieve resourceID->deviceID (s) from the tree
 	resourceIDs := make([]string, total)
 	deviceIDs := make([]string, total)
-	for i, x := range c.resDevice.Data() {
-		resourceIDs[i] = x.(SortedMap).key.(string)
-		deviceIDs[i] = x.(SortedMap).value.(string)
+	for i, x := range c.rid_did.Data() {
+		resourceIDs[i] = x.(Map).key.(string)
+		deviceIDs[i] = x.(Map).value.(string)
 	}
 	// Pagination
 	offset, limit := catalog.GetPagingAttr(total, page, perPage, MaxPerPage)
@@ -320,11 +325,11 @@ func (c *Controller) getResource(id string) (*Resource, error) {
 	c.RLock()
 	defer c.RUnlock()
 
-	res := c.resDevice.Find(SortedMap{key: id})
+	res := c.rid_did.Find(Map{key: id})
 	if res == nil {
 		return nil, &NotFoundError{"Resource not found"}
 	}
-	deviceID := res.(SortedMap).value.(string)
+	deviceID := res.(Map).value.(string)
 
 	device, err := c.storage.get(deviceID)
 	if err != nil {
@@ -348,9 +353,9 @@ func (c *Controller) filterResources(path, op, value string, page, perPage int) 
 	// Retrieve resources from devices
 	devices := make(map[string]*Device)
 	var matches []Resource
-	for x := range c.resDevice.Iter() {
-		resourceID := x.(SortedMap).key.(string)
-		deviceID := x.(SortedMap).value.(string)
+	for x := range c.rid_did.Iter() {
+		resourceID := x.(Map).key.(string)
+		deviceID := x.(Map).value.(string)
 
 		var err error
 		d, exists := devices[deviceID]
@@ -385,7 +390,7 @@ func (c *Controller) totalResources() (int, error) {
 	c.RLock()
 	defer c.RUnlock()
 
-	return c.resDevice.Len(), nil
+	return c.rid_did.Len(), nil
 }
 
 // UTILITY FUNCTIONS
@@ -444,12 +449,12 @@ func (c *Controller) initIndices() error {
 // WARNING: the caller must obtain the lock before calling
 func (c *Controller) addIndices(d *Device) {
 	for _, r := range d.Resources {
-		c.resDevice.Add(SortedMap{r.Id, d.Id})
+		c.rid_did.Add(Map{r.Id, d.Id})
 	}
 
 	// Add expiry time index
-	if d.Ttl >= 0 {
-		c.expDevice.Add(SortedMap{*d.Expires, d.Id})
+	if d.Ttl != nil {
+		c.exp_did.Add(Map{*d.Expires, d.Id})
 	}
 }
 
@@ -458,29 +463,55 @@ func (c *Controller) addIndices(d *Device) {
 func (c *Controller) removeIndices(d *Device) {
 	// Remove resource indices
 	for _, r := range d.Resources {
-		c.resDevice.Remove(SortedMap{key: r.Id})
+		c.rid_did.Remove(Map{key: r.Id})
 	}
 
 	// Remove the expiry time index
-	if d.Ttl >= 0 {
-		var temp []SortedMap // Keep duplicates in temp and store them back
-		for m := range c.expDevice.Iter() {
-			id := m.(SortedMap).value.(string)
+	if d.Ttl != nil {
+		var temp []Map // Keep duplicates in temp and store them back
+		for m := range c.exp_did.Iter() {
+			id := m.(Map).value.(string)
 			if id == d.Id {
 				for { // go through all duplicates
-					r := c.expDevice.Remove(m)
+					r := c.exp_did.Remove(m)
 					if r == nil {
 						break
 					}
 					if id != d.Id {
-						temp = append(temp, r.(SortedMap))
+						temp = append(temp, r.(Map))
 					}
 				}
 				break
 			}
 		}
 		for _, r := range temp {
-			c.expDevice.Add(r)
+			c.exp_did.Add(r)
 		}
 	}
+}
+
+// AVL Tree: sorted nodes according to keys
+//
+// A node of the AVL Tree (go-avltree)
+type Map struct {
+	key   interface{}
+	value interface{}
+}
+// Operator for string-type key
+func stringKeys(a interface{}, b interface{}) int {
+	if a.(Map).key.(string) < b.(Map).key.(string) {
+		return -1
+	} else if a.(Map).key.(string) > b.(Map).key.(string) {
+		return 1
+	}
+	return 0
+}
+// Operator for Time-type key
+func timeKeys(a interface{}, b interface{}) int {
+	if a.(Map).key.(time.Time).Before(b.(Map).key.(time.Time)) {
+		return -1
+	} else if a.(Map).key.(time.Time).After(b.(Map).key.(time.Time)) {
+		return 1
+	}
+	return 0
 }

@@ -11,12 +11,7 @@ type NotFoundError struct{ s string }
 
 func (e *NotFoundError) Error() string { return e.s }
 
-// Not Unique
-type NotUniqueError struct{ s string }
-
-func (e *NotUniqueError) Error() string { return e.s }
-
-// Conflict (assignment to read-only data, etc)
+// Conflict (non-unique id, assignment to read-only data)
 type ConflictError struct{ s string }
 
 func (e *ConflictError) Error() string { return e.s }

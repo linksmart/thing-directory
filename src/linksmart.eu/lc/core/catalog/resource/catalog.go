@@ -2,14 +2,13 @@ package resource
 
 import (
 	"fmt"
+	"net/url"
 	"time"
 )
 
-// Structs
+// STRUCTS
 
-type Resources []Resource
-
-// Device entry in the catalog
+// Device
 type Device struct {
 	Id          string                 `json:"id"`
 	URL         string                 `json:"url"`
@@ -17,19 +16,22 @@ type Device struct {
 	Name        string                 `json:"name,omitempty"`
 	Meta        map[string]interface{} `json:"meta,omitempty"`
 	Description string                 `json:"description,omitempty"`
-	Ttl         int                    `json:"ttl,omitempty"`
+	Ttl         *int                   `json:"ttl,omitempty"`
 	Created     time.Time              `json:"created"`
 	Updated     time.Time              `json:"updated"`
 	Expires     *time.Time             `json:"expires,omitempty"`
 	Resources   Resources              `json:"resources"`
 }
 
+// Device with only IDs of resources
 type SimpleDevice struct {
 	*Device
 	Resources []string `json:"resources"`
 }
 
-// Resource exposed by a device
+type Resources []Resource
+
+// Resource
 type Resource struct {
 	Id             string                 `json:"id"`
 	URL            string                 `json:"url"`
@@ -52,8 +54,13 @@ type Protocol struct {
 // Validates the Device configuration
 func (d *Device) validate() error {
 
-	if d.Ttl == 0 {
-		return fmt.Errorf("Device TTL must not be zero")
+	_, err := url.Parse(d.Id)
+	if err != nil {
+		return fmt.Errorf("Device id %s cannot be used in a URL: %s", d.Id, err)
+	}
+
+	if d.Ttl != nil && *d.Ttl <= 0 {
+		d.Ttl = nil
 	}
 
 	// validate all resources
@@ -68,59 +75,42 @@ func (d *Device) validate() error {
 
 // Validates the Resource configuration
 func (r *Resource) validate() error {
+	_, err := url.Parse(r.Id)
+	if err != nil {
+		return fmt.Errorf("Resource id %s cannot be used in a URL: %s", r.Id, err)
+	}
 
 	return nil
 }
 
-// Interfaces
+// INTERFACES
 
+// Controller interface
 type CatalogController interface {
-	list(page, perPage int) ([]SimpleDevice, int, error)
+	// Devices
 	add(d *Device) error
 	get(id string) (*SimpleDevice, error)
 	update(id string, d *Device) error
 	delete(id string) error
+	list(page, perPage int) ([]SimpleDevice, int, error)
 	filter(path, op, value string, page, perPage int) ([]SimpleDevice, int, error)
 	total() (int, error)
 	cleanExpired(d time.Duration)
 
-	listResources(page, perPage int) ([]Resource, int, error)
+	// Resources
 	getResource(id string) (*Resource, error)
+	listResources(page, perPage int) ([]Resource, int, error)
 	filterResources(path, op, value string, page, perPage int) ([]Resource, int, error)
 	totalResources() (int, error)
 }
 
 // Storage interface
 type CatalogStorage interface {
-	list(page, perPage int) ([]Device, int, error)
 	add(d *Device) error
 	update(id string, d *Device) error
 	delete(id string) error
 	get(id string) (*Device, error)
+	list(page, perPage int) ([]Device, int, error)
 	total() (int, error)
 	Close() error
-}
-
-// Sorted-map data structure based on AVL Tree (go-avltree)
-type SortedMap struct {
-	key   interface{}
-	value interface{}
-}
-// Operator for string-type key
-func stringKeys(a interface{}, b interface{}) int {
-	if a.(SortedMap).key.(string) < b.(SortedMap).key.(string) {
-		return -1
-	} else if a.(SortedMap).key.(string) > b.(SortedMap).key.(string) {
-		return 1
-	}
-	return 0
-}
-// Operator for Time-type key
-func timeKeys(a interface{}, b interface{}) int {
-	if a.(SortedMap).key.(time.Time).Before(b.(SortedMap).key.(time.Time)) {
-		return -1
-	} else if a.(SortedMap).key.(time.Time).After(b.(SortedMap).key.(time.Time)) {
-		return 1
-	}
-	return 0
 }
