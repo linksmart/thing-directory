@@ -153,7 +153,6 @@ func (a ReadableCatalogAPI) Filter(w http.ResponseWriter, req *http.Request) {
 
 func (a ReadableCatalogAPI) Get(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
-	//id := fmt.Sprintf("%v/%v", params["dgwid"], params["id"])
 
 	d, err := a.controller.get(params["id"])
 	if err != nil {
@@ -230,7 +229,6 @@ func (a WritableCatalogAPI) Add(w http.ResponseWriter, req *http.Request) {
 
 func (a WritableCatalogAPI) Update(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
-	id := fmt.Sprintf("%v/%v", params["dgwid"], params["regid"])
 
 	body, err := ioutil.ReadAll(req.Body)
 	req.Body.Close()
@@ -246,7 +244,7 @@ func (a WritableCatalogAPI) Update(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	err = a.controller.update(id, &d)
+	err = a.controller.update(params["id"], &d)
 	if err != nil {
 		switch err.(type) {
 		case *NotFoundError:
@@ -264,9 +262,8 @@ func (a WritableCatalogAPI) Update(w http.ResponseWriter, req *http.Request) {
 
 func (a WritableCatalogAPI) Delete(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
-	id := fmt.Sprintf("%v/%v", params["dgwid"], params["regid"])
 
-	err := a.controller.delete(id)
+	err := a.controller.delete(params["id"])
 	if err != nil {
 		switch err.(type) {
 		case *NotFoundError:

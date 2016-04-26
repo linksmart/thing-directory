@@ -87,11 +87,7 @@ func (s *MemoryStorage) list(page int, perPage int) ([]Device, int, error) {
 	s.RLock()
 	defer s.RUnlock()
 
-	total, err := s.total()
-	if err != nil {
-		return nil, 0, err
-	}
-
+	total := s.devices.Len()
 	offset, limit := catalog.GetPagingAttr(total, page, perPage, MaxPerPage)
 
 	// page/registry is empty
@@ -101,15 +97,17 @@ func (s *MemoryStorage) list(page int, perPage int) ([]Device, int, error) {
 
 	var devices []Device
 	data := s.devices.Data()
-	for i := offset; i < limit && i < total; i++ {
+	for i := offset; i < offset+limit; i++ {
 		devices = append(devices, data[i].(Device))
 	}
 
 	return devices, total, nil
 }
 
-// WARNING: the caller must obtain the lock before calling
 func (s *MemoryStorage) total() (int, error) {
+	s.RLock()
+	defer s.RUnlock()
+
 	return s.devices.Len(), nil
 }
 

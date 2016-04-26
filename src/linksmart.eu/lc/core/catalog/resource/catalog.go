@@ -49,16 +49,6 @@ type Protocol struct {
 	ContentTypes []string               `json:"content-types"`
 }
 
-//// Deep copy of the device
-//func (self *Device) copy() Device {
-//	var dc Device
-//	dc = *self
-//	res := make([]Resource, len(self.Resources))
-//	copy(res, self.Resources)
-//	dc.Resources = res
-//	return dc
-//}
-
 // Validates the Device configuration
 func (d *Device) validate() error {
 
@@ -75,16 +65,6 @@ func (d *Device) validate() error {
 
 	return nil
 }
-
-//// Deep copy of the resource
-//func (self *Resource) copy() Resource {
-//	var rc Resource
-//	rc = *self
-//	proto := make([]Protocol, len(self.Protocols))
-//	copy(proto, self.Protocols)
-//	rc.Protocols = proto
-//	return rc
-//}
 
 // Validates the Resource configuration
 func (r *Resource) validate() error {

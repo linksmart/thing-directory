@@ -17,6 +17,10 @@ type Controller struct {
 	storage     CatalogStorage
 	apiLocation string
 
+	// startTime and counter for ID generation
+	startTime int64
+	counter   int64
+
 	// sorted resourceID->deviceID map
 	resDevice *avl.Tree
 	// sorted expiryTime->deviceID map
@@ -29,6 +33,7 @@ func NewController(storage CatalogStorage, apiLocation string) (CatalogControlle
 		apiLocation: apiLocation,
 		resDevice:   avl.New(stringKeys, 0),
 		expDevice:   avl.New(timeKeys, avl.AllowDuplicates),
+		startTime:   time.Now().UTC().Unix(),
 	}
 
 	err := c.initIndices()
@@ -61,10 +66,9 @@ func (c *Controller) add(d *Device) error {
 	defer c.Unlock()
 
 	// System generated id
-	d.Id = fmt.Sprintf("urn:is_device:%x", time.Now().UnixNano())
-
+	d.Id = fmt.Sprintf("urn:is_device:%s", c.newID())
 	d.URL = fmt.Sprintf("%s/devices/%s", c.apiLocation, d.Id)
-	d.Created = time.Now()
+	d.Created = time.Now().UTC()
 	d.Updated = d.Created
 	if d.Ttl >= 0 {
 		expires := d.Created.Add(time.Duration(d.Ttl) * time.Second)
@@ -75,7 +79,7 @@ func (c *Controller) add(d *Device) error {
 
 	for i := range d.Resources {
 		// System generated id
-		d.Resources[i].Id = fmt.Sprintf("urn:is_resource:%x", time.Now().UnixNano())
+		d.Resources[i].Id = fmt.Sprintf("urn:is_resource:%s", c.newID())
 
 		d.Resources[i].URL = fmt.Sprintf("%s/resources/%s", c.apiLocation, d.Resources[i].Id)
 		d.Resources[i].Device = d.URL
@@ -133,7 +137,7 @@ func (c *Controller) update(id string, d *Device) error {
 	sd.Meta = d.Meta
 	sd.Resources = d.Resources
 	sd.Ttl = d.Ttl
-	sd.Updated = time.Now()
+	sd.Updated = time.Now().UTC()
 	if sd.Ttl >= 0 {
 		expires := sd.Updated.Add(time.Duration(sd.Ttl) * time.Second)
 		sd.Expires = &expires
@@ -144,7 +148,7 @@ func (c *Controller) update(id string, d *Device) error {
 	for i := range sd.Resources {
 		if sd.Resources[i].Id == "" {
 			// System generated id
-			sd.Resources[i].Id = fmt.Sprintf("urn:is_resource:%x", time.Now().UnixNano())
+			sd.Resources[i].Id = fmt.Sprintf("urn:is_resource:%s", c.newID())
 		} else {
 			// User-defined id
 			if match := c.resDevice.Find(SortedMap{key: d.Resources[i].Id}); match != nil {
@@ -216,18 +220,13 @@ func (c *Controller) filter(path, op, value string, page, perPage int) ([]Simple
 			break
 		}
 	}
-
+	// Pagination
 	offset, limit := catalog.GetPagingAttr(len(matches), page, perPage, MaxPerPage)
-
-	fmt.Println(matches[offset:offset+limit], offset, limit)
-
+	// Return the page
 	return matches[offset : offset+limit], len(matches), nil
 }
 
 func (c *Controller) total() (int, error) {
-	c.RLock()
-	defer c.RUnlock()
-
 	return c.storage.total()
 }
 
@@ -238,7 +237,7 @@ func (c *Controller) cleanExpired(d time.Duration) {
 
 		var expiredList []SortedMap
 		for m := range c.expDevice.Iter() {
-			if !m.(SortedMap).key.(time.Time).After(timestamp) {
+			if !m.(SortedMap).key.(time.Time).After(timestamp.UTC()) {
 				expiredList = append(expiredList, m.(SortedMap))
 			} else {
 				// expDevice is sorted by time ascendingly: its elements expire in order
@@ -274,37 +273,41 @@ func (c *Controller) listResources(page, perPage int) ([]Resource, int, error) {
 
 	total := c.resDevice.Len()
 
-	// Slice resources map
-	keys := make([]string, total)
+	// Retrieve resourceID->deviceID (s) from the tree
+	resourceIDs := make([]string, total)
+	deviceIDs := make([]string, total)
 	for i, x := range c.resDevice.Data() {
-		keys[i] = x.(SortedMap).key.(string)
+		resourceIDs[i] = x.(SortedMap).key.(string)
+		deviceIDs[i] = x.(SortedMap).value.(string)
 	}
-	slice := catalog.GetPageOfSlice(keys, page, perPage, MaxPerPage)
+	// Pagination
+	offset, limit := catalog.GetPagingAttr(total, page, perPage, MaxPerPage)
 
 	// Blank page
-	if len(slice) == 0 {
+	if limit == 0 {
 		return []Resource{}, total, nil
 	}
 
 	// Retrieve resources from devices
 	devices := make(map[string]*Device)
 	var resources []Resource
-	for _, k := range slice {
-		deviceID := c.resDevice.Find(SortedMap{key: k}).(SortedMap).value.(string)
+	for i := offset; i < offset+limit; i++ {
+		did := deviceIDs[i]
+		rid := resourceIDs[i]
 
 		var err error
-		d, exists := devices[deviceID]
+		d, exists := devices[did]
 		if !exists {
-			d, err = c.storage.get(deviceID)
+			d, err = c.storage.get(did)
 			if err != nil {
 				return nil, total, err
 			}
-			devices[deviceID] = d
+			devices[did] = d
 		}
 
-		for i := range d.Resources {
-			if d.Resources[i].Id == k {
-				resources = append(resources, d.Resources[i])
+		for r := range d.Resources {
+			if d.Resources[r].Id == rid {
+				resources = append(resources, d.Resources[r])
 				break
 			}
 		}
@@ -372,17 +375,17 @@ func (c *Controller) filterResources(path, op, value string, page, perPage int) 
 			}
 		}
 	}
-
+	// Pagination
 	offset, limit := catalog.GetPagingAttr(len(matches), page, perPage, MaxPerPage)
-
+	// Return the page
 	return matches[offset : offset+limit], len(matches), nil
 }
 
 func (c *Controller) totalResources() (int, error) {
 	c.RLock()
-	l := c.resDevice.Len()
-	c.RUnlock()
-	return l, nil
+	defer c.RUnlock()
+
+	return c.resDevice.Len(), nil
 }
 
 // UTILITY FUNCTIONS
@@ -408,6 +411,13 @@ func (c *Controller) simplifyDevices(devices []Device) []SimpleDevice {
 		simpleDevices[i] = *c.simplifyDevice(&devices[i])
 	}
 	return simpleDevices
+}
+
+// Generate a new unique id
+// ID is the timestamp(seconds) of the controller startTime + counter in hex
+func (c *Controller) newID() string {
+	c.counter++
+	return fmt.Sprintf("%x", c.startTime+c.counter)
 }
 
 // Initialize secondary indices
