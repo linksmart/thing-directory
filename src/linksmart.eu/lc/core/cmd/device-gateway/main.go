@@ -74,12 +74,22 @@ func main() {
 		logger.Fatalf("Could not create catalog API storage. Unsupported type: %v\n", config.Storage.Type)
 	}
 
-	go restServer.start(catalogStorage)
+	catalogController, err := catalog.NewController(catalogStorage, CatalogLocation)
+	if err != nil {
+		logger.Printf("Failed to start the controller: %v", err.Error())
+		catalogStorage.Close()
+		os.Exit(1)
+	}
+
+	go restServer.start(catalogController)
 
 	// Parse device configurations
 	devices := configureDevices(config)
 	// register in local catalog
-	registerInLocalCatalog(devices, config, catalogStorage)
+	err = registerInLocalCatalog(devices, config, catalogStorage)
+	if err != nil {
+		logger.Fatalf("Failed to register in local catalog: %v\n", err.Error())
+	}
 	// register in remote catalogs
 	regChannels, wg := registerInRemoteCatalog(devices, config)
 

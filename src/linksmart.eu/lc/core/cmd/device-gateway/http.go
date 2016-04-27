@@ -64,8 +64,8 @@ func newRESTfulAPI(conf *Config, dataCh chan<- DataRequest) (*RESTfulAPI, error)
 }
 
 // Setup all routers, handlers and start a HTTP server (blocking call)
-func (api *RESTfulAPI) start(catalogStorage catalog.CatalogStorage) {
-	api.mountCatalog(catalogStorage)
+func (api *RESTfulAPI) start(catalogController catalog.CatalogController) {
+	api.mountCatalog(catalogController)
 	api.mountResources()
 
 	api.router.Methods("GET", "POST").Path("/dashboard").Handler(
@@ -174,9 +174,9 @@ func (api *RESTfulAPI) mountResources() {
 	}
 }
 
-func (api *RESTfulAPI) mountCatalog(catalogStorage catalog.CatalogStorage) {
+func (api *RESTfulAPI) mountCatalog(catalogController catalog.CatalogController) {
 	catalogAPI := catalog.NewReadableCatalogAPI(
-		catalogStorage,
+		catalogController,
 		CatalogLocation,
 		StaticLocation,
 		fmt.Sprintf("Local catalog at %s", api.config.Description),

@@ -17,7 +17,7 @@ func configureDevices(config *Config) []catalog.Device {
 	for _, device := range config.Devices {
 		r := new(catalog.Device)
 		r.Type = catalog.ApiDeviceType
-		r.Ttl = device.Ttl
+		r.Ttl = uint(device.Ttl)
 		r.Name = device.Name
 		r.Description = device.Description
 		r.Meta = device.Meta
@@ -69,11 +69,16 @@ func configureDevices(config *Config) []catalog.Device {
 }
 
 // Register configured devices from a given configuration using provided storage implementation
-func registerInLocalCatalog(devices []catalog.Device, config *Config, catalogStorage catalog.CatalogStorage) {
-	client := catalog.NewLocalCatalogClient(catalogStorage)
+func registerInLocalCatalog(devices []catalog.Device, config *Config, catalogStorage catalog.CatalogStorage) error {
+	client, err := catalog.NewLocalCatalogClient(catalogStorage, CatalogLocation)
+	if err != nil {
+		return err
+	}
+
 	for _, r := range devices {
 		catalog.RegisterDevice(client, &r)
 	}
+	return nil
 }
 
 func registerInRemoteCatalog(devices []catalog.Device, config *Config) ([]chan<- bool, *sync.WaitGroup) {
