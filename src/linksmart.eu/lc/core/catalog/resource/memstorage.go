@@ -85,7 +85,7 @@ func (s *MemoryStorage) delete(id string) error {
 	return nil
 }
 
-func (s *MemoryStorage) list(page int, perPage int) ([]Device, int, error) {
+func (s *MemoryStorage) list(page int, perPage int) (Devices, int, error) {
 	s.RLock()
 	defer s.RUnlock()
 

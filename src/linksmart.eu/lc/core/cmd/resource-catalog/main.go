@@ -162,23 +162,29 @@ func setupRouter(config *Config) (*mux.Router, func() error, error) {
 	// Setup API storage
 	var (
 		storage catalog.CatalogStorage
-		//err     error
+		err     error
 	)
 	switch config.Storage.Type {
 	case utils.CatalogBackendMemory:
 		storage = catalog.NewMemoryStorage()
 	case utils.CatalogBackendLevelDB:
-		//storage, err = catalog.NewLevelDBStorage(config.Storage.DSN, nil)
-		//if err != nil {
-		//	return nil, nil, fmt.Errorf("Failed to start LevelDB storage: %v", err.Error())
-		//}
+		storage, err = catalog.NewLevelDBStorage(config.Storage.DSN, nil)
+		if err != nil {
+			return nil, nil, fmt.Errorf("Failed to start LevelDB storage: %v", err.Error())
+		}
 	default:
 		return nil, nil, fmt.Errorf("Could not create catalog API storage. Unsupported type: %v", config.Storage.Type)
 	}
 
+	controller, err := catalog.NewController(storage, config.ApiLocation)
+	if err != nil {
+		storage.Close()
+		return nil, nil, fmt.Errorf("Failed to start the controller: %v", err.Error())
+	}
+
 	// Create catalog API object
 	api := catalog.NewWritableCatalogAPI(
-		storage,
+		controller,
 		config.ApiLocation,
 		utils.StaticLocation,
 		config.Description,
@@ -217,5 +223,5 @@ func setupRouter(config *Config) (*mux.Router, func() error, error) {
 	r.Methods("GET").Path(config.ApiLocation + "/resources/{id}").Handler(commonHandlers.ThenFunc(api.GetResource))
 	r.Methods("GET").Path(config.ApiLocation + "/resources/{path}/{op}/{value:.*}").Handler(commonHandlers.ThenFunc(api.FilterResources))
 
-	return r, storage.Close, nil
+	return r, controller.Stop, nil
 }

@@ -4,8 +4,8 @@ package resource
 type CatalogClient interface {
 	// CRUD
 	Get(id string) (*SimpleDevice, error)
-	Add(d *Device) error
-	Update(id string, d *Device) error
+	Add(d *Device) (*SimpleDevice, error)
+	Update(id string, d *Device) (*SimpleDevice, error)
 	Delete(id string) error
 
 	// Returns a slice of Devices given:

@@ -20,7 +20,7 @@ func RegisterDevice(client CatalogClient, d *Device) error {
 		switch err.(type) {
 		case *NotFoundError:
 			// If not in the catalog - add
-			err = client.Add(d)
+			_, err = client.Add(d)
 			if err != nil {
 				logger.Printf("RegisterDevice() ERROR: %v", err)
 				return err
@@ -32,7 +32,7 @@ func RegisterDevice(client CatalogClient, d *Device) error {
 		}
 	} else {
 		// otherwise - Update
-		err = client.Update(d.Id, d)
+		_, err = client.Update(d.Id, d)
 		if err != nil {
 			logger.Printf("RegisterDevice() ERROR: %v", err)
 			return err
@@ -62,7 +62,7 @@ func RegisterDeviceWithKeepalive(endpoint string, discover bool, d Device, sigCh
 	client := NewRemoteCatalogClient(endpoint, ticket)
 
 	// Will not keepalive registration without a TTL
-	if d.Ttl == nil {
+	if d.Ttl == 0 {
 		logger.Println("RegisterDeviceWithKeepalive() WARNING: Registration has ttl <= 0. Will not start the keepalive routine")
 		RegisterDevice(client, &d)
 		return
@@ -116,7 +116,7 @@ func RegisterDeviceWithKeepalive(endpoint string, discover bool, d Device, sigCh
 // sigCh: channel for shutdown signalisation from upstream
 // errCh: channel for error signalisation to upstream
 func keepAlive(client CatalogClient, d *Device, sigCh <-chan bool, errCh chan<- error) {
-	dur := utils.KeepAliveDuration(*d.Ttl)
+	dur := utils.KeepAliveDuration(int(d.Ttl))
 	ticker := time.NewTicker(dur)
 	errTries := 0
 
@@ -126,13 +126,13 @@ func keepAlive(client CatalogClient, d *Device, sigCh <-chan bool, errCh chan<- 
 	for {
 		select {
 		case <-ticker.C:
-			err := client.Update(d.Id, d)
+			_, err := client.Update(d.Id, d)
 			if err != nil {
 				switch err.(type) {
 				case *NotFoundError:
 					// If not in the catalog - add
 					logger.Printf("keepAlive() ERROR: Registration %v not found in the remote catalog. TTL expired?", d.Id)
-					err = client.Add(d)
+					_, err = client.Add(d)
 					if err != nil {
 						logger.Printf("keepAlive() ERROR: %v", err)
 						errTries += 1

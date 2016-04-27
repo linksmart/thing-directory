@@ -4,12 +4,23 @@ type LocalCatalogClient struct {
 	controller CatalogController
 }
 
-func (self *LocalCatalogClient) Add(r *Device) error {
-	return self.controller.add(r)
+func NewLocalCatalogClient(storage CatalogStorage, apiLocation string) (*LocalCatalogClient, error) {
+	controller, err := NewController(storage, apiLocation)
+	if err != nil {
+		return nil, err
+	}
+
+	return &LocalCatalogClient{
+		controller: controller,
+	}, nil
 }
 
-func (self *LocalCatalogClient) Update(id string, r *Device) error {
-	return self.controller.update(id, r)
+func (self *LocalCatalogClient) Add(r *Device) (*SimpleDevice, error) {
+	return self.controller.add(*r)
+}
+
+func (self *LocalCatalogClient) Update(id string, r *Device) (*SimpleDevice, error) {
+	return self.controller.update(id, *r)
 }
 
 func (self *LocalCatalogClient) Delete(id string) error {
@@ -38,15 +49,4 @@ func (self *LocalCatalogClient) Filter(path, op, value string, page, perPage int
 
 func (self *LocalCatalogClient) FilterResources(path, op, value string, page, perPage int) ([]Resource, int, error) {
 	return self.controller.filterResources(path, op, value, page, perPage)
-}
-
-func NewLocalCatalogClient(storage CatalogStorage, apiLocation string) (*LocalCatalogClient, error) {
-	controller, err := NewController(storage, apiLocation)
-	if err != nil {
-		return nil, err
-	}
-
-	return &LocalCatalogClient{
-		controller: controller,
-	}, nil
 }

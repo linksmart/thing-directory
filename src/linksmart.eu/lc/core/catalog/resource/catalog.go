@@ -8,6 +8,9 @@ import (
 
 // STRUCTS
 
+type Resources []Resource
+type Devices []Device
+
 // Device
 type Device struct {
 	Id          string                 `json:"id"`
@@ -16,7 +19,7 @@ type Device struct {
 	Name        string                 `json:"name,omitempty"`
 	Meta        map[string]interface{} `json:"meta,omitempty"`
 	Description string                 `json:"description,omitempty"`
-	Ttl         *int                   `json:"ttl,omitempty"`
+	Ttl         uint                   `json:"ttl,omitempty"`
 	Created     time.Time              `json:"created"`
 	Updated     time.Time              `json:"updated"`
 	Expires     *time.Time             `json:"expires,omitempty"`
@@ -25,11 +28,9 @@ type Device struct {
 
 // Device with only IDs of resources
 type SimpleDevice struct {
-	*Device
+	Device
 	Resources []string `json:"resources"`
 }
-
-type Resources []Resource
 
 // Resource
 type Resource struct {
@@ -53,14 +54,9 @@ type Protocol struct {
 
 // Validates the Device configuration
 func (d *Device) validate() error {
-
 	_, err := url.Parse(d.Id)
 	if err != nil {
 		return fmt.Errorf("Device id %s cannot be used in a URL: %s", d.Id, err)
-	}
-
-	if d.Ttl != nil && *d.Ttl <= 0 {
-		d.Ttl = nil
 	}
 
 	// validate all resources
@@ -83,25 +79,47 @@ func (r *Resource) validate() error {
 	return nil
 }
 
+// Converts a Device into SimpleDevice
+func (d *Device) simplify() *SimpleDevice {
+	resourceIDs := make([]string, len(d.Resources))
+	for i := 0; i < len(d.Resources); i++ {
+		resourceIDs[i] = d.Resources[i].URL
+	}
+	sd := &SimpleDevice{*d, resourceIDs}
+	sd.Device.Resources = nil
+	return sd
+}
+
+// Converts Devices into []SimpleDevice
+func (devices Devices) simplify() []SimpleDevice {
+	simpleDevices := make([]SimpleDevice, len(devices))
+	for i := 0; i < len(devices); i++ {
+		simpleDevices[i] = *devices[i].simplify()
+	}
+	return simpleDevices
+}
+
 // INTERFACES
 
 // Controller interface
 type CatalogController interface {
 	// Devices
-	add(d *Device) error
+	add(d Device) (*SimpleDevice, error)
 	get(id string) (*SimpleDevice, error)
-	update(id string, d *Device) error
+	update(id string, d Device) (*SimpleDevice, error)
 	delete(id string) error
 	list(page, perPage int) ([]SimpleDevice, int, error)
 	filter(path, op, value string, page, perPage int) ([]SimpleDevice, int, error)
 	total() (int, error)
-	cleanExpired(d time.Duration)
+	cleanExpired()
 
 	// Resources
 	getResource(id string) (*Resource, error)
 	listResources(page, perPage int) ([]Resource, int, error)
 	filterResources(path, op, value string, page, perPage int) ([]Resource, int, error)
 	totalResources() (int, error)
+
+	Stop() error
 }
 
 // Storage interface
@@ -110,7 +128,7 @@ type CatalogStorage interface {
 	update(id string, d *Device) error
 	delete(id string) error
 	get(id string) (*Device, error)
-	list(page, perPage int) ([]Device, int, error)
+	list(page, perPage int) (Devices, int, error)
 	total() (int, error)
 	Close() error
 }

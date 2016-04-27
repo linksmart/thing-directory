@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strconv"
 
@@ -54,12 +53,7 @@ type WritableCatalogAPI struct {
 	*ReadableCatalogAPI
 }
 
-func NewReadableCatalogAPI(storage CatalogStorage, apiLocation, staticLocation, description string) *ReadableCatalogAPI {
-	controller, err := NewController(storage, apiLocation)
-	if err != nil {
-		log.Panicln("TODO:", err.Error())
-	}
-
+func NewReadableCatalogAPI(controller CatalogController, apiLocation, staticLocation, description string) *ReadableCatalogAPI {
 	return &ReadableCatalogAPI{
 		controller:  controller,
 		apiLocation: apiLocation,
@@ -68,9 +62,9 @@ func NewReadableCatalogAPI(storage CatalogStorage, apiLocation, staticLocation, 
 	}
 }
 
-func NewWritableCatalogAPI(storage CatalogStorage, apiLocation, staticLocation, description string) *WritableCatalogAPI {
+func NewWritableCatalogAPI(controller CatalogController, apiLocation, staticLocation, description string) *WritableCatalogAPI {
 	return &WritableCatalogAPI{
-		NewReadableCatalogAPI(storage, apiLocation, staticLocation, description),
+		NewReadableCatalogAPI(controller, apiLocation, staticLocation, description),
 	}
 }
 
@@ -92,7 +86,7 @@ func (a WritableCatalogAPI) Add(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	err = a.controller.add(&d)
+	sd ,err := a.controller.add(d)
 	if err != nil {
 		switch err.(type) {
 		case *ConflictError:
@@ -105,7 +99,7 @@ func (a WritableCatalogAPI) Add(w http.ResponseWriter, req *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
-	w.Header().Set("Location", fmt.Sprintf("%s/%s", a.apiLocation, d.Id))
+	w.Header().Set("Location", fmt.Sprintf("%s/%s", a.apiLocation, sd.Id))
 	w.WriteHeader(http.StatusCreated)
 }
 
@@ -154,19 +148,19 @@ func (a WritableCatalogAPI) Update(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	err = a.controller.update(params["id"], &d)
+	_, err = a.controller.update(params["id"], d)
 	if err != nil {
 		switch err.(type) {
 		case *NotFoundError:
 			// Create a new device with the given id
 			d.Id = params["id"]
-			err = a.controller.add(&d)
+			sd, err := a.controller.add(d)
 			if err != nil {
 				ErrorResponse(w, http.StatusInternalServerError, "Error creating the registration:", err.Error())
 				return
 			}
 			w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
-			w.Header().Set("Location", fmt.Sprintf("%s/%s", a.apiLocation, d.Id))
+			w.Header().Set("Location", fmt.Sprintf("%s/%s", a.apiLocation, sd.Id))
 			w.WriteHeader(http.StatusCreated)
 			return
 		case *ConflictError:
