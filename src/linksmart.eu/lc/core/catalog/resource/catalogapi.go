@@ -86,7 +86,7 @@ func (a WritableCatalogAPI) Add(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	sd ,err := a.controller.add(d)
+	id ,err := a.controller.add(d)
 	if err != nil {
 		switch err.(type) {
 		case *ConflictError:
@@ -99,7 +99,7 @@ func (a WritableCatalogAPI) Add(w http.ResponseWriter, req *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
-	w.Header().Set("Location", fmt.Sprintf("%s/%s", a.apiLocation, sd.Id))
+	w.Header().Set("Location", fmt.Sprintf("%s/%s/%s", a.apiLocation, FTypeDevices, id))
 	w.WriteHeader(http.StatusCreated)
 }
 
@@ -148,19 +148,19 @@ func (a WritableCatalogAPI) Update(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	_, err = a.controller.update(params["id"], d)
+	err = a.controller.update(params["id"], d)
 	if err != nil {
 		switch err.(type) {
 		case *NotFoundError:
 			// Create a new device with the given id
 			d.Id = params["id"]
-			sd, err := a.controller.add(d)
+			id, err := a.controller.add(d)
 			if err != nil {
 				ErrorResponse(w, http.StatusInternalServerError, "Error creating the registration:", err.Error())
 				return
 			}
 			w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
-			w.Header().Set("Location", fmt.Sprintf("%s/%s", a.apiLocation, sd.Id))
+			w.Header().Set("Location", fmt.Sprintf("%s/%s/%s", a.apiLocation, FTypeDevices, id))
 			w.WriteHeader(http.StatusCreated)
 			return
 		case *ConflictError:

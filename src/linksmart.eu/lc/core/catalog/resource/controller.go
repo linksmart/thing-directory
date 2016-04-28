@@ -50,9 +50,9 @@ func NewController(storage CatalogStorage, apiLocation string) (CatalogControlle
 
 // DEVICES
 
-func (c *Controller) add(d Device) (*SimpleDevice, error) {
+func (c *Controller) add(d Device) (string, error) {
 	if err := d.validate(); err != nil {
-		return nil, fmt.Errorf("Invalid Device registration: %s", err)
+		return "", fmt.Errorf("Invalid Device registration: %s", err)
 	}
 
 	c.Lock()
@@ -81,7 +81,7 @@ func (c *Controller) add(d Device) (*SimpleDevice, error) {
 		} else {
 			// User-defined id, check for uniqueness
 			if match := c.rid_did.Find(Map{key: d.Resources[i].Id}); match != nil {
-				return nil, &ConflictError{fmt.Sprintf("Resource id %s is not unique", d.Resources[i].Id)}
+				return "", &ConflictError{fmt.Sprintf("Resource id %s is not unique", d.Resources[i].Id)}
 			}
 		}
 		d.Resources[i].URL = fmt.Sprintf("%s/%s/%s", c.apiLocation, FTypeResources, d.Resources[i].Id)
@@ -93,13 +93,13 @@ func (c *Controller) add(d Device) (*SimpleDevice, error) {
 
 	err := c.storage.add(&d)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	// Add secondary indices
 	c.addIndices(&d)
 
-	return d.simplify(), nil
+	return d.Id, nil
 }
 
 func (c *Controller) get(id string) (*SimpleDevice, error) {
@@ -111,9 +111,9 @@ func (c *Controller) get(id string) (*SimpleDevice, error) {
 	return d.simplify(), nil
 }
 
-func (c *Controller) update(id string, d Device) (*SimpleDevice, error) {
+func (c *Controller) update(id string, d Device) error {
 	if err := d.validate(); err != nil {
-		return nil, fmt.Errorf("Invalid Device registration: %s", err)
+		return fmt.Errorf("Invalid Device registration: %s", err)
 	}
 
 	c.Lock()
@@ -122,7 +122,7 @@ func (c *Controller) update(id string, d Device) (*SimpleDevice, error) {
 	// Get the stored device
 	sd, err := c.storage.get(id)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Remove existing secondary indices
@@ -150,7 +150,7 @@ func (c *Controller) update(id string, d Device) (*SimpleDevice, error) {
 			// User-defined id
 			if match := c.rid_did.Find(Map{key: sd.Resources[i].Id}); match != nil {
 				// TODO recover removed indices
-				return nil, &ConflictError{fmt.Sprintf("Resource id %s is not unique", sd.Resources[i].Id)}
+				return &ConflictError{fmt.Sprintf("Resource id %s is not unique", sd.Resources[i].Id)}
 			}
 			// TODO duplicated ids in the same request can bypass this check
 		}
@@ -163,13 +163,13 @@ func (c *Controller) update(id string, d Device) (*SimpleDevice, error) {
 
 	err = c.storage.update(id, sd)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Add new secondary indices
 	c.addIndices(sd)
 
-	return d.simplify(), nil
+	return nil
 }
 
 func (c *Controller) delete(id string) error {

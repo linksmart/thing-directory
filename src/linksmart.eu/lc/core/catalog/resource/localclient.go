@@ -15,11 +15,12 @@ func NewLocalCatalogClient(storage CatalogStorage, apiLocation string) (*LocalCa
 	}, nil
 }
 
-func (self *LocalCatalogClient) Add(r *Device) (*SimpleDevice, error) {
+// Adds a device and returns its id
+func (self *LocalCatalogClient) Add(r *Device) (string, error) {
 	return self.controller.add(*r)
 }
 
-func (self *LocalCatalogClient) Update(id string, r *Device) (*SimpleDevice, error) {
+func (self *LocalCatalogClient) Update(id string, r *Device) error {
 	return self.controller.update(id, *r)
 }
 

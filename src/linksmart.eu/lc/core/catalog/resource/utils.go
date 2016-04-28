@@ -32,7 +32,7 @@ func RegisterDevice(client CatalogClient, d *Device) error {
 		}
 	} else {
 		// otherwise - Update
-		_, err = client.Update(d.Id, d)
+		err = client.Update(d.Id, d)
 		if err != nil {
 			logger.Printf("RegisterDevice() ERROR: %v", err)
 			return err
@@ -126,7 +126,7 @@ func keepAlive(client CatalogClient, d *Device, sigCh <-chan bool, errCh chan<- 
 	for {
 		select {
 		case <-ticker.C:
-			_, err := client.Update(d.Id, d)
+			err := client.Update(d.Id, d)
 			if err != nil {
 				switch err.(type) {
 				case *NotFoundError:

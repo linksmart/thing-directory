@@ -58,7 +58,8 @@ func (self *RemoteCatalogClient) Get(id string) (*SimpleDevice, error) {
 	return &d, nil
 }
 
-func (self *RemoteCatalogClient) Add(d *Device) (*SimpleDevice, error) {
+// Adds a device and returns its URL
+func (self *RemoteCatalogClient) Add(d *Device) (string, error) {
 	b, _ := json.Marshal(d)
 	res, err := catalog.HTTPRequest("POST",
 		fmt.Sprintf("%v/%v/", self.serverEndpoint.String(), FTypeDevices),
@@ -67,21 +68,21 @@ func (self *RemoteCatalogClient) Add(d *Device) (*SimpleDevice, error) {
 		self.ticket,
 	)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	if res.StatusCode != http.StatusCreated {
-		return nil, fmt.Errorf("Cannot add registration: %v", res.StatusCode)
+		return "", fmt.Errorf("Cannot add registration: %v", res.StatusCode)
 	}
 
 	location, err := res.Location()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return self.Get(location.String())
+	return location.String(), nil
 }
 
-func (self *RemoteCatalogClient) Update(id string, d *Device) (*SimpleDevice, error) {
+func (self *RemoteCatalogClient) Update(id string, d *Device) error {
 	b, _ := json.Marshal(d)
 	res, err := catalog.HTTPRequest("PUT",
 		fmt.Sprintf("%v/%v/%v", self.serverEndpoint, FTypeDevices, id),
@@ -90,21 +91,16 @@ func (self *RemoteCatalogClient) Update(id string, d *Device) (*SimpleDevice, er
 		self.ticket,
 	)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if res.StatusCode == http.StatusNotFound {
-		return nil, &NotFoundError{res.Status}
+		return &NotFoundError{res.Status}
 	} else if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%v", res.StatusCode)
+		return fmt.Errorf("%v", res.StatusCode)
 	}
 
-	location, err := res.Location()
-	if err != nil {
-		return nil, err
-	}
-
-	return self.Get(location.String())
+	return nil
 }
 
 func (self *RemoteCatalogClient) Delete(id string) error {

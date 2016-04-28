@@ -104,9 +104,9 @@ func (devices Devices) simplify() []SimpleDevice {
 // Controller interface
 type CatalogController interface {
 	// Devices
-	add(d Device) (*SimpleDevice, error)
+	add(d Device) (string, error)
 	get(id string) (*SimpleDevice, error)
-	update(id string, d Device) (*SimpleDevice, error)
+	update(id string, d Device) error
 	delete(id string) error
 	list(page, perPage int) ([]SimpleDevice, int, error)
 	filter(path, op, value string, page, perPage int) ([]SimpleDevice, int, error)
