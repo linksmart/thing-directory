@@ -16,11 +16,6 @@ import (
 	utils "linksmart.eu/lc/core/catalog"
 )
 
-const (
-	apiLocation    = "/cat"
-	staticLocation = "/static"
-)
-
 func setupRouter() (*mux.Router, func(), error) {
 	var (
 		storage CatalogStorage
@@ -38,7 +33,7 @@ func setupRouter() (*mux.Router, func(), error) {
 		}
 	}
 
-	controller, err := NewController(storage, apiLocation)
+	controller, err := NewController(storage, TestApiLocation)
 	if err != nil {
 		storage.Close()
 		return nil, nil, fmt.Errorf("Failed to start the controller: %v", err.Error())
@@ -46,24 +41,24 @@ func setupRouter() (*mux.Router, func(), error) {
 
 	api := NewWritableCatalogAPI(
 		controller,
-		apiLocation,
-		staticLocation,
+		TestApiLocation,
+		TestStaticLocation,
 		"Test catalog",
 	)
 
 	r := mux.NewRouter().StrictSlash(true)
 	// CRUD
-	r.Methods("POST").Path(apiLocation + "/devices/").HandlerFunc(api.Add)
-	r.Methods("GET").Path(apiLocation + "/devices/{id}").HandlerFunc(api.Get)
-	r.Methods("PUT").Path(apiLocation + "/devices/{id}").HandlerFunc(api.Update)
-	r.Methods("DELETE").Path(apiLocation + "/devices/{id}").HandlerFunc(api.Delete)
+	r.Methods("POST").Path(TestApiLocation + "/devices/").HandlerFunc(api.Add)
+	r.Methods("GET").Path(TestApiLocation + "/devices/{id}").HandlerFunc(api.Get)
+	r.Methods("PUT").Path(TestApiLocation + "/devices/{id}").HandlerFunc(api.Update)
+	r.Methods("DELETE").Path(TestApiLocation + "/devices/{id}").HandlerFunc(api.Delete)
 	// Listing, filtering
-	r.Methods("GET").Path(apiLocation + "/devices").HandlerFunc(api.List)
-	r.Methods("GET").Path(apiLocation + "/devices/{path}/{op}/{value:.*}").HandlerFunc(api.Filter)
+	r.Methods("GET").Path(TestApiLocation + "/devices").HandlerFunc(api.List)
+	r.Methods("GET").Path(TestApiLocation + "/devices/{path}/{op}/{value:.*}").HandlerFunc(api.Filter)
 	// Resources
-	r.Methods("GET").Path(apiLocation + "/resources").HandlerFunc(api.ListResources)
-	r.Methods("GET").Path(apiLocation + "/resources/{id}").HandlerFunc(api.GetResource)
-	r.Methods("GET").Path(apiLocation + "/resources/{path}/{op}/{value:.*}").HandlerFunc(api.FilterResources)
+	r.Methods("GET").Path(TestApiLocation + "/resources").HandlerFunc(api.ListResources)
+	r.Methods("GET").Path(TestApiLocation + "/resources/{id}").HandlerFunc(api.GetResource)
+	r.Methods("GET").Path(TestApiLocation + "/resources/{path}/{op}/{value:.*}").HandlerFunc(api.FilterResources)
 
 	return r, func() {
 		controller.Stop()
@@ -74,7 +69,7 @@ func setupRouter() (*mux.Router, func(), error) {
 func mockedDevice(id, rid string) *Device {
 	return &Device{
 		Id:          "device_" + id,
-		URL:         fmt.Sprintf("%s/%s/%s", apiLocation, FTypeDevices, "device_"+id),
+		URL:         fmt.Sprintf("%s/%s/%s", TestApiLocation, FTypeDevices, "device_"+id),
 		Type:        ApiDeviceType,
 		Name:        "TestDevice" + id,
 		Meta:        map[string]interface{}{"test-id": id},
@@ -83,7 +78,7 @@ func mockedDevice(id, rid string) *Device {
 		Resources: []Resource{
 			Resource{
 				Id:   "resource_" + rid,
-				URL:  fmt.Sprintf("%s/%s/%s", apiLocation, FTypeResources, "resource_"+rid),
+				URL:  fmt.Sprintf("%s/%s/%s", TestApiLocation, FTypeResources, "resource_"+rid),
 				Type: ApiResourceType,
 				Name: "TestResource",
 				Meta: map[string]interface{}{"test-id-resource": id},
@@ -99,43 +94,7 @@ func mockedDevice(id, rid string) *Device {
 	}
 }
 
-func TestList(t *testing.T) {
-	router, shutdown, err := setupRouter()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	ts := httptest.NewServer(router)
-	defer ts.Close()
-	defer shutdown()
-
-	url := ts.URL + apiLocation + "/devices"
-	t.Log("Calling GET", url)
-	res, err := http.Get(url)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	if res.StatusCode != http.StatusOK {
-		t.Fatalf("Server should return %v, got instead: %v (%s)", http.StatusOK, res.StatusCode, res.Status)
-	}
-
-	if !strings.HasPrefix(res.Header.Get("Content-Type"), "application/ld+json") {
-		t.Fatalf("Response should have Content-Type: application/ld+json, got instead %s", res.Header.Get("Content-Type"))
-	}
-
-	var collection *DeviceCollection
-	decoder := json.NewDecoder(res.Body)
-	defer res.Body.Close()
-
-	err = decoder.Decode(&collection)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	if collection.Total > 0 {
-		t.Fatal("Server should return empty collection, but got total", collection.Total)
-	}
-}
+// DEVICES
 
 func TestCreate(t *testing.T) {
 	router, shutdown, err := setupRouter()
@@ -150,7 +109,7 @@ func TestCreate(t *testing.T) {
 	b, _ := json.Marshal(device)
 
 	// Create
-	url := ts.URL + apiLocation + "/devices/"
+	url := ts.URL + TestApiLocation + "/devices/"
 	t.Log("Calling POST", url)
 	res, err := http.Post(url, "application/ld+json", bytes.NewReader(b))
 	if err != nil {
@@ -166,8 +125,8 @@ func TestCreate(t *testing.T) {
 	}
 
 	// Retrieve whole collection
-	t.Log("Calling GET", ts.URL+apiLocation)
-	res, err = http.Get(ts.URL + apiLocation + "/devices/")
+	t.Log("Calling GET", ts.URL+TestApiLocation)
+	res, err = http.Get(ts.URL + TestApiLocation + "/devices/")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -200,7 +159,7 @@ func TestRetrieve(t *testing.T) {
 	b, _ := json.Marshal(mockedDevice)
 
 	// Create
-	url := ts.URL + apiLocation + "/devices/"
+	url := ts.URL + TestApiLocation + "/devices/"
 	t.Log("Calling POST", url)
 	res, err := http.Post(url, "application/ld+json", bytes.NewReader(b))
 	if err != nil {
@@ -232,8 +191,8 @@ func TestRetrieve(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	if !strings.HasPrefix(retrievedDevice.URL, apiLocation) {
-		t.Fatalf("Device URL should have been prefixed with %v by catalog, retrieved URL: %v", apiLocation, retrievedDevice.URL)
+	if !strings.HasPrefix(retrievedDevice.URL, TestApiLocation) {
+		t.Fatalf("Device URL should have been prefixed with %v by catalog, retrieved URL: %v", TestApiLocation, retrievedDevice.URL)
 	}
 
 	simple := mockedDevice.simplify()
@@ -259,7 +218,7 @@ func TestUpdate(t *testing.T) {
 	b, _ := json.Marshal(mockedDevice1)
 
 	// Create
-	url := ts.URL + apiLocation + "/devices/"
+	url := ts.URL + TestApiLocation + "/devices/"
 	t.Log("Calling POST", url)
 	res, err := http.Post(url, "application/ld+json", bytes.NewReader(b))
 	if err != nil {
@@ -325,7 +284,7 @@ func TestDelete(t *testing.T) {
 	b, _ := json.Marshal(device)
 
 	// Create
-	url := ts.URL + apiLocation + "/devices/"
+	url := ts.URL + TestApiLocation + "/devices/"
 	t.Log("Calling POST", url)
 	res, err := http.Post(url, "application/ld+json", bytes.NewReader(b))
 	if err != nil {
@@ -349,7 +308,7 @@ func TestDelete(t *testing.T) {
 	}
 
 	// Retrieve whole collection
-	url = ts.URL + apiLocation + "/devices"
+	url = ts.URL + TestApiLocation + "/devices"
 	t.Log("Calling GET", url)
 	res, err = http.Get(url)
 	if err != nil {
@@ -372,6 +331,44 @@ func TestDelete(t *testing.T) {
 
 }
 
+func TestList(t *testing.T) {
+	router, shutdown, err := setupRouter()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ts := httptest.NewServer(router)
+	defer ts.Close()
+	defer shutdown()
+
+	url := ts.URL + TestApiLocation + "/devices"
+	t.Log("Calling GET", url)
+	res, err := http.Get(url)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("Server should return %v, got instead: %v (%s)", http.StatusOK, res.StatusCode, res.Status)
+	}
+
+	if !strings.HasPrefix(res.Header.Get("Content-Type"), "application/ld+json") {
+		t.Fatalf("Response should have Content-Type: application/ld+json, got instead %s", res.Header.Get("Content-Type"))
+	}
+
+	var collection *DeviceCollection
+	decoder := json.NewDecoder(res.Body)
+	defer res.Body.Close()
+
+	err = decoder.Decode(&collection)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if collection.Total > 0 {
+		t.Fatal("Server should return empty collection, but got total", collection.Total)
+	}
+}
+
 func TestFilter(t *testing.T) {
 	router, shutdown, err := setupRouter()
 	if err != nil {
@@ -387,7 +384,7 @@ func TestFilter(t *testing.T) {
 	device3 := mockedDevice("3", "12")
 
 	// Add
-	url := ts.URL + apiLocation + "/devices/"
+	url := ts.URL + TestApiLocation + "/devices/"
 	for _, d := range []*Device{device1, device2, device3} {
 		b, _ := json.Marshal(d)
 
@@ -399,7 +396,7 @@ func TestFilter(t *testing.T) {
 
 	// Devices
 	// Filter many
-	url = ts.URL + apiLocation + "/devices/" + "name/" + utils.FOpPrefix + "/" + "Test"
+	url = ts.URL + TestApiLocation + "/devices/" + "name/" + utils.FOpPrefix + "/" + "Test"
 	t.Log("Calling GET", url)
 	res, err := http.Get(url)
 	if err != nil {
@@ -422,7 +419,7 @@ func TestFilter(t *testing.T) {
 
 	// Resources
 	// Filter many
-	url = ts.URL + apiLocation + "/resources/" + "name/" + utils.FOpPrefix + "/" + "Test"
+	url = ts.URL + TestApiLocation + "/resources/" + "name/" + utils.FOpPrefix + "/" + "Test"
 	t.Log("Calling GET", url)
 	res, err = http.Get(url)
 	if err != nil {
@@ -443,6 +440,8 @@ func TestFilter(t *testing.T) {
 	}
 }
 
+// RESOURCES
+
 func TestRetrieveResource(t *testing.T) {
 	router, shutdown, err := setupRouter()
 	if err != nil {
@@ -457,7 +456,7 @@ func TestRetrieveResource(t *testing.T) {
 	b, _ := json.Marshal(mockedDevice)
 
 	// Create
-	url := ts.URL + apiLocation + "/devices/"
+	url := ts.URL + TestApiLocation + "/devices/"
 	t.Log("Calling POST", url)
 	res, err := http.Post(url, "application/ld+json", bytes.NewReader(b))
 	if err != nil {
@@ -465,7 +464,7 @@ func TestRetrieveResource(t *testing.T) {
 	}
 
 	// Retrieve: resource
-	url = ts.URL + apiLocation + "/resources/" + mockedResource.Id
+	url = ts.URL + TestApiLocation + "/resources/" + mockedResource.Id
 	t.Log("Calling GET", url)
 	res, err = http.Get(url)
 	if err != nil {
@@ -488,12 +487,20 @@ func TestRetrieveResource(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	if !strings.HasPrefix(retrievedResource.URL, apiLocation) {
-		t.Fatalf("Resource URL should have been prefixed with %v by catalog, retrieved URL: %v", apiLocation, retrievedResource.URL)
+	if !strings.HasPrefix(retrievedResource.URL, TestApiLocation) {
+		t.Fatalf("Resource URL should have been prefixed with %v by catalog, retrieved URL: %v", TestApiLocation, retrievedResource.URL)
 	}
 
 	mockedResource.Device = retrievedResource.Device
 	if !reflect.DeepEqual(mockedResource, retrievedResource) {
 		t.Fatalf("The retrieved resource is not the same as the added one:\n Added:\n %v \n Retrieved: \n %v", mockedResource, retrievedResource)
 	}
+}
+
+func TestListResources(t *testing.T) {
+	t.Skip("Todo")
+}
+
+func TestFilterResources(t *testing.T) {
+	t.Skip("Todo")
 }
