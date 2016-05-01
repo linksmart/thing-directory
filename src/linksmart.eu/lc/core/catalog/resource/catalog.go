@@ -60,9 +60,17 @@ func (d *Device) validate() error {
 	}
 
 	// validate all resources
+	rIDs := make(map[string]bool)
 	for _, r := range d.Resources {
 		if err := r.validate(); err != nil {
 			return err
+		}
+		if r.Id != "" {
+			_, found := rIDs[r.Id]
+			if found {
+				return &ConflictError{"Two or more resources have the same IDs"}
+			}
+			rIDs[r.Id] = true
 		}
 	}
 

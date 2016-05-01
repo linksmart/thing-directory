@@ -80,13 +80,17 @@ func (a WritableCatalogAPI) Add(w http.ResponseWriter, req *http.Request) {
 	}
 
 	var d Device
-	err = json.Unmarshal(body, &d)
-	if err != nil {
+	if err := json.Unmarshal(body, &d); err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "Error processing the request:", err.Error())
 		return
 	}
 
-	id ,err := a.controller.add(d)
+	if err := d.validate(); err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "Invalid device registration:", err.Error())
+		return
+	}
+
+	id, err := a.controller.add(d)
 	if err != nil {
 		switch err.(type) {
 		case *ConflictError:
@@ -142,9 +146,13 @@ func (a WritableCatalogAPI) Update(w http.ResponseWriter, req *http.Request) {
 	}
 
 	var d Device
-	err = json.Unmarshal(body, &d)
-	if err != nil {
+	if err := json.Unmarshal(body, &d); err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "Error processing the request:", err.Error())
+		return
+	}
+
+	if err := d.validate(); err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "Invalid device registration:", err.Error())
 		return
 	}
 

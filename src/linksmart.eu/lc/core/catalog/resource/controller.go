@@ -16,7 +16,7 @@ type Controller struct {
 	sync.RWMutex
 	storage     CatalogStorage
 	apiLocation string
-	ticker *time.Ticker
+	ticker      *time.Ticker
 
 	// startTime and counter for ID generation
 	startTime int64
@@ -32,8 +32,8 @@ func NewController(storage CatalogStorage, apiLocation string) (CatalogControlle
 	c := Controller{
 		storage:     storage,
 		apiLocation: apiLocation,
-		rid_did:   avl.New(stringKeys, 0),
-		exp_did:   avl.New(timeKeys, avl.AllowDuplicates),
+		rid_did:     avl.New(stringKeys, 0),
+		exp_did:     avl.New(timeKeys, avl.AllowDuplicates),
 		startTime:   time.Now().UTC().Unix(),
 	}
 
@@ -51,10 +51,6 @@ func NewController(storage CatalogStorage, apiLocation string) (CatalogControlle
 // DEVICES
 
 func (c *Controller) add(d Device) (string, error) {
-	if err := d.validate(); err != nil {
-		return "", fmt.Errorf("Invalid Device registration: %s", err)
-	}
-
 	c.Lock()
 	defer c.Unlock()
 
@@ -88,7 +84,6 @@ func (c *Controller) add(d Device) (string, error) {
 		d.Resources[i].Type = ApiResourceType
 		d.Resources[i].Device = d.URL
 	}
-
 	sort.Sort(d.Resources)
 
 	err := c.storage.add(&d)
@@ -112,12 +107,20 @@ func (c *Controller) get(id string) (*SimpleDevice, error) {
 }
 
 func (c *Controller) update(id string, d Device) error {
-	if err := d.validate(); err != nil {
-		return fmt.Errorf("Invalid Device registration: %s", err)
-	}
-
 	c.Lock()
 	defer c.Unlock()
+
+	// Check uniqueness of resource IDs
+	for _, r := range d.Resources {
+		// User-defined
+		if r.Id != "" {
+			if match := c.rid_did.Find(Map{key: r.Id}); match != nil {
+				if match.(Map).value.(string) != id {
+					return &ConflictError{fmt.Sprintf("Resource id %s is not unique", r.Id)}
+				}
+			}
+		}
+	}
 
 	// Get the stored device
 	sd, err := c.storage.get(id)
@@ -125,8 +128,10 @@ func (c *Controller) update(id string, d Device) error {
 		return err
 	}
 
-	// Remove existing secondary indices
-	c.removeIndices(sd)
+	// Partially deep copy
+	var cp Device = *sd
+	cp.Resources = make([]Resource, len(sd.Resources))
+	copy(cp.Resources, sd.Resources)
 
 	sd.Type = ApiDeviceType
 	sd.Name = d.Name
@@ -140,25 +145,17 @@ func (c *Controller) update(id string, d Device) error {
 		expires := sd.Updated.Add(time.Duration(sd.Ttl) * time.Second)
 		sd.Expires = &expires
 	}
-
 	sd.Resources = d.Resources
+
 	for i := range sd.Resources {
+		// System generated resource id
 		if sd.Resources[i].Id == "" {
-			// System generated id
 			sd.Resources[i].Id = c.newResourceURN()
-		} else {
-			// User-defined id
-			if match := c.rid_did.Find(Map{key: sd.Resources[i].Id}); match != nil {
-				// TODO recover removed indices
-				return &ConflictError{fmt.Sprintf("Resource id %s is not unique", sd.Resources[i].Id)}
-			}
-			// TODO duplicated ids in the same request can bypass this check
 		}
 		sd.Resources[i].URL = fmt.Sprintf("%s/%s/%s", c.apiLocation, FTypeResources, sd.Resources[i].Id)
 		sd.Resources[i].Type = ApiResourceType
 		sd.Resources[i].Device = sd.URL
 	}
-
 	sort.Sort(sd.Resources)
 
 	err = c.storage.update(id, sd)
@@ -166,7 +163,8 @@ func (c *Controller) update(id string, d Device) error {
 		return err
 	}
 
-	// Add new secondary indices
+	// Update secondary indices
+	c.removeIndices(&cp)
 	c.addIndices(sd)
 
 	return nil
@@ -191,7 +189,6 @@ func (c *Controller) delete(id string) error {
 
 	return nil
 }
-
 
 func (c *Controller) list(page, perPage int) ([]SimpleDevice, int, error) {
 	devices, total, err := c.storage.list(page, perPage)
@@ -399,6 +396,12 @@ func (c *Controller) totalResources() (int, error) {
 	return c.rid_did.Len(), nil
 }
 
+// Stop the controller
+func (c *Controller) Stop() error {
+	c.ticker.Stop()
+	return c.storage.Close()
+}
+
 // UTILITY FUNCTIONS
 
 // Sorting operators
@@ -413,6 +416,7 @@ func (c *Controller) newDeviceURN() string {
 	c.counter++
 	return fmt.Sprintf("urn:ls_device:%x", c.startTime+c.counter)
 }
+
 // Generate a new unique urn for resource
 // Format: urn:ls_resource:id, where id is the timestamp(s) of the controller startTime+counter in hex
 // WARNING: the caller must obtain the lock before calling
@@ -439,12 +443,6 @@ func (c *Controller) initIndices() error {
 		}
 	}
 	return nil
-}
-
-// Stop the controller
-func (c *Controller) Stop() error {
-	c.ticker.Stop()
-	return c.storage.Close()
 }
 
 // Creates secondary indices
@@ -499,6 +497,7 @@ type Map struct {
 	key   interface{}
 	value interface{}
 }
+
 // Operator for string-type key
 func stringKeys(a interface{}, b interface{}) int {
 	if a.(Map).key.(string) < b.(Map).key.(string) {
@@ -508,6 +507,7 @@ func stringKeys(a interface{}, b interface{}) int {
 	}
 	return 0
 }
+
 // Operator for Time-type key
 func timeKeys(a interface{}, b interface{}) int {
 	if a.(Map).key.(time.Time).Before(b.(Map).key.(time.Time)) {
