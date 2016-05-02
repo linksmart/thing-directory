@@ -74,7 +74,7 @@ func mockedDevice(id, rid string) *Device {
 		Name:        "TestDevice" + id,
 		Meta:        map[string]interface{}{"test-id": id},
 		Description: "Test Device",
-		Ttl:         10,
+		Ttl:         30,
 		Resources: []Resource{
 			Resource{
 				Id:   "resource_" + rid,
@@ -378,14 +378,10 @@ func TestFilter(t *testing.T) {
 	defer ts.Close()
 	defer shutdown()
 
-	// create 3 devices
-	device1 := mockedDevice("1", "10")
-	device2 := mockedDevice("2", "11")
-	device3 := mockedDevice("3", "12")
-
-	// Add
+	// Create 3 devices
 	url := ts.URL + TestApiLocation + "/devices/"
-	for _, d := range []*Device{device1, device2, device3} {
+	for i:=0; i<3; i++ {
+		d := mockedDevice(fmt.Sprint(i), fmt.Sprint(i*10))
 		b, _ := json.Marshal(d)
 
 		_, err := http.Post(url, "application/ld+json", bytes.NewReader(b))
@@ -405,28 +401,6 @@ func TestFilter(t *testing.T) {
 
 	var collection *DeviceCollection
 	decoder := json.NewDecoder(res.Body)
-	defer res.Body.Close()
-
-	err = decoder.Decode(&collection)
-
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	if collection.Total != 3 {
-		t.Fatal("Server should return a collection of *3* resources, but got total", collection.Total)
-	}
-
-	// Resources
-	// Filter many
-	url = ts.URL + TestApiLocation + "/resources/" + "name/" + utils.FOpPrefix + "/" + "Test"
-	t.Log("Calling GET", url)
-	res, err = http.Get(url)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	decoder = json.NewDecoder(res.Body)
 	defer res.Body.Close()
 
 	err = decoder.Decode(&collection)
@@ -498,9 +472,89 @@ func TestRetrieveResource(t *testing.T) {
 }
 
 func TestListResources(t *testing.T) {
-	t.Skip("Todo")
+	router, shutdown, err := setupRouter()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ts := httptest.NewServer(router)
+	defer ts.Close()
+	defer shutdown()
+
+	// Create 3 devices with 3 resources
+	url := ts.URL + TestApiLocation + "/devices/"
+	for i:=0; i<3; i++ {
+		d := mockedDevice(fmt.Sprint(i), fmt.Sprint(i*10))
+		b, _ := json.Marshal(&d)
+
+		_, err := http.Post(url, "application/ld+json", bytes.NewReader(b))
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+
+	// Filter many
+	url = ts.URL + TestApiLocation + "/resources/" + "name/" + utils.FOpPrefix + "/" + "Test"
+	t.Log("Calling GET", url)
+	res, err := http.Get(url)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	decoder := json.NewDecoder(res.Body)
+	defer res.Body.Close()
+
+	var collection *ResourceCollection
+	err = decoder.Decode(&collection)
+
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if collection.Total != 3 {
+		t.Fatal("Server should return a collection of *3* resources, but got total", collection.Total)
+	}
 }
 
 func TestFilterResources(t *testing.T) {
-	t.Skip("Todo")
+	router, shutdown, err := setupRouter()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	ts := httptest.NewServer(router)
+	defer ts.Close()
+	defer shutdown()
+
+	// Create 3 devices with 3 resources
+	url := ts.URL + TestApiLocation + "/devices/"
+	for i:=0; i<3; i++ {
+		d := mockedDevice(fmt.Sprint(i), fmt.Sprint(i*10))
+		b, _ := json.Marshal(d)
+
+		_, err := http.Post(url, "application/ld+json", bytes.NewReader(b))
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+	}
+
+	// Filter many
+	url = ts.URL + TestApiLocation + "/resources/" + "name/" + utils.FOpPrefix + "/" + "Test"
+	t.Log("Calling GET", url)
+	res, err := http.Get(url)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	decoder := json.NewDecoder(res.Body)
+	defer res.Body.Close()
+
+	var collection *ResourceCollection
+	err = decoder.Decode(&collection)
+
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if collection.Total != 3 {
+		t.Fatal("Server should return a collection of *3* resources, but got total", collection.Total)
+	}
 }
