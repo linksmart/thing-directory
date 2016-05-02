@@ -203,7 +203,7 @@ func (c *Controller) filter(path, op, value string, page, perPage int) ([]Simple
 	c.RLock()
 	defer c.RUnlock()
 
-	var matches []SimpleDevice
+	matches := make([]SimpleDevice, 0)
 	pp := 100
 	for p := 1; ; p++ {
 		slice, t, err := c.storage.list(p, pp)
@@ -275,55 +275,6 @@ func (c *Controller) cleanExpired() {
 
 // RESOURCES
 
-func (c *Controller) listResources(page, perPage int) ([]Resource, int, error) {
-	c.RLock()
-	defer c.RUnlock()
-
-	total := c.rid_did.Len()
-
-	// Retrieve resourceID->deviceID (s) from the tree
-	resourceIDs := make([]string, total)
-	deviceIDs := make([]string, total)
-	for i, x := range c.rid_did.Data() {
-		resourceIDs[i] = x.(Map).key.(string)
-		deviceIDs[i] = x.(Map).value.(string)
-	}
-	// Pagination
-	offset, limit := catalog.GetPagingAttr(total, page, perPage, MaxPerPage)
-
-	// Blank page
-	if limit == 0 {
-		return []Resource{}, total, nil
-	}
-
-	// Retrieve resources from devices
-	devices := make(map[string]*Device)
-	var resources []Resource
-	for i := offset; i < offset+limit; i++ {
-		did := deviceIDs[i]
-		rid := resourceIDs[i]
-
-		var err error
-		d, exists := devices[did]
-		if !exists {
-			d, err = c.storage.get(did)
-			if err != nil {
-				return nil, total, err
-			}
-			devices[did] = d
-		}
-
-		for r := range d.Resources {
-			if d.Resources[r].Id == rid {
-				resources = append(resources, d.Resources[r])
-				break
-			}
-		}
-	}
-
-	return resources, total, nil
-}
-
 func (c *Controller) getResource(id string) (*Resource, error) {
 	c.RLock()
 	defer c.RUnlock()
@@ -349,13 +300,61 @@ func (c *Controller) getResource(id string) (*Resource, error) {
 
 }
 
+func (c *Controller) listResources(page, perPage int) ([]Resource, int, error) {
+	c.RLock()
+	defer c.RUnlock()
+
+	total := c.rid_did.Len()
+
+	// Retrieve resourceID->deviceID (s) from the tree
+	resourceIDs := make([]string, total)
+	deviceIDs := make([]string, total)
+	for i, x := range c.rid_did.Data() {
+		resourceIDs[i] = x.(Map).key.(string)
+		deviceIDs[i] = x.(Map).value.(string)
+	}
+	// Pagination
+	offset, limit := catalog.GetPagingAttr(total, page, perPage, MaxPerPage)
+
+	// Blank page
+	if limit == 0 {
+		return []Resource{}, total, nil
+	}
+
+	// Retrieve resources from devices
+	devices := make(map[string]*Device)
+	resources := make([]Resource, 0)
+	for i := offset; i < offset+limit; i++ {
+		did := deviceIDs[i]
+		rid := resourceIDs[i]
+
+		var err error
+		d, exists := devices[did]
+		if !exists {
+			d, err = c.storage.get(did)
+			if err != nil {
+				return nil, total, err
+			}
+			devices[did] = d
+		}
+
+		for r := range d.Resources {
+			if d.Resources[r].Id == rid {
+				resources = append(resources, d.Resources[r])
+				break
+			}
+		}
+	}
+	return resources, total, nil
+}
+
 func (c *Controller) filterResources(path, op, value string, page, perPage int) ([]Resource, int, error) {
 	c.RLock()
 	defer c.RUnlock()
 
 	// Retrieve resources from devices
 	devices := make(map[string]*Device)
-	var matches []Resource
+	matches := make([]Resource, 0)
 	for x := range c.rid_did.Iter() {
 		resourceID := x.(Map).key.(string)
 		deviceID := x.(Map).value.(string)
