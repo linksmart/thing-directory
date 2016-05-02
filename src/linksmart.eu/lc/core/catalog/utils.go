@@ -9,11 +9,14 @@ import (
 	"time"
 
 	"github.com/oleksandr/bonjour"
+	"strconv"
 )
 
 const (
 	discoveryTimeoutSec = 30
 	minKeepaliveSec     = 5
+	GetParamPage        = "page"
+	GetParamPerPage     = "per_page"
 )
 
 // Discovers a catalog endpoint given the serviceType
@@ -86,16 +89,14 @@ func DiscoverCatalogEndpoint(serviceType string) (endpoint string, err error) {
 
 // Returns a 'slice' of the given slice based on the requested 'page'
 func GetPageOfSlice(slice []string, page, perPage, maxPerPage int) []string {
-	keys := []string{}
-	page, perPage = ValidatePagingParams(page, perPage, maxPerPage)
-
-	// Never return more than the defined maximum
-	if perPage > maxPerPage || perPage == 0 {
-		perPage = maxPerPage
+	err := ValidatePagingParams2(page, perPage, maxPerPage)
+	if err != nil {
+		logger.Printf("GetPageOfSlice() Bad input: %s\n", err)
+		return []string{}
 	}
 
-	// if 1, not specified or negative - return the first page
-	if page < 2 {
+	keys := []string{}
+	if page == 1 {
 		// first page
 		if perPage > len(slice) {
 			keys = slice
@@ -118,38 +119,33 @@ func GetPageOfSlice(slice []string, page, perPage, maxPerPage int) []string {
 // Returns offset and limit representing a subset of the given slice total size
 //	 based on the requested 'page'
 func GetPagingAttr(total, page, perPage, maxPerPage int) (int, int) {
-	//keys := []string{}
-	page, perPage = ValidatePagingParams(page, perPage, maxPerPage)
-
-	// Never return more than the defined maximum
-	if perPage > maxPerPage || perPage == 0 {
-		perPage = maxPerPage
+	err := ValidatePagingParams2(page, perPage, maxPerPage)
+	if err != nil {
+		logger.Printf("GetPagingAttr() Bad input: %s\n", err)
+		return 0, 0
 	}
 
-	// if 1, not specified or negative - return the first page
-	if page < 2 {
+	if page == 1 {
 		// first page
 		if perPage > total {
-			//keys = slice
 			return 0, total
 		} else {
-			//keys = slice[:perPage]
 			return 0, perPage
 		}
 	} else if page == int(total/perPage)+1 {
 		// last page
-		//keys = slice[perPage*(page-1):]
 		return perPage * (page - 1), total - perPage*(page-1)
 	} else if page <= total/perPage && page*perPage <= total {
-		// slice
+		// another page
 		r := page * perPage
 		l := r - perPage
-		//keys = slice[l:r]
 		return l, r - l
 	}
 	return 0, 0
 }
 
+// Deprecated
+// Use ParsePagingParams instead
 func ValidatePagingParams(page, perPage, maxPerPage int) (int, int) {
 	// use defaults if not specified
 	if page == 0 {
@@ -160,6 +156,46 @@ func ValidatePagingParams(page, perPage, maxPerPage int) (int, int) {
 	}
 
 	return page, perPage
+}
+
+// Validates paging parameters
+func ValidatePagingParams2(page, perPage, maxPerPage int) error {
+	if page < 1 {
+		return fmt.Errorf("%s parameter must be positive", GetParamPage)
+	}
+	if perPage < 1 {
+		return fmt.Errorf("%s parameter must be positive", GetParamPerPage)
+	}
+	if perPage > maxPerPage {
+		return fmt.Errorf("%s must less than or equal to %d", GetParamPerPage, maxPerPage)
+	}
+	return nil
+}
+
+// Parses string paging parameters to integers
+func ParsePagingParams(page, perPage string, maxPerPage int) (int, int, error) {
+	var parsedPage, parsedPerPage int
+	var err error
+
+	if page == "" {
+		parsedPage = 1
+	} else {
+		parsedPage, err = strconv.Atoi(page)
+		if err != nil {
+			return 0, 0, fmt.Errorf("Invalid value for parameter %s: %s", GetParamPage, page)
+		}
+	}
+
+	if perPage == "" {
+		parsedPerPage = maxPerPage
+	} else {
+		parsedPerPage, err = strconv.Atoi(perPage)
+		if err != nil {
+			return 0, 0, fmt.Errorf("Invalid value for parameter %s: %s", GetParamPerPage, perPage)
+		}
+	}
+
+	return parsedPage, parsedPerPage, ValidatePagingParams2(parsedPage, parsedPerPage, maxPerPage)
 }
 
 // Calculates the keepalive ticker interval given a registration TTL

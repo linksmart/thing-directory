@@ -5,19 +5,16 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strconv"
 
 	"github.com/gorilla/mux"
 	"linksmart.eu/lc/core/catalog"
 )
 
 const (
-	FTypeDevices    = "devices"
-	FTypeResources  = "resources"
-	GetParamPage    = "page"
-	GetParamPerPage = "per_page"
-	CtxRootDir      = "/ctx"
-	CtxPathCatalog  = "/catalog.jsonld"
+	FTypeDevices   = "devices"
+	FTypeResources = "resources"
+	CtxRootDir     = "/ctx"
+	CtxPathCatalog = "/catalog.jsonld"
 )
 
 type DeviceCollection struct {
@@ -211,9 +208,12 @@ func (a ReadableCatalogAPI) List(w http.ResponseWriter, req *http.Request) {
 		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query:", err.Error())
 		return
 	}
-	page, _ := strconv.Atoi(req.Form.Get(GetParamPage))
-	perPage, _ := strconv.Atoi(req.Form.Get(GetParamPerPage))
-	page, perPage = catalog.ValidatePagingParams(page, perPage, MaxPerPage)
+	page, perPage, err := catalog.ParsePagingParams(
+		req.Form.Get(catalog.GetParamPage), req.Form.Get(catalog.GetParamPerPage), MaxPerPage)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "Error parsing query parameters:", err.Error())
+		return
+	}
 
 	simpleDevices, total, err := a.controller.list(page, perPage)
 	if err != nil {
@@ -253,9 +253,12 @@ func (a ReadableCatalogAPI) Filter(w http.ResponseWriter, req *http.Request) {
 		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query:", err.Error())
 		return
 	}
-	page, _ := strconv.Atoi(req.Form.Get(GetParamPage))
-	perPage, _ := strconv.Atoi(req.Form.Get(GetParamPerPage))
-	page, perPage = catalog.ValidatePagingParams(page, perPage, MaxPerPage)
+	page, perPage, err := catalog.ParsePagingParams(
+		req.Form.Get(catalog.GetParamPage), req.Form.Get(catalog.GetParamPerPage), MaxPerPage)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "Error parsing query parameters:", err.Error())
+		return
+	}
 
 	simpleDevices, total, err := a.controller.filter(path, op, value, page, perPage)
 	if err != nil {
@@ -318,9 +321,12 @@ func (a ReadableCatalogAPI) ListResources(w http.ResponseWriter, req *http.Reque
 		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query:", err.Error())
 		return
 	}
-	page, _ := strconv.Atoi(req.Form.Get(GetParamPage))
-	perPage, _ := strconv.Atoi(req.Form.Get(GetParamPerPage))
-	page, perPage = catalog.ValidatePagingParams(page, perPage, MaxPerPage)
+	page, perPage, err := catalog.ParsePagingParams(
+		req.Form.Get(catalog.GetParamPage), req.Form.Get(catalog.GetParamPerPage), MaxPerPage)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "Error parsing query parameters:", err.Error())
+		return
+	}
 
 	resources, total, err := a.controller.listResources(page, perPage)
 	if err != nil {
@@ -360,9 +366,12 @@ func (a ReadableCatalogAPI) FilterResources(w http.ResponseWriter, req *http.Req
 		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query:", err.Error())
 		return
 	}
-	page, _ := strconv.Atoi(req.Form.Get(GetParamPage))
-	perPage, _ := strconv.Atoi(req.Form.Get(GetParamPerPage))
-	page, perPage = catalog.ValidatePagingParams(page, perPage, MaxPerPage)
+	page, perPage, err := catalog.ParsePagingParams(
+		req.Form.Get(catalog.GetParamPage), req.Form.Get(catalog.GetParamPerPage), MaxPerPage)
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "Error parsing query parameters:", err.Error())
+		return
+	}
 
 	resources, total, err := a.controller.filterResources(path, op, value, page, perPage)
 	if err != nil {

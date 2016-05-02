@@ -125,7 +125,8 @@ func (self *RemoteCatalogClient) Delete(id string) error {
 
 func (self *RemoteCatalogClient) List(page int, perPage int) ([]SimpleDevice, int, error) {
 	res, err := catalog.HTTPRequest("GET",
-		fmt.Sprintf("%v/%v?%v=%v&%v=%v", self.serverEndpoint, FTypeDevices, GetParamPage, page, GetParamPerPage, perPage),
+		fmt.Sprintf("%v/%v?%v=%v&%v=%v", self.serverEndpoint, FTypeDevices,
+			catalog.GetParamPage, page, catalog.GetParamPerPage, perPage),
 		nil,
 		nil,
 		self.ticket,
@@ -149,7 +150,8 @@ func (self *RemoteCatalogClient) List(page int, perPage int) ([]SimpleDevice, in
 func (self *RemoteCatalogClient) Filter(path, op, value string, page, perPage int) ([]SimpleDevice, int, error) {
 	res, err := catalog.HTTPRequest("GET",
 		fmt.Sprintf("%v/%v/%v/%v/%v?%v=%v&%v=%v",
-			self.serverEndpoint, FTypeDevices, path, op, value, GetParamPage, page, GetParamPerPage, perPage),
+			self.serverEndpoint, FTypeDevices, path, op, value,
+			catalog.GetParamPage, page, catalog.GetParamPerPage, perPage),
 		nil,
 		nil,
 		self.ticket,
@@ -201,7 +203,9 @@ func (self *RemoteCatalogClient) GetResource(id string) (*Resource, error) {
 
 func (self *RemoteCatalogClient) ListResources(page int, perPage int) ([]Resource, int, error) {
 	res, err := catalog.HTTPRequest("GET",
-		fmt.Sprintf("%v/%v?%v=%v&%v=%v", self.serverEndpoint, FTypeResources, GetParamPage, page, GetParamPerPage, perPage),
+		fmt.Sprintf("%v/%v?%v=%v&%v=%v",
+			self.serverEndpoint, FTypeResources,
+			catalog.GetParamPage, page, catalog.GetParamPerPage, perPage),
 		nil,
 		nil,
 		self.ticket,
@@ -231,7 +235,8 @@ func (self *RemoteCatalogClient) ListResources(page int, perPage int) ([]Resourc
 func (self *RemoteCatalogClient) FilterResources(path, op, value string, page, perPage int) ([]Resource, int, error) {
 	res, err := catalog.HTTPRequest("GET",
 		fmt.Sprintf("%v/%v/%v/%v/%v?%v=%v&%v=%v",
-			self.serverEndpoint, FTypeResources, path, op, value, GetParamPage, page, GetParamPerPage, perPage),
+			self.serverEndpoint, FTypeResources, path, op, value,
+			catalog.GetParamPage, page, catalog.GetParamPerPage, perPage),
 		nil,
 		nil,
 		self.ticket,
