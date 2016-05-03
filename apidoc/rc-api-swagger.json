@@ -16,16 +16,16 @@
         "APIIndex": {
             "type": "object",
             "properties": {
-                "name": {
+                "description": {
                     "type": "string"
                 },
-                "version": {
+                "api_version": {
                     "type": "string"
                 },
-                "devices": {
+                "total_devices": {
                     "type": "integer"
                 },
-                "resources": {
+                "total_resources": {
                     "type": "integer"
                 }
             }
