@@ -65,6 +65,37 @@ func NewWritableCatalogAPI(controller CatalogController, apiLocation, staticLoca
 	}
 }
 
+// Index of API
+func (a ReadableCatalogAPI) Index(w http.ResponseWriter, req *http.Request) {
+	total, err := a.controller.total()
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, "Error counting devices:", err.Error())
+		return
+	}
+	totalResources, err := a.controller.totalResources()
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, "Error counting resources:", err.Error())
+		return
+	}
+
+	index := map[string]interface{}{
+		"description": a.description,
+		"api_version": ApiVersion,
+		"total_devices": total,
+		"total_resources": totalResources,
+	}
+
+	b, err := json.Marshal(&index)
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
+	w.Write(b)
+}
+
+
 // DEVICES
 
 // Adds a Device
