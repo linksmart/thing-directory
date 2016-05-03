@@ -207,6 +207,7 @@ func setupRouter(config *Config) (*mux.Router, func() error, error) {
 
 	// Configure routers
 	r := mux.NewRouter().StrictSlash(true)
+	r.Methods("GET").Path(config.ApiLocation).Handler(commonHandlers.ThenFunc(api.Index))
 
 	// Devices
 	// CRUD
