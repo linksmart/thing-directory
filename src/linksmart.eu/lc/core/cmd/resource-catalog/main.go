@@ -221,7 +221,7 @@ func setupRouter(config *Config) (*mux.Router, func() error, error) {
 
 	// Resources
 	r.Methods("GET").Path(config.ApiLocation + "/resources").Handler(commonHandlers.ThenFunc(api.ListResources))
-	r.Methods("GET").Path(config.ApiLocation + "/resources/{id}").Handler(commonHandlers.ThenFunc(api.GetResource))
+	r.Methods("GET").Path(config.ApiLocation + "/resources/{id:[^/]+/?[^/]*}").Handler(commonHandlers.ThenFunc(api.GetResource))
 	r.Methods("GET").Path(config.ApiLocation + "/resources/{path}/{op}/{value:.*}").Handler(commonHandlers.ThenFunc(api.FilterResources))
 
 	return r, controller.Stop, nil

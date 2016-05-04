@@ -4,15 +4,10 @@ type LocalCatalogClient struct {
 	controller CatalogController
 }
 
-func NewLocalCatalogClient(storage CatalogStorage, apiLocation string) (*LocalCatalogClient, error) {
-	controller, err := NewController(storage, apiLocation)
-	if err != nil {
-		return nil, err
-	}
-
+func NewLocalCatalogClient(controller CatalogController) CatalogClient {
 	return &LocalCatalogClient{
 		controller: controller,
-	}, nil
+	}
 }
 
 // Adds a device and returns its id

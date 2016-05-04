@@ -107,7 +107,7 @@ func (am *AgentManager) start() {
 		case resp := <-am.agentInbox:
 			// Receive data from agents and cache it
 			if resp.IsError {
-				logger.Printf("AgentManager.start() ERROR: Received from %s: %s", resp.ResourceId, resp.IsError, string(resp.Payload))
+				logger.Printf("AgentManager.start() ERROR: Received from %s: %s", resp.ResourceId, string(resp.Payload))
 			}
 
 			// Cache data

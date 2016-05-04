@@ -314,7 +314,7 @@ type Device struct {
 	Name        string
 	Description string
 	Meta        map[string]interface{}
-	Ttl         int
+	Ttl         uint
 	Resources   []Resource
 }
 
