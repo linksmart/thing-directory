@@ -116,7 +116,7 @@ func RegisterDeviceWithKeepalive(endpoint string, discover bool, d Device, sigCh
 // sigCh: channel for shutdown signalisation from upstream
 // errCh: channel for error signalisation to upstream
 func keepAlive(client CatalogClient, d *Device, sigCh <-chan bool, errCh chan<- error) {
-	dur := utils.KeepAliveDuration(int(d.Ttl))
+	dur := (time.Duration(d.Ttl) * time.Second)/2
 	ticker := time.NewTicker(dur)
 	errTries := 0
 
