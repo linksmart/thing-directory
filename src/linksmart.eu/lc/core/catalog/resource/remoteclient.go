@@ -31,7 +31,7 @@ func NewRemoteCatalogClient(serverEndpoint string, ticket *obtainer.Client) Cata
 
 func (self *RemoteCatalogClient) Get(id string) (*SimpleDevice, error) {
 	res, err := catalog.HTTPRequest("GET",
-		fmt.Sprintf("%v/%v", self.serverEndpoint, id),
+		fmt.Sprintf("%v/%v/%v", self.serverEndpoint, FTypeDevices, id),
 		nil,
 		nil,
 		self.ticket,
@@ -62,7 +62,7 @@ func (self *RemoteCatalogClient) Get(id string) (*SimpleDevice, error) {
 func (self *RemoteCatalogClient) Add(d *Device) (string, error) {
 	b, _ := json.Marshal(d)
 	res, err := catalog.HTTPRequest("POST",
-		fmt.Sprintf("%v/%v/", self.serverEndpoint.String(), FTypeDevices),
+		fmt.Sprintf("%v/%v/", self.serverEndpoint, FTypeDevices),
 		map[string][]string{"Content-Type": []string{"application/ld+json"}},
 		bytes.NewReader(b),
 		self.ticket,

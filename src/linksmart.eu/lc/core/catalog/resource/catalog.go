@@ -3,6 +3,7 @@ package resource
 import (
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -58,6 +59,9 @@ func (d *Device) validate() error {
 	if err != nil {
 		return fmt.Errorf("Device id %s cannot be used in a URL: %s", d.Id, err)
 	}
+	if strings.Contains(d.Id, "/") {
+		return fmt.Errorf("Device id should not contain any slashes. Given: %s", d.Id)
+	}
 
 	// validate all resources
 	rIDs := make(map[string]bool)
@@ -82,6 +86,12 @@ func (r *Resource) validate() error {
 	_, err := url.Parse(r.Id)
 	if err != nil {
 		return fmt.Errorf("Resource id %s cannot be used in a URL: %s", r.Id, err)
+	}
+	if strings.Count(r.Id, "/") > 1 {
+		return fmt.Errorf("Resource id should not contain more than one slash. Given: %s", r.Id)
+	}
+	if strings.HasPrefix(r.Id, "/") || strings.HasSuffix(r.Id, "/") {
+		return fmt.Errorf("Resource id should not start or end with an slash. Given: %s", r.Id)
 	}
 
 	return nil

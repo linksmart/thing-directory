@@ -182,14 +182,26 @@ func (api *RESTfulAPI) mountCatalog(catalogController catalog.CatalogController)
 		fmt.Sprintf("Local catalog at %s", api.config.Description),
 	)
 
-	api.router.Methods("GET").Path(CatalogLocation + "/{type}/{path}/{op}/{value:.*}").Handler(
-		api.commonHandlers.ThenFunc(catalogAPI.Filter)).Name("filter")
-	api.router.Methods("GET").Path(CatalogLocation + "/{dgwid}/{regid}/{resname}").Handler(
-		api.commonHandlers.ThenFunc(catalogAPI.GetResource)).Name("details")
-	api.router.Methods("GET").Path(CatalogLocation + "/{dgwid}/{regid}").Handler(
-		api.commonHandlers.ThenFunc(catalogAPI.Get)).Name("get")
-	api.router.Methods("GET").Path(CatalogLocation).Handler(
-		api.commonHandlers.ThenFunc(catalogAPI.List)).Name("list")
+	// Configure routers
+	api.router.Methods("GET").Path(CatalogLocation).Handler(api.commonHandlers.ThenFunc(catalogAPI.Index))
+
+	// Devices
+	// CRUD
+	api.router.Methods("GET").Path(CatalogLocation + "/devices/{id}").Handler(
+		api.commonHandlers.ThenFunc(catalogAPI.Get))
+	// Listing, filtering
+	api.router.Methods("GET").Path(CatalogLocation + "/devices").Handler(
+		api.commonHandlers.ThenFunc(catalogAPI.List))
+	api.router.Methods("GET").Path(CatalogLocation + "/devices/{path}/{op}/{value:.*}").Handler(
+		api.commonHandlers.ThenFunc(catalogAPI.Filter))
+
+	// Resources
+	api.router.Methods("GET").Path(CatalogLocation + "/resources").Handler(
+		api.commonHandlers.ThenFunc(catalogAPI.ListResources))
+	api.router.Methods("GET").Path(CatalogLocation + "/resources/{id:[^/]+/?[^/]*}").Handler(
+		api.commonHandlers.ThenFunc(catalogAPI.GetResource))
+	api.router.Methods("GET").Path(CatalogLocation + "/resources/{path}/{op}/{value:.*}").Handler(
+		api.commonHandlers.ThenFunc(catalogAPI.FilterResources))
 
 	logger.Printf("RESTfulAPI.mountCatalog() Mounted local catalog at %v", CatalogLocation)
 }

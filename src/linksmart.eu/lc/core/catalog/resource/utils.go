@@ -67,7 +67,7 @@ func RegisterDeviceWithKeepalive(endpoint string, discover bool, d Device, sigCh
 		RegisterDevice(client, &d)
 		return
 	}
-	logger.Printf("RegisterDeviceWithKeepalive() Will register and update registration periodically: %v/%v", endpoint, d.Id)
+	logger.Printf("RegisterDeviceWithKeepalive() Will register and update registration periodically: %v/%v/%v", endpoint, FTypeDevices, d.Id)
 
 	// Configure & start the keepalive routine
 	ksigCh := make(chan bool)
@@ -93,14 +93,14 @@ func RegisterDeviceWithKeepalive(endpoint string, discover bool, d Device, sigCh
 
 		// catch a shutdown signal from the upstream
 		case <-sigCh:
-			logger.Printf("RegisterDeviceWithKeepalive(): Removing the registration %v/%v...", endpoint, d.Id)
+			logger.Printf("RegisterDeviceWithKeepalive(): Removing the registration %v/%v/%v...", endpoint, FTypeDevices, d.Id)
 			// signal shutdown to the keepAlive routine & close channels
 			select {
 			case ksigCh <- true:
 				// delete entry in the remote catalog
 				client.Delete(d.Id)
 			case <-time.After(1 * time.Second):
-				logger.Printf("RegisterDeviceWithKeepalive(): timeout removing registration %v/%v: catalog unreachable", endpoint, d.Id)
+				logger.Printf("RegisterDeviceWithKeepalive(): timeout removing registration %v/%v/%v: catalog unreachable", endpoint, FTypeDevices, d.Id)
 			}
 
 			close(ksigCh)
@@ -116,7 +116,7 @@ func RegisterDeviceWithKeepalive(endpoint string, discover bool, d Device, sigCh
 // sigCh: channel for shutdown signalisation from upstream
 // errCh: channel for error signalisation to upstream
 func keepAlive(client CatalogClient, d *Device, sigCh <-chan bool, errCh chan<- error) {
-	dur := utils.KeepAliveDuration(int(d.Ttl))
+	dur := (time.Duration(d.Ttl) * time.Second)/2
 	ticker := time.NewTicker(dur)
 	errTries := 0
 

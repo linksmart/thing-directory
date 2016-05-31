@@ -79,9 +79,9 @@ func (a ReadableCatalogAPI) Index(w http.ResponseWriter, req *http.Request) {
 	}
 
 	index := map[string]interface{}{
-		"description": a.description,
-		"api_version": ApiVersion,
-		"total_devices": total,
+		"description":     a.description,
+		"api_version":     ApiVersion,
+		"total_devices":   total,
 		"total_resources": totalResources,
 	}
 
@@ -94,7 +94,6 @@ func (a ReadableCatalogAPI) Index(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
 	w.Write(b)
 }
-
 
 // DEVICES
 
@@ -113,16 +112,14 @@ func (a WritableCatalogAPI) Add(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if err := d.validate(); err != nil {
-		ErrorResponse(w, http.StatusBadRequest, "Invalid device registration:", err.Error())
-		return
-	}
-
 	id, err := a.controller.add(d)
 	if err != nil {
 		switch err.(type) {
 		case *ConflictError:
 			ErrorResponse(w, http.StatusConflict, "Error creating the registration:", err.Error())
+			return
+		case *BadRequestError:
+			ErrorResponse(w, http.StatusBadRequest, "Invalid device registration:", err.Error())
 			return
 		default:
 			ErrorResponse(w, http.StatusInternalServerError, "Error creating the registration:", err.Error())
@@ -179,11 +176,6 @@ func (a WritableCatalogAPI) Update(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if err := d.validate(); err != nil {
-		ErrorResponse(w, http.StatusBadRequest, "Invalid device registration:", err.Error())
-		return
-	}
-
 	err = a.controller.update(params["id"], d)
 	if err != nil {
 		switch err.(type) {
@@ -201,6 +193,9 @@ func (a WritableCatalogAPI) Update(w http.ResponseWriter, req *http.Request) {
 			return
 		case *ConflictError:
 			ErrorResponse(w, http.StatusConflict, "Error updating the device:", err.Error())
+			return
+		case *BadRequestError:
+			ErrorResponse(w, http.StatusBadRequest, "Invalid device registration:", err.Error())
 			return
 		default:
 			ErrorResponse(w, http.StatusInternalServerError, "Error updating the device:", err.Error())

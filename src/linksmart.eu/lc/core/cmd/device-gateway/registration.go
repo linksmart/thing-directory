@@ -17,11 +17,11 @@ func configureDevices(config *Config) []catalog.Device {
 	for _, device := range config.Devices {
 		r := new(catalog.Device)
 		r.Type = catalog.ApiDeviceType
-		r.Ttl = uint(device.Ttl)
+		r.Ttl = device.Ttl
 		r.Name = device.Name
 		r.Description = device.Description
 		r.Meta = device.Meta
-		r.Id = fmt.Sprintf("%v/%v", config.Id, r.Name)
+		r.Id = device.Name
 		r.Resources = []catalog.Resource{}
 		for _, resource := range device.Resources {
 			res := new(catalog.Resource)
@@ -68,15 +68,15 @@ func configureDevices(config *Config) []catalog.Device {
 	return devices
 }
 
-// Register configured devices from a given configuration using provided storage implementation
-func registerInLocalCatalog(devices []catalog.Device, config *Config, catalogStorage catalog.CatalogStorage) error {
-	client, err := catalog.NewLocalCatalogClient(catalogStorage, CatalogLocation)
-	if err != nil {
-		return err
-	}
+// Register configured devices from a given configuration using provided controller
+func registerInLocalCatalog(devices []catalog.Device, controller catalog.CatalogController) error {
+	client := catalog.NewLocalCatalogClient(controller)
 
 	for _, r := range devices {
-		catalog.RegisterDevice(client, &r)
+		err := catalog.RegisterDevice(client, &r)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

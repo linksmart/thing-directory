@@ -51,6 +51,10 @@ func NewController(storage CatalogStorage, apiLocation string) (CatalogControlle
 // DEVICES
 
 func (c *Controller) add(d Device) (string, error) {
+	if err := d.validate(); err != nil {
+		return "", &BadRequestError{err.Error()}
+	}
+
 	c.Lock()
 	defer c.Unlock()
 
@@ -107,6 +111,10 @@ func (c *Controller) get(id string) (*SimpleDevice, error) {
 }
 
 func (c *Controller) update(id string, d Device) error {
+	if err := d.validate(); err != nil {
+		return &BadRequestError{err.Error()}
+	}
+
 	c.Lock()
 	defer c.Unlock()
 

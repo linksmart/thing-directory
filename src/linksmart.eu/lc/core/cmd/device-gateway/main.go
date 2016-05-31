@@ -86,7 +86,7 @@ func main() {
 	// Parse device configurations
 	devices := configureDevices(config)
 	// register in local catalog
-	err = registerInLocalCatalog(devices, config, catalogStorage)
+	err = registerInLocalCatalog(devices, catalogController)
 	if err != nil {
 		logger.Fatalf("Failed to register in local catalog: %v\n", err.Error())
 	}

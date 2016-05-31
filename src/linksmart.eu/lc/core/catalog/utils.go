@@ -198,7 +198,8 @@ func ParsePagingParams(page, perPage string, maxPerPage int) (int, int, error) {
 	return parsedPage, parsedPerPage, ValidatePagingParams2(parsedPage, parsedPerPage, maxPerPage)
 }
 
-// Calculates the keepalive ticker interval given a registration TTL
+// Deprecated
+// Calculate inline: (time.Duration(ttl) * time.Second)/2
 func KeepAliveDuration(ttl int) time.Duration {
 	var d time.Duration
 	if ttl-minKeepaliveSec <= minKeepaliveSec {

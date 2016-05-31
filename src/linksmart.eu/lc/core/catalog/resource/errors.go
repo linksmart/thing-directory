@@ -16,6 +16,11 @@ type ConflictError struct{ s string }
 
 func (e *ConflictError) Error() string { return e.s }
 
+// Bad Request
+type BadRequestError struct{ s string }
+
+func (e *BadRequestError) Error() string { return e.s }
+
 // Error describes an API error (serializable in JSON)
 type Error struct {
 	// Code is the (http) code of the error
