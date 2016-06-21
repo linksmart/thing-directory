@@ -182,8 +182,20 @@
         }
     },
     "responses": {
-        "RespInternalServerError": {
-            "description": "Internal Server Error",
+        "RespBadRequest": {
+            "description": "Bad Request",
+            "schema": {
+                "$ref": "#/definitions/ErrorResponse"
+            }
+        },
+        "RespUnauthorized": {
+            "description": "Unauthorized",
+            "schema": {
+                "$ref": "#/definitions/ErrorResponse"
+            }
+        },
+        "RespForbidden": {
+            "description": "Forbidden",
             "schema": {
                 "$ref": "#/definitions/ErrorResponse"
             }
@@ -194,14 +206,14 @@
                 "$ref": "#/definitions/ErrorResponse"
             }
         },
-        "RespBadRequest": {
-            "description": "Bad Request",
+        "RespConflict": {
+            "description": "Conflict",
             "schema": {
                 "$ref": "#/definitions/ErrorResponse"
             }
         },
-        "RespConflict": {
-            "description": "Conflict",
+        "RespInternalServerError": {
+            "description": "Internal Server Error",
             "schema": {
                 "$ref": "#/definitions/ErrorResponse"
             }
@@ -235,6 +247,15 @@
                         "schema": {
                             "$ref": "#/definitions/APIIndex"
                         }
+                    },
+                    "401": {
+                        "$ref": "#/responses/RespUnauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/responses/RespForbidden"
+                    },
+                    "500": {
+                        "$ref": "#/responses/RespInternalServerError"
                     }
                 }
             }
@@ -282,6 +303,12 @@
                                 "total": 1000
                             }
                         }
+                    },
+                    "401": {
+                        "$ref": "#/responses/RespUnauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/responses/RespForbidden"
                     },
                     "500": {
                         "$ref": "#/responses/RespInternalServerError"
@@ -382,6 +409,12 @@
                     },
                     "400": {
                         "$ref": "#/responses/RespBadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/responses/RespUnauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/responses/RespForbidden"
                     },
                     "500": {
                         "$ref": "#/responses/RespInternalServerError"
@@ -502,6 +535,12 @@
                     "400": {
                         "$ref": "#/responses/RespBadRequest"
                     },
+                    "401": {
+                        "$ref": "#/responses/RespUnauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/responses/RespForbidden"
+                    },
                     "404": {
                         "$ref": "#/responses/RespNotfound"
                     },
@@ -610,6 +649,12 @@
                     "400": {
                         "$ref": "#/responses/RespBadRequest"
                     },
+                    "401": {
+                        "$ref": "#/responses/RespUnauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/responses/RespForbidden"
+                    },
                     "409": {
                         "$ref": "#/responses/RespConflict"
                     },
@@ -632,6 +677,12 @@
                 "responses": {
                     "200": {
                         "description": "Successful response"
+                    },
+                    "401": {
+                        "$ref": "#/responses/RespUnauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/responses/RespForbidden"
                     },
                     "404": {
                         "$ref": "#/responses/RespNotfound"
@@ -666,6 +717,12 @@
                         "description": "The intended value/prefix/suffix/substring of the key identified by the path",
                         "required": true,
                         "type": "string"
+                    },
+                    {
+                        "$ref": "#/parameters/ParamPage"
+                    },
+                    {
+                        "$ref": "#/parameters/ParamPerPage"
                     }
                 ],
                 "responses": {
@@ -674,6 +731,12 @@
                         "schema": {
                             "$ref": "#/definitions/DevicesIndex"
                         }
+                    },
+                    "401": {
+                        "$ref": "#/responses/RespUnauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/responses/RespForbidden"
                     },
                     "500": {
                         "$ref": "#/responses/RespInternalServerError"
@@ -730,6 +793,12 @@
                                 "total": 1000
                             }
                         }
+                    },
+                    "401": {
+                        "$ref": "#/responses/RespUnauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/responses/RespForbidden"
                     },
                     "500": {
                         "$ref": "#/responses/RespInternalServerError"
@@ -834,6 +903,12 @@
                             }
                         }
                     },
+                    "401": {
+                        "$ref": "#/responses/RespUnauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/responses/RespForbidden"
+                    },
                     "404": {
                         "$ref": "#/responses/RespNotfound"
                     },
@@ -867,6 +942,12 @@
                         "description": "The intended value/prefix/suffix/substring of the key identified by the path",
                         "required": true,
                         "type": "string"
+                    },
+                    {
+                        "$ref": "#/parameters/ParamPage"
+                    },
+                    {
+                        "$ref": "#/parameters/ParamPerPage"
                     }
                 ],
                 "responses": {
@@ -875,6 +956,12 @@
                         "schema": {
                             "$ref": "#/definitions/ResourcesIndex"
                         }
+                    },
+                    "401": {
+                        "$ref": "#/responses/RespUnauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/responses/RespForbidden"
                     },
                     "500": {
                         "$ref": "#/responses/RespInternalServerError"

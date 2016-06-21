@@ -180,8 +180,20 @@
         }
     },
     "responses": {
-        "RespInternalServerError": {
-            "description": "Internal Server Error",
+        "RespBadRequest": {
+            "description": "Bad Request",
+            "schema": {
+                "$ref": "#/definitions/ErrorResponse"
+            }
+        },
+        "RespUnauthorized": {
+            "description": "Unauthorized",
+            "schema": {
+                "$ref": "#/definitions/ErrorResponse"
+            }
+        },
+        "RespForbidden": {
+            "description": "Forbidden",
             "schema": {
                 "$ref": "#/definitions/ErrorResponse"
             }
@@ -192,14 +204,14 @@
                 "$ref": "#/definitions/ErrorResponse"
             }
         },
-        "RespBadRequest": {
-            "description": "Bad Request",
+        "RespConflict": {
+            "description": "Conflict",
             "schema": {
                 "$ref": "#/definitions/ErrorResponse"
             }
         },
-        "RespConflict": {
-            "description": "Conflict",
+        "RespInternalServerError": {
+            "description": "Internal Server Error",
             "schema": {
                 "$ref": "#/definitions/ErrorResponse"
             }
@@ -242,6 +254,12 @@
                             "$ref": "#/definitions/APIIndex"
                         }
                     },
+                    "401": {
+                        "$ref": "#/responses/RespUnauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/responses/RespForbidden"
+                    },
                     "500": {
                         "$ref": "#/responses/RespInternalServerError"
                     }
@@ -273,6 +291,12 @@
                     "400": {
                         "$ref": "#/responses/RespBadRequest"
                     },
+                    "401": {
+                        "$ref": "#/responses/RespUnauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/responses/RespForbidden"
+                    },
                     "500": {
                         "$ref": "#/responses/RespInternalServerError"
                     }
@@ -300,6 +324,12 @@
                     },
                     "400": {
                         "$ref": "#/responses/RespBadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/responses/RespUnauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/responses/RespForbidden"
                     },
                     "404": {
                         "$ref": "#/responses/RespNotfound"
@@ -339,6 +369,12 @@
                     "400": {
                         "$ref": "#/responses/RespBadRequest"
                     },
+                    "401": {
+                        "$ref": "#/responses/RespUnauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/responses/RespForbidden"
+                    },
                     "409": {
                         "$ref": "#/responses/RespConflict"
                     },
@@ -361,6 +397,12 @@
                 "responses": {
                     "200": {
                         "description": "Successful response"
+                    },
+                    "401": {
+                        "$ref": "#/responses/RespUnauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/responses/RespForbidden"
                     },
                     "404": {
                         "$ref": "#/responses/RespNotfound"
@@ -409,6 +451,12 @@
                         "schema": {
                             "$ref": "#/definitions/APIIndex"
                         }
+                    },
+                    "401": {
+                        "$ref": "#/responses/RespUnauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/responses/RespForbidden"
                     },
                     "500": {
                         "$ref": "#/responses/RespInternalServerError"
