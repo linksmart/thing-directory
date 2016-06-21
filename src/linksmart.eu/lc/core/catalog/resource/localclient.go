@@ -12,8 +12,6 @@ func NewLocalCatalogClient(controller CatalogController) CatalogClient {
 
 // Adds a device and returns its id
 func (self *LocalCatalogClient) Add(r *Device) (string, error) {
-	// set ttl to 0 (local resources never expire)
-	r.Ttl = 0
 	return self.controller.add(*r)
 }
 

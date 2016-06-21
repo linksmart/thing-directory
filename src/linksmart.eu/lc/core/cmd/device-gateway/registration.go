@@ -73,6 +73,7 @@ func registerInLocalCatalog(devices []catalog.Device, controller catalog.Catalog
 	client := catalog.NewLocalCatalogClient(controller)
 
 	for _, r := range devices {
+		r.Ttl = 0
 		err := catalog.RegisterDevice(client, &r)
 		if err != nil {
 			return err
