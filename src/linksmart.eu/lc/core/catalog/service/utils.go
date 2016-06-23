@@ -16,18 +16,22 @@ const (
 // Registers service given a configured Catalog Client
 func RegisterService(client CatalogClient, s *Service) error {
 	_, err := client.Get(s.Id)
-
-	if err == ErrorNotFound {
-		err = client.Add(s)
-		if err != nil {
+	if err != nil {
+		switch err.(type) {
+		case *NotFoundError:
+			// If not in the catalog - add
+			err = client.Add(s)
+			if err != nil {
+				logger.Printf("RegisterService() ERROR: %v", err)
+				return err
+			}
+			logger.Printf("RegisterService() Added Service registration %v", s.Id)
+		default:
 			logger.Printf("RegisterService() ERROR: %v", err)
 			return err
 		}
-		logger.Printf("RegisterService() Added Service registration %v", s.Id)
-	} else if err != nil {
-		logger.Printf("RegisterService() ERROR: %v", err)
-		return err
 	} else {
+		// otherwise - Update
 		err = client.Update(s.Id, s)
 		if err != nil {
 			logger.Printf("RegisterService() ERROR: %v", err)
@@ -131,7 +135,7 @@ func RegisterServiceWithKeepalive(endpoint string, discover bool, s Service,
 // sigCh: channel for shutdown signalisation from upstream
 // errCh: channel for error signalisation to upstream
 func keepAlive(client CatalogClient, s *Service, sigCh <-chan bool, errCh chan<- error) {
-	dur := utils.KeepAliveDuration(s.Ttl)
+	dur := (time.Duration(s.Ttl) * time.Second) / 2
 	ticker := time.NewTicker(dur)
 	errTries := 0
 
@@ -142,24 +146,28 @@ func keepAlive(client CatalogClient, s *Service, sigCh <-chan bool, errCh chan<-
 		select {
 		case <-ticker.C:
 			err := client.Update(s.Id, s)
-
-			if err == ErrorNotFound {
-				logger.Printf("keepAlive() ERROR: Registration %v not found in the remote catalog. TTL expired?", s.Id)
-				err = client.Add(s)
-				if err != nil {
+			if err != nil {
+				switch err.(type) {
+				case *NotFoundError:
+					// If not in the catalog - add
+					logger.Printf("keepAlive() ERROR: Registration %v not found in the remote catalog. TTL expired?", s.Id)
+					err = client.Add(s)
+					if err != nil {
+						logger.Printf("keepAlive() ERROR: %v", err)
+						errTries += 1
+					} else {
+						logger.Printf("keepAlive() Added Service registration %v", s.Id)
+						errTries = 0
+					}
+				default:
 					logger.Printf("keepAlive() ERROR: %v", err)
 					errTries += 1
-				} else {
-					logger.Printf("keepAlive() Added Service registration %v", s.Id)
-					errTries = 0
 				}
-			} else if err != nil {
-				logger.Printf("keepAlive() ERROR: %v", err)
-				errTries += 1
 			} else {
 				logger.Printf("keepAlive() Updated Service registration %v", s.Id)
 				errTries = 0
 			}
+
 			if errTries >= keepaliveRetries {
 				errCh <- fmt.Errorf("Number of retries exceeded")
 				ticker.Stop()

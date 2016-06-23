@@ -1,7 +1,5 @@
 package service
 
-import "fmt"
-
 // ServiceConfig is a wrapper for Service to be used by
 // clients to configure a Service (e.g., read from file)
 type ServiceConfig struct {
@@ -12,8 +10,8 @@ type ServiceConfig struct {
 // Returns a Service object from the ServiceConfig
 func (sc *ServiceConfig) GetService() (*Service, error) {
 	sc.Id = sc.Host + "/" + sc.Name
-	if !sc.Service.validate() {
-		return nil, fmt.Errorf("Invalid Service configuration")
+	if err := sc.Service.validate(); err != nil {
+		return nil, err
 	}
 	return sc.Service, nil
 }
@@ -29,11 +27,8 @@ type CatalogClient interface {
 	// Returns a slice of Services given:
 	// page - page in the collection
 	// perPage - number of entries per page
-	GetServices(page, perPage int) ([]Service, int, error)
-
-	// Returns a single Service given: path, operation, value
-	FindService(path, op, value string) (*Service, error)
+	List(page, perPage int) ([]Service, int, error)
 
 	// Returns a slice of Services given: path, operation, value, page, perPage
-	FindServices(path, op, value string, page, perPage int) ([]Service, int, error)
+	Filter(path, op, value string, page, perPage int) ([]Service, int, error)
 }

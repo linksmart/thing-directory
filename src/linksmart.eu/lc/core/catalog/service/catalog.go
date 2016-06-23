@@ -1,18 +1,15 @@
 package service
 
 import (
-	"errors"
-	"strings"
 	"time"
 )
-
-var ErrorNotFound = errors.New("NotFound")
 
 // Structs
 
 // Service is a service entry in the catalog
 type Service struct {
 	Id             string                 `json:"id"`
+	URL            string                 `json:"url"`
 	Type           string                 `json:"type"`
 	Name           string                 `json:"name"`
 	Description    string                 `json:"description"`
@@ -25,24 +22,14 @@ type Service struct {
 	Expires        *time.Time             `json:"expires"`
 }
 
-// Deep copy of the Service
-func (self *Service) copy() Service {
-	var sc Service
-
-	sc = *self
-	proto := make([]Protocol, len(self.Protocols))
-	copy(proto, self.Protocols)
-	sc.Protocols = proto
-
-	return sc
-}
-
 // Validates the Service configuration
-func (s *Service) validate() bool {
-	if s.Id == "" || len(strings.Split(s.Id, "/")) != 2 || s.Name == "" || s.Ttl == 0 {
-		return false
-	}
-	return true
+func (s *Service) validate() error {
+	/*	if s.Id == "" || len(strings.Split(s.Id, "/")) != 2 || s.Name == "" || s.Ttl == 0 {
+			return false
+		}
+		return true*/
+
+	return nil
 }
 
 // Checks whether the service can be tunneled in GC
@@ -76,23 +63,29 @@ type Protocol struct {
 
 // Interfaces
 
-// Storage interface
-type CatalogStorage interface {
-	// CRUD
-	add(s Service) error
+// Controller interface
+type CatalogController interface {
+	add(s Service) (string, error)
+	get(id string) (*Service, error)
 	update(id string, s Service) error
 	delete(id string) error
-	get(id string) (Service, error)
+	list(page, perPage int) ([]Service, int, error)
+	filter(path, op, value string, page, perPage int) ([]Service, int, error)
+	total() (int, error)
+	cleanExpired()
 
-	// Utility functions
-	getMany(page, perPage int) ([]Service, int, error)
-	getCount() (int, error)
-	cleanExpired(ts time.Time)
+	Stop() error
+}
+
+// Storage interface
+type CatalogStorage interface {
+	add(s *Service) error
+	get(id string) (*Service, error)
+	update(id string, s *Service) error
+	delete(id string) error
+	list(page, perPage int) ([]Service, int, error)
+	total() (int, error)
 	Close() error
-
-	// Path filtering
-	pathFilterOne(path, op, value string) (Service, error)
-	pathFilter(path, op, value string, page, perPage int) ([]Service, int, error)
 }
 
 // Listener interface can be used for notification of the catalog updates
@@ -101,20 +94,4 @@ type Listener interface {
 	added(s Service)
 	updated(s Service)
 	deleted(id string)
-}
-
-// Sorted-map data structure based on AVL Tree (go-avltree)
-type SortedMap struct {
-	key   interface{}
-	value interface{}
-}
-
-// Operator for Time-type key
-func timeKeys(a interface{}, b interface{}) int {
-	if a.(SortedMap).key.(time.Time).Before(b.(SortedMap).key.(time.Time)) {
-		return -1
-	} else if a.(SortedMap).key.(time.Time).After(b.(SortedMap).key.(time.Time)) {
-		return 1
-	}
-	return 0
 }

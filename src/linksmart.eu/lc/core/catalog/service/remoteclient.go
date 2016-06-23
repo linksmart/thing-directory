@@ -16,37 +16,6 @@ type RemoteCatalogClient struct {
 	ticket         *obtainer.Client
 }
 
-func serviceFromResponse(res *http.Response, apiLocation string) (*Service, error) {
-	decoder := json.NewDecoder(res.Body)
-	defer res.Body.Close()
-
-	var s *Service
-	err := decoder.Decode(&s)
-	if err != nil {
-		return nil, err
-	}
-	svc := s.unLdify(apiLocation)
-	return &svc, nil
-}
-
-func servicesFromResponse(res *http.Response, apiLocation string) ([]Service, int, error) {
-	decoder := json.NewDecoder(res.Body)
-	defer res.Body.Close()
-
-	var coll Collection
-	err := decoder.Decode(&coll)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	svcs := make([]Service, 0, len(coll.Services))
-	for _, v := range coll.Services {
-		svcs = append(svcs, v.unLdify(apiLocation))
-	}
-
-	return svcs, len(svcs), nil
-}
-
 func NewRemoteCatalogClient(serverEndpoint string, ticket *obtainer.Client) *RemoteCatalogClient {
 	// Check if serverEndpoint is a correct URL
 	endpointUrl, err := url.Parse(serverEndpoint)
@@ -60,32 +29,42 @@ func NewRemoteCatalogClient(serverEndpoint string, ticket *obtainer.Client) *Rem
 	}
 }
 
-func (self *RemoteCatalogClient) Get(id string) (*Service, error) {
+func (c *RemoteCatalogClient) Get(id string) (*Service, error) {
 	res, err := catalog.HTTPRequest("GET",
-		fmt.Sprintf("%v/%v", self.serverEndpoint, id),
+		fmt.Sprintf("%v/%v", c.serverEndpoint, id),
 		map[string][]string{"Content-Type": []string{"application/ld+json"}},
 		nil,
-		self.ticket,
+		c.ticket,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	if res.StatusCode == http.StatusNotFound {
-		return nil, ErrorNotFound
+		return nil, &NotFoundError{res.Status}
 	} else if res.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("%v", res.StatusCode)
 	}
-	return serviceFromResponse(res, self.serverEndpoint.Path)
+
+	decoder := json.NewDecoder(res.Body)
+	defer res.Body.Close()
+
+	var s *Service
+	err = decoder.Decode(&s)
+	if err != nil {
+		return nil, err
+	}
+
+	return s, nil
 }
 
-func (self *RemoteCatalogClient) Add(s *Service) error {
+func (c *RemoteCatalogClient) Add(s *Service) error {
 	b, _ := json.Marshal(s)
 	res, err := catalog.HTTPRequest("POST",
-		self.serverEndpoint.String()+"/",
+		c.serverEndpoint.String()+"/",
 		nil,
 		bytes.NewReader(b),
-		self.ticket,
+		c.ticket,
 	)
 	if err != nil {
 		return err
@@ -96,39 +75,39 @@ func (self *RemoteCatalogClient) Add(s *Service) error {
 	return nil
 }
 
-func (self *RemoteCatalogClient) Update(id string, s *Service) error {
+func (c *RemoteCatalogClient) Update(id string, s *Service) error {
 	b, _ := json.Marshal(s)
 	res, err := catalog.HTTPRequest("PUT",
-		fmt.Sprintf("%v/%v", self.serverEndpoint, id),
+		fmt.Sprintf("%v/%v", c.serverEndpoint, id),
 		nil,
 		bytes.NewReader(b),
-		self.ticket,
+		c.ticket,
 	)
 	if err != nil {
 		return err
 	}
 
 	if res.StatusCode == http.StatusNotFound {
-		return ErrorNotFound
+		return &NotFoundError{res.Status}
 	} else if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("%v", res.StatusCode)
 	}
 	return nil
 }
 
-func (self *RemoteCatalogClient) Delete(id string) error {
+func (c *RemoteCatalogClient) Delete(id string) error {
 	res, err := catalog.HTTPRequest("DELETE",
-		fmt.Sprintf("%v/%v", self.serverEndpoint, id),
+		fmt.Sprintf("%v/%v", c.serverEndpoint, id),
 		nil,
 		bytes.NewReader([]byte{}),
-		self.ticket,
+		c.ticket,
 	)
 	if err != nil {
 		return err
 	}
 
 	if res.StatusCode == http.StatusNotFound {
-		return ErrorNotFound
+		return &NotFoundError{res.Status}
 	} else if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("%v", res.StatusCode)
 	}
@@ -136,52 +115,50 @@ func (self *RemoteCatalogClient) Delete(id string) error {
 	return nil
 }
 
-func (self *RemoteCatalogClient) GetServices(page, perPage int) ([]Service, int, error) {
+func (c *RemoteCatalogClient) List(page, perPage int) ([]Service, int, error) {
 	res, err := catalog.HTTPRequest("GET",
 		fmt.Sprintf("%v?%v=%v&%v=%v",
-			self.serverEndpoint, GetParamPage, page, GetParamPerPage, perPage),
+			c.serverEndpoint, catalog.GetParamPage, page, catalog.GetParamPerPage, perPage),
 		nil,
 		nil,
-		self.ticket,
+		c.ticket,
 	)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	return servicesFromResponse(res, self.serverEndpoint.Path)
-}
+	decoder := json.NewDecoder(res.Body)
+	defer res.Body.Close()
 
-func (self *RemoteCatalogClient) FindService(path, op, value string) (*Service, error) {
-	res, err := catalog.HTTPRequest("GET",
-		fmt.Sprintf("%v/%v/%v/%v/%v", self.serverEndpoint, FTypeService, path, op, value),
-		nil,
-		nil,
-		self.ticket,
-	)
+	var coll Collection
+	err = decoder.Decode(&coll)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	if res.StatusCode == http.StatusNotFound {
-		return nil, ErrorNotFound
-	} else if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%v", res.StatusCode)
-	}
-
-	return serviceFromResponse(res, self.serverEndpoint.Path)
+	return coll.Services, len(coll.Services), nil
 }
 
-func (self *RemoteCatalogClient) FindServices(path, op, value string, page, perPage int) ([]Service, int, error) {
+func (c *RemoteCatalogClient) Filter(path, op, value string, page, perPage int) ([]Service, int, error) {
 	res, err := catalog.HTTPRequest("GET",
-		fmt.Sprintf("%v/%v/%v/%v/%v?%v=%v&%v=%v",
-			self.serverEndpoint, FTypeServices, path, op, value, GetParamPage, page, GetParamPerPage, perPage),
+		fmt.Sprintf("%v/%v/%v/%v?%v=%v&%v=%v",
+			c.serverEndpoint, path, op, value, catalog.GetParamPage, page, catalog.GetParamPerPage, perPage),
 		nil,
 		nil,
-		self.ticket,
+		c.ticket,
 	)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	return servicesFromResponse(res, self.serverEndpoint.Path)
+	decoder := json.NewDecoder(res.Body)
+	defer res.Body.Close()
+
+	var coll Collection
+	err = decoder.Decode(&coll)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return coll.Services, len(coll.Services), nil
 }

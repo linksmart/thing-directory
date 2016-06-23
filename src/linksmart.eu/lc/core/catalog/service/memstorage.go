@@ -2,218 +2,116 @@ package service
 
 import (
 	"fmt"
-	"sort"
-	"strings"
 	"sync"
-	"time"
+
+	avl "github.com/ancientlore/go-avltree"
 
 	"linksmart.eu/lc/core/catalog"
 )
 
 // In-memory storage
 type MemoryStorage struct {
-	data  map[string]Service
-	index []string
-	mutex sync.RWMutex
-}
-
-// CRUD
-func (self *MemoryStorage) add(s Service) error {
-	if !s.validate() {
-		return fmt.Errorf("Invalid Service registration")
-	}
-
-	s.Created = time.Now()
-	s.Updated = s.Created
-	if s.Ttl >= 0 {
-		expires := s.Created.Add(time.Duration(s.Ttl) * time.Second)
-		s.Expires = &expires
-	} else {
-		s.Expires = nil
-	}
-
-	self.mutex.Lock()
-	self.data[s.Id] = s
-	self.reindexEntries()
-	self.mutex.Unlock()
-
-	return nil
-}
-
-func (self *MemoryStorage) update(id string, s Service) error {
-	self.mutex.Lock()
-
-	su, ok := self.data[id]
-	if !ok {
-		self.mutex.Unlock()
-		return ErrorNotFound
-	}
-
-	su.Type = s.Type
-	su.Name = s.Name
-	su.Description = s.Description
-	su.Meta = s.Meta
-	su.Ttl = s.Ttl
-	su.Updated = time.Now()
-	if s.Ttl >= 0 {
-		expires := su.Updated.Add(time.Duration(s.Ttl) * time.Second)
-		su.Expires = &expires
-	} else {
-		su.Expires = nil
-	}
-	self.data[id] = su
-	self.mutex.Unlock()
-
-	return nil
-}
-
-func (self *MemoryStorage) delete(id string) error {
-	self.mutex.Lock()
-
-	_, ok := self.data[id]
-	if !ok {
-		self.mutex.Unlock()
-		return ErrorNotFound
-	}
-	delete(self.data, id)
-	self.reindexEntries()
-	self.mutex.Unlock()
-
-	return nil
-}
-
-func (self *MemoryStorage) get(id string) (Service, error) {
-	self.mutex.RLock()
-	s, ok := self.data[id]
-	if !ok {
-		self.mutex.RUnlock()
-		return s, ErrorNotFound
-	}
-	self.mutex.RUnlock()
-	return s, nil
-}
-
-// Utility
-
-func (self *MemoryStorage) getMany(page int, perPage int) ([]Service, int, error) {
-	self.mutex.RLock()
-	total := len(self.data)
-	keys := catalog.GetPageOfSlice(self.index, page, perPage, MaxPerPage)
-
-	if len(keys) == 0 {
-		self.mutex.RUnlock()
-		return []Service{}, total, nil
-	}
-
-	svcs := make([]Service, 0, len(keys))
-	for _, k := range keys {
-		svcs = append(svcs, self.data[k])
-	}
-	self.mutex.RUnlock()
-	return svcs, total, nil
-}
-
-func (self *MemoryStorage) getCount() (int, error) {
-	self.mutex.RLock()
-	l := len(self.data)
-	self.mutex.RUnlock()
-	return l, nil
-}
-
-// Clean all remote registrations which expire time is larger than the given timestamp
-func (self *MemoryStorage) cleanExpired(timestamp time.Time) {
-	self.mutex.Lock()
-	for id, svc := range self.data {
-		if svc.Ttl >= 0 && !svc.Expires.After(timestamp) {
-			logger.Printf("MemoryStorage.cleanExpired() Registration %v has expired\n", id)
-			delete(self.data, id)
-		}
-	}
-	self.mutex.Unlock()
-}
-
-// Path filtering
-// Filter one registration
-func (self *MemoryStorage) pathFilterOne(path string, op string, value string) (Service, error) {
-	pathTknz := strings.Split(path, ".")
-
-	self.mutex.RLock()
-	// return the first one found
-	for _, svc := range self.data {
-		matched, err := catalog.MatchObject(svc, pathTknz, op, value)
-		if err != nil {
-			self.mutex.RUnlock()
-			return Service{}, err
-		}
-		if matched {
-			self.mutex.RUnlock()
-			return svc, nil
-		}
-	}
-	self.mutex.RUnlock()
-	return Service{}, nil
-}
-
-// Filter multiple registrations
-func (self *MemoryStorage) pathFilter(path, op, value string, page, perPage int) ([]Service, int, error) {
-	matchedIds := []string{}
-	pathTknz := strings.Split(path, ".")
-
-	self.mutex.RLock()
-	for _, svc := range self.data {
-		matched, err := catalog.MatchObject(svc, pathTknz, op, value)
-		if err != nil {
-			self.mutex.RUnlock()
-			return []Service{}, 0, err
-		}
-		if matched {
-			matchedIds = append(matchedIds, svc.Id)
-		}
-	}
-
-	keys := catalog.GetPageOfSlice(matchedIds, page, perPage, MaxPerPage)
-	if len(keys) == 0 {
-		self.mutex.RUnlock()
-		return []Service{}, len(matchedIds), nil
-	}
-
-	svcs := make([]Service, 0, len(keys))
-	for _, k := range keys {
-		svcs = append(svcs, self.data[k])
-	}
-	self.mutex.RUnlock()
-	return svcs, len(matchedIds), nil
-}
-
-// Re-index the map entries.
-// WARNING: the caller must obtain the lock before calling
-func (self *MemoryStorage) reindexEntries() {
-	self.index = make([]string, 0, len(self.data))
-	for _, reg := range self.data {
-		self.index = append(self.index, reg.Id)
-	}
-	// sort
-	sort.Strings(self.index)
+	sync.RWMutex
+	services *avl.Tree
 }
 
 func NewMemoryStorage() *MemoryStorage {
 	storage := &MemoryStorage{
-		data:  make(map[string]Service),
-		index: []string{},
-		mutex: sync.RWMutex{},
+		services: avl.New(operator, 0),
 	}
-
-	// schedule cleaner
-	t := time.Tick(time.Duration(5) * time.Second)
-	go func() {
-		for now := range t {
-			storage.cleanExpired(now)
-		}
-	}()
 
 	return storage
 }
 
-func (self *MemoryStorage) Close() error {
+func (ms *MemoryStorage) add(s *Service) error {
+	ms.Lock()
+	defer ms.Unlock()
+
+	_, duplicate := ms.services.Add(*s)
+	if duplicate {
+		return &ConflictError{fmt.Sprintf("Service id %s is not unique", s.Id)}
+	}
+
 	return nil
+}
+
+func (ms *MemoryStorage) get(id string) (*Service, error) {
+	ms.RLock()
+	defer ms.RUnlock()
+
+	s := ms.services.Find(Service{Id: id})
+	if s == nil {
+		return nil, &NotFoundError{fmt.Sprintf("Service with id %s is not found", id)}
+	}
+	service := s.(Service)
+
+	return &service, nil
+}
+
+func (ms *MemoryStorage) update(id string, s *Service) error {
+	ms.Lock()
+	defer ms.Unlock()
+
+	r := ms.services.Remove(Service{Id: id})
+	if r == nil {
+		return &NotFoundError{fmt.Sprintf("Service with id %s is not found", id)}
+	}
+
+	ms.services.Add(*s)
+
+	return nil
+}
+
+func (ms *MemoryStorage) delete(id string) error {
+	ms.Lock()
+	defer ms.Unlock()
+
+	r := ms.services.Remove(Service{Id: id})
+	if r == nil {
+		return &NotFoundError{fmt.Sprintf("Service with id %s is not found", id)}
+	}
+
+	return nil
+}
+
+func (ms *MemoryStorage) list(page int, perPage int) ([]Service, int, error) {
+	ms.RLock()
+	defer ms.RUnlock()
+
+	total := ms.services.Len()
+	offset, limit := catalog.GetPagingAttr(total, page, perPage, MaxPerPage)
+
+	// page/registry is empty
+	if limit == 0 {
+		return []Service{}, 0, nil
+	}
+
+	services := make([]Service, limit)
+	data := ms.services.Data()
+	for i := 0; i < limit; i++ {
+		services[i] = data[i+offset].(Service)
+	}
+
+	return services, total, nil
+}
+
+func (ms *MemoryStorage) total() (int, error) {
+	ms.RLock()
+	defer ms.RUnlock()
+
+	return ms.services.Len(), nil
+}
+
+func (ms *MemoryStorage) Close() error {
+	return nil
+}
+
+// Comparison operator for AVL Tree
+func operator(a interface{}, b interface{}) int {
+	if a.(Service).Id < b.(Service).Id {
+		return -1
+	} else if a.(Service).Id > b.(Service).Id {
+		return 1
+	}
+	return 0
 }
