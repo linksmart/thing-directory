@@ -89,7 +89,7 @@ func DiscoverCatalogEndpoint(serviceType string) (endpoint string, err error) {
 
 // Returns a 'slice' of the given slice based on the requested 'page'
 func GetPageOfSlice(slice []string, page, perPage, maxPerPage int) []string {
-	err := ValidatePagingParams2(page, perPage, maxPerPage)
+	err := ValidatePagingParams(page, perPage, maxPerPage)
 	if err != nil {
 		logger.Printf("GetPageOfSlice() Bad input: %s\n", err)
 		return []string{}
@@ -119,7 +119,7 @@ func GetPageOfSlice(slice []string, page, perPage, maxPerPage int) []string {
 // Returns offset and limit representing a subset of the given slice total size
 //	 based on the requested 'page'
 func GetPagingAttr(total, page, perPage, maxPerPage int) (int, int) {
-	err := ValidatePagingParams2(page, perPage, maxPerPage)
+	err := ValidatePagingParams(page, perPage, maxPerPage)
 	if err != nil {
 		logger.Printf("GetPagingAttr() Bad input: %s\n", err)
 		return 0, 0
@@ -144,22 +144,8 @@ func GetPagingAttr(total, page, perPage, maxPerPage int) (int, int) {
 	return 0, 0
 }
 
-// Deprecated
-// Use ParsePagingParams instead
-func ValidatePagingParams(page, perPage, maxPerPage int) (int, int) {
-	// use defaults if not specified
-	if page == 0 {
-		page = 1
-	}
-	if perPage == 0 || perPage > maxPerPage {
-		perPage = maxPerPage
-	}
-
-	return page, perPage
-}
-
 // Validates paging parameters
-func ValidatePagingParams2(page, perPage, maxPerPage int) error {
+func ValidatePagingParams(page, perPage, maxPerPage int) error {
 	if page < 1 {
 		return fmt.Errorf("%s parameter must be positive", GetParamPage)
 	}
@@ -195,17 +181,5 @@ func ParsePagingParams(page, perPage string, maxPerPage int) (int, int, error) {
 		}
 	}
 
-	return parsedPage, parsedPerPage, ValidatePagingParams2(parsedPage, parsedPerPage, maxPerPage)
-}
-
-// Deprecated
-// Calculate inline: (time.Duration(ttl) * time.Second)/2
-func KeepAliveDuration(ttl int) time.Duration {
-	var d time.Duration
-	if ttl-minKeepaliveSec <= minKeepaliveSec {
-		d = time.Duration(minKeepaliveSec) * time.Second
-	} else {
-		d = time.Duration(ttl-minKeepaliveSec*2) * time.Second
-	}
-	return d
+	return parsedPage, parsedPerPage, ValidatePagingParams(parsedPage, parsedPerPage, maxPerPage)
 }
