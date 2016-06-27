@@ -183,6 +183,11 @@ func (a WritableCatalogAPI) Add(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	if s.Id != "" {
+		ErrorResponse(w, http.StatusBadRequest, "Creating a service with defined ID is not possible using a POST request.")
+		return
+	}
+
 	id, err := a.controller.add(s)
 	if err != nil {
 		switch err.(type) {

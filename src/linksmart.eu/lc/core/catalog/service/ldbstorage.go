@@ -39,6 +39,14 @@ func (ls *LevelDBStorage) add(s *Service) error {
 	if err != nil {
 		return err
 	}
+
+	_, err = ls.db.Get([]byte(s.Id), nil)
+	if err == nil {
+		return &ConflictError{"Service id is not unique."}
+	} else if err != leveldb.ErrNotFound  {
+		return err
+	}
+
 	err = ls.db.Put([]byte(s.Id), bytes, nil)
 	if err != nil {
 		return err
