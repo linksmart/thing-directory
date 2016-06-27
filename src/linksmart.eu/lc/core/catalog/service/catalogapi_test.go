@@ -15,27 +15,6 @@ import (
 	utils "linksmart.eu/lc/core/catalog"
 )
 
-const (
-	apiLocation    = "/cat"
-	staticLocation = "/static"
-)
-
-var supportedBackends = map[string]bool{
-	utils.CatalogBackendMemory:  true,
-	utils.CatalogBackendLevelDB: true,
-}
-var storageType string
-
-func TestMain(m *testing.M) {
-	for b, supported := range supportedBackends {
-		if supported {
-			storageType = b
-			m.Run()
-		}
-	}
-	os.Exit(0)
-}
-
 func setupRouter() (*mux.Router, func(), error) {
 	var (
 		storage CatalogStorage
@@ -43,7 +22,7 @@ func setupRouter() (*mux.Router, func(), error) {
 		tempDir string = fmt.Sprintf("%s/lslc/test-%s.ldb",
 			strings.Replace(os.TempDir(), "\\", "/", -1), uuid.New())
 	)
-	switch storageType {
+	switch TestStorageType {
 	case utils.CatalogBackendMemory:
 		storage = NewMemoryStorage()
 	case utils.CatalogBackendLevelDB:
@@ -53,25 +32,31 @@ func setupRouter() (*mux.Router, func(), error) {
 		}
 	}
 
+	controller, err := NewController(storage, TestApiLocation)
+	if err != nil {
+		storage.Close()
+		return nil, nil, fmt.Errorf("Failed to start the controller: %v", err.Error())
+	}
+
 	api := NewWritableCatalogAPI(
-		storage,
-		apiLocation,
-		staticLocation,
+		controller,
+		TestApiLocation,
+		TestStaticLocation,
 		"Test catalog",
 	)
 
 	r := mux.NewRouter().StrictSlash(true)
-	r.Methods("GET").Path(apiLocation).HandlerFunc(api.List).Name("list")
-	r.Methods("POST").Path(apiLocation + "/").HandlerFunc(api.Add).Name("add")
-	r.Methods("GET").Path(apiLocation + "/{type}/{path}/{op}/{value}").HandlerFunc(api.Filter).Name("filter")
-
-	url := apiLocation + "/{hostid}/{regid}"
-	r.Methods("GET").Path(url).HandlerFunc(api.Get).Name("get")
-	r.Methods("PUT").Path(url).HandlerFunc(api.Update).Name("update")
-	r.Methods("DELETE").Path(url).HandlerFunc(api.Delete).Name("delete")
+	// CRUD
+	r.Methods("POST").Path(TestApiLocation + "/").HandlerFunc(api.Add)
+	r.Methods("GET").Path(TestApiLocation + "/{id:[^/]+/?[^/]*}").HandlerFunc(api.Get)
+	r.Methods("PUT").Path(TestApiLocation + "/{id:[^/]+/?[^/]*}").HandlerFunc(api.Update)
+	r.Methods("DELETE").Path(TestApiLocation + "/{id:[^/]+/?[^/]*}").HandlerFunc(api.Delete)
+	// List, Filter
+	r.Methods("GET").Path(TestApiLocation).HandlerFunc(api.List)
+	r.Methods("GET").Path(TestApiLocation + "/{path}/{op}/{value:.*}").HandlerFunc(api.Filter)
 
 	return r, func() {
-		storage.Close()
+		controller.Stop()
 		os.RemoveAll(tempDir) // Remove temp files
 	}, nil
 }
@@ -138,7 +123,7 @@ func TestList(t *testing.T) {
 	defer ts.Close()
 	defer shutdown()
 
-	url := ts.URL + apiLocation
+	url := ts.URL + TestApiLocation
 	t.Log("Calling GET", url)
 	res, err := http.Get(url)
 	if err != nil {
@@ -177,10 +162,11 @@ func TestCreate(t *testing.T) {
 	defer shutdown()
 
 	service := mockedService("1")
+	service.Id = ""
 	b, _ := json.Marshal(service)
 
 	// Create
-	url := ts.URL + apiLocation + "/"
+	url := ts.URL + TestApiLocation + "/"
 	t.Log("Calling POST", url)
 	res, err := http.Post(url, "application/ld+json", bytes.NewReader(b))
 	if err != nil {
@@ -195,9 +181,19 @@ func TestCreate(t *testing.T) {
 		t.Fatalf("Response should have Content-Type: application/ld+json, got instead %s", res.Header.Get("Content-Type"))
 	}
 
+	// Check if system-generated id is in response
+	location, err := res.Location()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	parts := strings.Split(location.String(), "/")
+	if !strings.HasPrefix(parts[len(parts)-1], "urn:ls_service:") {
+		t.Fatalf("System-generated URN doesn't have `urn:ls_service:` as prefix. Getting location: %v\n", location.String())
+	}
+
 	// Retrieve whole collection
-	t.Log("Calling GET", ts.URL+apiLocation)
-	res, err = http.Get(ts.URL + apiLocation)
+	t.Log("Calling GET", ts.URL+TestApiLocation)
+	res, err = http.Get(ts.URL + TestApiLocation)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -230,15 +226,18 @@ func TestRetrieve(t *testing.T) {
 	b, _ := json.Marshal(service)
 
 	// Create
-	url := ts.URL + apiLocation + "/"
-	t.Log("Calling POST", url)
-	res, err := http.Post(url, "application/ld+json", bytes.NewReader(b))
+	url := ts.URL + TestApiLocation + "/" + service.Id
+	t.Log("Calling PUT", url)
+	req, err := http.NewRequest("PUT", url, bytes.NewReader(b))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
 	// Retrieve: service
-	url = url + service.Id
 	t.Log("Calling GET", url)
 	res, err = http.Get(url)
 	if err != nil {
@@ -262,8 +261,8 @@ func TestRetrieve(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	if !strings.HasPrefix(service2.Id, apiLocation) {
-		t.Fatalf("Service ID should have been prefixed with %v by catalog, retrieved ID: %v", apiLocation, service2.Id)
+	if !strings.HasPrefix(service2.URL, TestApiLocation) {
+		t.Fatalf("Service URL should have been prefixed with %v by catalog, retrieved URL: %v", TestApiLocation, service2.URL)
 	}
 	if !sameServices(service, service2, false) {
 		t.Fatalf("The retrieved service is not the same as the added one:\n Added:\n %v \n Retrieved: \n %v", service, service2)
@@ -283,9 +282,13 @@ func TestUpdate(t *testing.T) {
 	b, _ := json.Marshal(service)
 
 	// Create
-	url := ts.URL + apiLocation + "/"
-	t.Log("Calling POST", url)
-	res, err := http.Post(url, "application/ld+json", bytes.NewReader(b))
+	url := ts.URL + TestApiLocation + "/" + service.Id
+	t.Log("Calling PUT", url)
+	req, err := http.NewRequest("PUT", url, bytes.NewReader(b))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -293,11 +296,10 @@ func TestUpdate(t *testing.T) {
 	// Update
 	service2 := mockedService("1")
 	service2.Description = "Updated Test Service"
-	url = url + service.Id
 	b, _ = json.Marshal(service2)
 
 	t.Log("Calling PUT", url)
-	req, err := http.NewRequest("PUT", url, bytes.NewReader(b))
+	req, err = http.NewRequest("PUT", url, bytes.NewReader(b))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -329,6 +331,34 @@ func TestUpdate(t *testing.T) {
 	if !sameServices(service2, service3, false) {
 		t.Fatalf("The retrieved service is not the same as the added one:\n Added:\n %v \n Retrieved: \n %v", service2, service3)
 	}
+
+	// Create with user-defined ID
+	service4 := mockedService("1")
+	b, _ = json.Marshal(service4)
+	url = ts.URL + TestApiLocation + "/service123"
+	t.Log("Calling PUT", url)
+	req, err = http.NewRequest("PUT", url, bytes.NewReader(b))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	res, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Server should return %v, got instead: %v (%s)", http.StatusCreated, res.StatusCode, res.Status)
+	}
+
+	// Check if user-defined id is in response
+	location, err := res.Location()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	parts := strings.Split(location.String(), "/")
+	if parts[len(parts)-1] != "service123" {
+		t.Fatalf("User-defined id is not returned in location. Getting %v\n", location.String())
+	}
 }
 
 func TestDelete(t *testing.T) {
@@ -344,17 +374,20 @@ func TestDelete(t *testing.T) {
 	b, _ := json.Marshal(service)
 
 	// Create
-	url := ts.URL + apiLocation + "/"
-	t.Log("Calling POST", url)
-	res, err := http.Post(url, "application/ld+json", bytes.NewReader(b))
+	url := ts.URL + TestApiLocation + "/" + service.Id
+	t.Log("Calling PUT", url)
+	req, err := http.NewRequest("PUT", url, bytes.NewReader(b))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
 	// Delete
-	url = url + service.Id
 	t.Log("Calling DELETE", url)
-	req, err := http.NewRequest("DELETE", url, bytes.NewReader([]byte{}))
+	req, err = http.NewRequest("DELETE", url, bytes.NewReader([]byte{}))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -368,8 +401,8 @@ func TestDelete(t *testing.T) {
 	}
 
 	// Retrieve whole collection
-	t.Log("Calling GET", ts.URL+apiLocation)
-	res, err = http.Get(ts.URL + apiLocation)
+	t.Log("Calling GET", ts.URL+TestApiLocation)
+	res, err = http.Get(ts.URL + TestApiLocation)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -405,9 +438,10 @@ func TestFilter(t *testing.T) {
 	service3 := mockedService("3")
 
 	// Add
-	url := ts.URL + apiLocation + "/"
-	for _, d := range []*Service{service1, service2, service3} {
-		b, _ := json.Marshal(d)
+	url := ts.URL + TestApiLocation + "/"
+	for _, s := range []*Service{service1, service2, service3} {
+		s.Id = ""
+		b, _ := json.Marshal(s)
 
 		_, err := http.Post(url, "application/ld+json", bytes.NewReader(b))
 		if err != nil {
@@ -417,19 +451,17 @@ func TestFilter(t *testing.T) {
 
 	// Services
 	// Filter many
-	url = ts.URL + apiLocation + "/" + FTypeServices + "/name/" + utils.FOpPrefix + "/" + "Test"
+	url = ts.URL + TestApiLocation + "/name/" + utils.FOpPrefix + "/" + "Test"
 	t.Log("Calling GET", url)
 	res, err := http.Get(url)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	defer res.Body.Close()
 
 	var collection *Collection
 	decoder := json.NewDecoder(res.Body)
-	defer res.Body.Close()
-
 	err = decoder.Decode(&collection)
-
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -439,23 +471,22 @@ func TestFilter(t *testing.T) {
 	}
 
 	// Filter one
-	url = ts.URL + apiLocation + "/" + FTypeService + "/name/" + utils.FOpEquals + "/" + service1.Name
+	url = ts.URL + TestApiLocation + "/name/" + utils.FOpEquals + "/" + service1.Name
 	t.Log("Calling GET", url)
 	res, err = http.Get(url)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-
-	var serviceF *Service
-	decoder = json.NewDecoder(res.Body)
 	defer res.Body.Close()
 
-	err = decoder.Decode(&serviceF)
+	var collection2 *Collection
+	decoder2 := json.NewDecoder(res.Body)
+	err = decoder2.Decode(&collection2)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	if !sameServices(service1, serviceF, false) {
-		t.Fatalf("The retrieved service is not the same as the added one:\n Added:\n %v \n Retrieved: \n %v", service1, serviceF)
+	if !sameServices(service1, &collection2.Services[0], false) {
+		t.Fatalf("The retrieved service is not the same as the added one:\n Added:\n %v \n Retrieved: \n %v", service1, collection2.Services[0])
 	}
 }
