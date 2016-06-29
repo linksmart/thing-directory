@@ -11,15 +11,15 @@ type Service struct {
 	Id             string                 `json:"id"`
 	URL            string                 `json:"url"`
 	Type           string                 `json:"type"`
-	Name           string                 `json:"name"`
-	Description    string                 `json:"description"`
-	Meta           map[string]interface{} `json:"meta"`
+	Name           string                 `json:"name,omitempty"`
+	Description    string                 `json:"description,omitempty"`
+	Meta           map[string]interface{} `json:"meta,omitempty"`
 	Protocols      []Protocol             `json:"protocols"`
-	Representation map[string]interface{} `json:"representation"`
-	Ttl            int                    `json:"ttl"`
+	Representation map[string]interface{} `json:"representation,omitempty"`
+	Ttl            int                    `json:"ttl,omitempty"`
 	Created        time.Time              `json:"created"`
 	Updated        time.Time              `json:"updated"`
-	Expires        *time.Time             `json:"expires"`
+	Expires        *time.Time             `json:"expires,omitempty"`
 }
 
 // Validates the Service configuration
