@@ -13,6 +13,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
+	"io/ioutil"
 	utils "linksmart.eu/lc/core/catalog"
 )
 
@@ -47,10 +48,10 @@ func setupRouter() (*mux.Router, func(), error) {
 	)
 
 	r := mux.NewRouter().StrictSlash(true)
-	// CRUD
-	r.Methods("POST").Path(TestApiLocation + "/devices/").HandlerFunc(api.Add)
+	// Devices
 	r.Methods("GET").Path(TestApiLocation + "/devices/{id}").HandlerFunc(api.Get)
-	r.Methods("PUT").Path(TestApiLocation + "/devices/{id}").HandlerFunc(api.Update)
+	r.Methods("POST").Path(TestApiLocation + "/devices/").HandlerFunc(api.Post)
+	r.Methods("PUT").Path(TestApiLocation + "/devices/{id}").HandlerFunc(api.Put)
 	r.Methods("DELETE").Path(TestApiLocation + "/devices/{id}").HandlerFunc(api.Delete)
 	// Listing, filtering
 	r.Methods("GET").Path(TestApiLocation + "/devices").HandlerFunc(api.List)
@@ -69,7 +70,7 @@ func setupRouter() (*mux.Router, func(), error) {
 func mockedDevice(id, rid string) *Device {
 	return &Device{
 		Id:          "device_" + id,
-		URL:         fmt.Sprintf("%s/%s/%s", TestApiLocation, FTypeDevices, "device_"+id),
+		URL:         fmt.Sprintf("%s/%s/%s", TestApiLocation, TypeDevices, "device_"+id),
 		Type:        ApiDeviceType,
 		Name:        "TestDevice" + id,
 		Meta:        map[string]interface{}{"test-id": id},
@@ -78,7 +79,7 @@ func mockedDevice(id, rid string) *Device {
 		Resources: []Resource{
 			Resource{
 				Id:   "resource_" + rid,
-				URL:  fmt.Sprintf("%s/%s/%s", TestApiLocation, FTypeResources, "resource_"+rid),
+				URL:  fmt.Sprintf("%s/%s/%s", TestApiLocation, TypeResources, "resource_"+rid),
 				Type: ApiResourceType,
 				Name: "TestResource",
 				Meta: map[string]interface{}{"test-id-resource": id},
@@ -106,6 +107,7 @@ func TestCreate(t *testing.T) {
 	defer shutdown()
 
 	device := mockedDevice("1", "10")
+	device.Id = ""
 	b, _ := json.Marshal(device)
 
 	// Create
@@ -122,6 +124,16 @@ func TestCreate(t *testing.T) {
 
 	if !strings.HasPrefix(res.Header.Get("Content-Type"), "application/ld+json") {
 		t.Fatalf("Response should have Content-Type: application/ld+json, got instead %s", res.Header.Get("Content-Type"))
+	}
+
+	// Check if system-generated id is in response
+	location, err := res.Location()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	parts := strings.Split(location.String(), "/")
+	if !strings.HasPrefix(parts[len(parts)-1], "urn:ls_device:") {
+		t.Fatalf("System-generated URN doesn't have `urn:ls_device:` as prefix. Getting location: %v\n", location.String())
 	}
 
 	// Retrieve whole collection
@@ -159,15 +171,14 @@ func TestRetrieve(t *testing.T) {
 	b, _ := json.Marshal(mockedDevice)
 
 	// Create
-	url := ts.URL + TestApiLocation + "/devices/"
-	t.Log("Calling POST", url)
-	res, err := http.Post(url, "application/ld+json", bytes.NewReader(b))
+	url := ts.URL + TestApiLocation + "/devices/" + mockedDevice.Id
+	t.Log("Calling PUT", url)
+	res, err := httpPut(url, bytes.NewReader(b))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
 	// Retrieve: device
-	url = url + mockedDevice.Id
 	t.Log("Calling GET", url)
 	res, err = http.Get(url)
 	if err != nil {
@@ -218,9 +229,9 @@ func TestUpdate(t *testing.T) {
 	b, _ := json.Marshal(mockedDevice1)
 
 	// Create
-	url := ts.URL + TestApiLocation + "/devices/"
-	t.Log("Calling POST", url)
-	res, err := http.Post(url, "application/ld+json", bytes.NewReader(b))
+	url := ts.URL + TestApiLocation + "/devices/" + mockedDevice1.Id
+	t.Log("Calling PUT", url)
+	res, err := httpPut(url, bytes.NewReader(b))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -228,20 +239,20 @@ func TestUpdate(t *testing.T) {
 	// Update
 	mockedDevice2 := mockedDevice("1", "10")
 	mockedDevice2.Description = "Updated Test Device"
-	url = url + mockedDevice1.Id
 	b, _ = json.Marshal(mockedDevice2)
 
 	t.Log("Calling PUT", url)
-	req, err := http.NewRequest("PUT", url, bytes.NewReader(b))
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	res, err = http.DefaultClient.Do(req)
+	res, err = httpPut(url, bytes.NewReader(b))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
 	if res.StatusCode != http.StatusOK {
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		t.Log(string(body))
 		t.Fatalf("Server should return %v, got instead: %v (%s)", http.StatusCreated, res.StatusCode, res.Status)
 	}
 
@@ -269,6 +280,36 @@ func TestUpdate(t *testing.T) {
 	if !reflect.DeepEqual(simple, retrievedDevice) {
 		t.Fatalf("The retrieved device is not the same as the added one:\n Added:\n %v \n Retrieved: \n %v", simple, retrievedDevice)
 	}
+
+	// Create with user-defined ID (PUT for creation)
+	mockedDevice3 := mockedDevice("1", "11")
+	mockedDevice3.Id = ""
+	b, _ = json.Marshal(mockedDevice3)
+	url = ts.URL + TestApiLocation + "/devices/" + "device123"
+	t.Log("Calling PUT", url)
+	res, err = httpPut(url, bytes.NewReader(b))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if res.StatusCode != http.StatusCreated {
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		t.Log(string(body))
+		t.Fatalf("Server should return %v, got instead: %v (%s)", http.StatusCreated, res.StatusCode, res.Status)
+	}
+
+	// Check if user-defined id is in response
+	location, err := res.Location()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	parts := strings.Split(location.String(), "/")
+	if parts[len(parts)-1] != "device123" {
+		t.Fatalf("User-defined id is not returned in location. Getting %v\n", location.String())
+	}
 }
 
 func TestDelete(t *testing.T) {
@@ -284,15 +325,14 @@ func TestDelete(t *testing.T) {
 	b, _ := json.Marshal(device)
 
 	// Create
-	url := ts.URL + TestApiLocation + "/devices/"
+	url := ts.URL + TestApiLocation + "/devices/" + device.Id
 	t.Log("Calling POST", url)
-	res, err := http.Post(url, "application/ld+json", bytes.NewReader(b))
+	res, err := httpPut(url, bytes.NewReader(b))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
 	// Delete
-	url = url + device.Id
 	t.Log("Calling DELETE", url)
 	req, err := http.NewRequest("DELETE", url, bytes.NewReader([]byte{}))
 	if err != nil {
@@ -380,8 +420,9 @@ func TestFilter(t *testing.T) {
 
 	// Create 3 devices
 	url := ts.URL + TestApiLocation + "/devices/"
-	for i:=0; i<3; i++ {
+	for i := 0; i < 3; i++ {
 		d := mockedDevice(fmt.Sprint(i), fmt.Sprint(i*10))
+		d.Id = ""
 		b, _ := json.Marshal(d)
 
 		_, err := http.Post(url, "application/ld+json", bytes.NewReader(b))
@@ -426,6 +467,7 @@ func TestRetrieveResource(t *testing.T) {
 	defer shutdown()
 
 	mockedDevice := mockedDevice("1", "10")
+	mockedDevice.Id = ""
 	mockedResource := &mockedDevice.Resources[0]
 	b, _ := json.Marshal(mockedDevice)
 
@@ -482,8 +524,9 @@ func TestListResources(t *testing.T) {
 
 	// Create 3 devices with 3 resources
 	url := ts.URL + TestApiLocation + "/devices/"
-	for i:=0; i<3; i++ {
+	for i := 0; i < 3; i++ {
 		d := mockedDevice(fmt.Sprint(i), fmt.Sprint(i*10))
+		d.Id = ""
 		b, _ := json.Marshal(&d)
 
 		_, err := http.Post(url, "application/ld+json", bytes.NewReader(b))
@@ -526,8 +569,9 @@ func TestFilterResources(t *testing.T) {
 
 	// Create 3 devices with 3 resources
 	url := ts.URL + TestApiLocation + "/devices/"
-	for i:=0; i<3; i++ {
+	for i := 0; i < 3; i++ {
 		d := mockedDevice(fmt.Sprint(i), fmt.Sprint(i*10))
+		d.Id = ""
 		b, _ := json.Marshal(d)
 
 		_, err := http.Post(url, "application/ld+json", bytes.NewReader(b))
@@ -557,4 +601,16 @@ func TestFilterResources(t *testing.T) {
 	if collection.Total != 3 {
 		t.Fatal("Server should return a collection of *3* resources, but got total", collection.Total)
 	}
+}
+
+func httpPut(url string, r *bytes.Reader) (*http.Response, error) {
+	req, err := http.NewRequest("PUT", url, r)
+	if err != nil {
+		return nil, err
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
