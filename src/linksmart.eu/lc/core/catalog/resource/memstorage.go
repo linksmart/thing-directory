@@ -97,10 +97,10 @@ func (s *MemoryStorage) list(page int, perPage int) (Devices, int, error) {
 		return []Device{}, 0, nil
 	}
 
-	devices := make([]Device, 0)
+	devices := make([]Device, limit)
 	data := s.devices.Data()
-	for i := offset; i < offset+limit; i++ {
-		devices = append(devices, data[i].(Device))
+	for i := 0; i < limit; i++ {
+		devices[i] = data[i+offset].(Device)
 	}
 
 	return devices, total, nil

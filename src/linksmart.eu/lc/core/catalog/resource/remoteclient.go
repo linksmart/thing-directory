@@ -9,6 +9,7 @@ import (
 
 	"linksmart.eu/lc/core/catalog"
 	"linksmart.eu/lc/sec/auth/obtainer"
+	"strings"
 )
 
 type RemoteCatalogClient struct {
@@ -29,26 +30,33 @@ func NewRemoteCatalogClient(serverEndpoint string, ticket *obtainer.Client) Cata
 	}
 }
 
-func (self *RemoteCatalogClient) Get(id string) (*SimpleDevice, error) {
+// Retrieves a device
+func (c *RemoteCatalogClient) Get(id string) (*SimpleDevice, error) {
 	res, err := catalog.HTTPRequest("GET",
-		fmt.Sprintf("%v/%v/%v", self.serverEndpoint, FTypeDevices, id),
+		fmt.Sprintf("%v/%v/%v", c.serverEndpoint, TypeDevices, id),
 		nil,
 		nil,
-		self.ticket,
+		c.ticket,
 	)
 	if err != nil {
 		return nil, err
 	}
+	defer res.Body.Close()
 
-	if res.StatusCode == http.StatusNotFound {
-		return nil, &NotFoundError{res.Status}
-	} else if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%v", res.StatusCode)
+	switch res.StatusCode {
+	case http.StatusBadRequest:
+		return nil, &BadRequestError{ErrorMsg(res)}
+	case http.StatusConflict:
+		return nil, &ConflictError{ErrorMsg(res)}
+	case http.StatusNotFound:
+		return nil, &NotFoundError{ErrorMsg(res)}
+	default:
+		if res.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("Error getting device: %v", ErrorMsg(res))
+		}
 	}
 
 	decoder := json.NewDecoder(res.Body)
-	defer res.Body.Close()
-
 	var d SimpleDevice
 	err = decoder.Decode(&d)
 	if err != nil {
@@ -58,86 +66,184 @@ func (self *RemoteCatalogClient) Get(id string) (*SimpleDevice, error) {
 	return &d, nil
 }
 
-// Adds a device and returns its URL
-func (self *RemoteCatalogClient) Add(d *Device) (string, error) {
-	b, _ := json.Marshal(d)
-	res, err := catalog.HTTPRequest("POST",
-		fmt.Sprintf("%v/%v/", self.serverEndpoint, FTypeDevices),
-		map[string][]string{"Content-Type": []string{"application/ld+json"}},
-		bytes.NewReader(b),
-		self.ticket,
+// Adds a device and returns its id
+func (c *RemoteCatalogClient) Add(d *Device) (string, error) {
+	device := *d
+	id := device.Id
+	device.Id = ""
+	b, _ := json.Marshal(device)
+
+	var (
+		res *http.Response
+		err error
 	)
-	if err != nil {
-		return "", err
+
+	if id == "" { // Let the system generate an id
+		res, err = catalog.HTTPRequest("POST",
+			fmt.Sprintf("%v/%v/", c.serverEndpoint, TypeDevices),
+			map[string][]string{"Content-Type": []string{"application/ld+json"}},
+			bytes.NewReader(b),
+			c.ticket,
+		)
+		if err != nil {
+			return "", err
+		}
+		defer res.Body.Close()
+
+	} else { // User-defined id
+
+		// Check if id is unique
+		res, err = catalog.HTTPRequest("GET",
+			fmt.Sprintf("%v/%v/%v", c.serverEndpoint, TypeDevices, id),
+			nil,
+			nil,
+			c.ticket,
+		)
+		if err != nil {
+			return "", err
+		}
+		defer res.Body.Close()
+		if res.StatusCode != http.StatusNotFound {
+			return "", &ConflictError{fmt.Sprintf("Device id %s is not unique.", id)}
+		}
+
+		// Now add
+		res, err = catalog.HTTPRequest("PUT",
+			fmt.Sprintf("%v/%v/%v", c.serverEndpoint, TypeDevices, id),
+			map[string][]string{"Content-Type": []string{"application/ld+json"}},
+			bytes.NewReader(b),
+			c.ticket,
+		)
+		if err != nil {
+			return "", err
+		}
+		defer res.Body.Close()
 	}
-	if res.StatusCode != http.StatusCreated {
-		return "", fmt.Errorf("Cannot add registration: %v", res.StatusCode)
+
+	switch res.StatusCode {
+	case http.StatusBadRequest:
+		return "", &BadRequestError{ErrorMsg(res)}
+	case http.StatusConflict:
+		return "", &ConflictError{ErrorMsg(res)}
+	case http.StatusNotFound:
+		return "", &NotFoundError{ErrorMsg(res)}
+	default:
+		if res.StatusCode != http.StatusCreated {
+			return "", fmt.Errorf("Error adding device: %v", ErrorMsg(res))
+		}
 	}
 
 	location, err := res.Location()
 	if err != nil {
 		return "", err
 	}
+	id = strings.SplitAfter(location.String(), TypeDevices+"/")[1]
 
-	return location.String(), nil
+	return id, nil
 }
 
-func (self *RemoteCatalogClient) Update(id string, d *Device) error {
-	b, _ := json.Marshal(d)
-	res, err := catalog.HTTPRequest("PUT",
-		fmt.Sprintf("%v/%v/%v", self.serverEndpoint, FTypeDevices, id),
+// Updates a device
+func (c *RemoteCatalogClient) Update(id string, d *Device) error {
+	// Check if id is found
+	res, err := catalog.HTTPRequest("GET",
+		fmt.Sprintf("%v/%v/%v", c.serverEndpoint, TypeDevices, id),
 		nil,
-		bytes.NewReader(b),
-		self.ticket,
+		nil,
+		c.ticket,
 	)
 	if err != nil {
 		return err
 	}
-
+	defer res.Body.Close()
 	if res.StatusCode == http.StatusNotFound {
-		return &NotFoundError{res.Status}
-	} else if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("%v", res.StatusCode)
+		return &NotFoundError{fmt.Sprintf("Device with id %s is not found.", id)}
+	}
+
+	b, _ := json.Marshal(d)
+	res, err = catalog.HTTPRequest("PUT",
+		fmt.Sprintf("%v/%v/%v", c.serverEndpoint, TypeDevices, id),
+		map[string][]string{"Content-Type": []string{"application/ld+json"}},
+		bytes.NewReader(b),
+		c.ticket,
+	)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	switch res.StatusCode {
+	case http.StatusBadRequest:
+		return &BadRequestError{ErrorMsg(res)}
+	case http.StatusConflict:
+		return &ConflictError{ErrorMsg(res)}
+	case http.StatusNotFound:
+		return &NotFoundError{ErrorMsg(res)}
+	default:
+		if res.StatusCode != http.StatusOK {
+			return fmt.Errorf("Error updating device: %v", ErrorMsg(res))
+		}
 	}
 
 	return nil
 }
 
-func (self *RemoteCatalogClient) Delete(id string) error {
+// Deletes a device
+func (c *RemoteCatalogClient) Delete(id string) error {
 	res, err := catalog.HTTPRequest("DELETE",
-		fmt.Sprintf("%v/%v/%v", self.serverEndpoint, FTypeDevices, id),
+		fmt.Sprintf("%v/%v/%v", c.serverEndpoint, TypeDevices, id),
 		nil,
 		bytes.NewReader([]byte{}),
-		self.ticket,
+		c.ticket,
 	)
 	if err != nil {
 		return err
 	}
+	defer res.Body.Close()
 
-	if res.StatusCode == http.StatusNotFound {
-		return &NotFoundError{res.Status}
-	} else if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("%v", res.StatusCode)
+	switch res.StatusCode {
+	case http.StatusBadRequest:
+		return &BadRequestError{ErrorMsg(res)}
+	case http.StatusConflict:
+		return &ConflictError{ErrorMsg(res)}
+	case http.StatusNotFound:
+		return &NotFoundError{ErrorMsg(res)}
+	default:
+		if res.StatusCode != http.StatusOK {
+			return fmt.Errorf("Error deleting device: %v", ErrorMsg(res))
+		}
 	}
 
 	return nil
 }
 
-func (self *RemoteCatalogClient) List(page int, perPage int) ([]SimpleDevice, int, error) {
+// Retrieves a page from the device collection
+func (c *RemoteCatalogClient) List(page int, perPage int) ([]SimpleDevice, int, error) {
 	res, err := catalog.HTTPRequest("GET",
-		fmt.Sprintf("%v/%v?%v=%v&%v=%v", self.serverEndpoint, FTypeDevices,
+		fmt.Sprintf("%v/%v?%v=%v&%v=%v", c.serverEndpoint, TypeDevices,
 			catalog.GetParamPage, page, catalog.GetParamPerPage, perPage),
 		nil,
 		nil,
-		self.ticket,
+		c.ticket,
 	)
 	if err != nil {
 		return nil, 0, err
 	}
-
-	decoder := json.NewDecoder(res.Body)
 	defer res.Body.Close()
 
+	switch res.StatusCode {
+	case http.StatusBadRequest:
+		return nil, 0, &BadRequestError{ErrorMsg(res)}
+	case http.StatusConflict:
+		return nil, 0, &ConflictError{ErrorMsg(res)}
+	case http.StatusNotFound:
+		return nil, 0, &NotFoundError{ErrorMsg(res)}
+	default:
+		if res.StatusCode != http.StatusOK {
+			return nil, 0, fmt.Errorf("Error listing devices: %v", ErrorMsg(res))
+		}
+	}
+
+	decoder := json.NewDecoder(res.Body)
 	var coll DeviceCollection
 	err = decoder.Decode(&coll)
 	if err != nil {
@@ -147,22 +253,35 @@ func (self *RemoteCatalogClient) List(page int, perPage int) ([]SimpleDevice, in
 	return coll.Devices, coll.Total, nil
 }
 
-func (self *RemoteCatalogClient) Filter(path, op, value string, page, perPage int) ([]SimpleDevice, int, error) {
+// Filters devices
+func (c *RemoteCatalogClient) Filter(path, op, value string, page, perPage int) ([]SimpleDevice, int, error) {
 	res, err := catalog.HTTPRequest("GET",
 		fmt.Sprintf("%v/%v/%v/%v/%v?%v=%v&%v=%v",
-			self.serverEndpoint, FTypeDevices, path, op, value,
+			c.serverEndpoint, TypeDevices, path, op, value,
 			catalog.GetParamPage, page, catalog.GetParamPerPage, perPage),
 		nil,
 		nil,
-		self.ticket,
+		c.ticket,
 	)
 	if err != nil {
 		return nil, 0, err
 	}
-
-	decoder := json.NewDecoder(res.Body)
 	defer res.Body.Close()
 
+	switch res.StatusCode {
+	case http.StatusBadRequest:
+		return nil, 0, &BadRequestError{ErrorMsg(res)}
+	case http.StatusConflict:
+		return nil, 0, &ConflictError{ErrorMsg(res)}
+	case http.StatusNotFound:
+		return nil, 0, &NotFoundError{ErrorMsg(res)}
+	default:
+		if res.StatusCode != http.StatusOK {
+			return nil, 0, fmt.Errorf("Error filtering devices: %v", ErrorMsg(res))
+		}
+	}
+
+	decoder := json.NewDecoder(res.Body)
 	var coll DeviceCollection
 	err = decoder.Decode(&coll)
 	if err != nil {
@@ -172,26 +291,33 @@ func (self *RemoteCatalogClient) Filter(path, op, value string, page, perPage in
 	return coll.Devices, coll.Total, nil
 }
 
-func (self *RemoteCatalogClient) GetResource(id string) (*Resource, error) {
+// Retrieves a resource
+func (c *RemoteCatalogClient) GetResource(id string) (*Resource, error) {
 	res, err := catalog.HTTPRequest("GET",
-		fmt.Sprintf("%v/%v/%v", self.serverEndpoint, FTypeResources, id),
+		fmt.Sprintf("%v/%v/%v", c.serverEndpoint, TypeResources, id),
 		nil,
 		nil,
-		self.ticket,
+		c.ticket,
 	)
 	if err != nil {
 		return nil, err
 	}
+	defer res.Body.Close()
 
-	if res.StatusCode == http.StatusNotFound {
-		return nil, &NotFoundError{res.Status}
-	} else if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%v", res.StatusCode)
+	switch res.StatusCode {
+	case http.StatusBadRequest:
+		return nil, &BadRequestError{ErrorMsg(res)}
+	case http.StatusConflict:
+		return nil, &ConflictError{ErrorMsg(res)}
+	case http.StatusNotFound:
+		return nil, &NotFoundError{ErrorMsg(res)}
+	default:
+		if res.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("Error getting resource: %v", ErrorMsg(res))
+		}
 	}
 
 	decoder := json.NewDecoder(res.Body)
-	defer res.Body.Close()
-
 	var r Resource
 	err = decoder.Decode(&r)
 	if err != nil {
@@ -201,28 +327,35 @@ func (self *RemoteCatalogClient) GetResource(id string) (*Resource, error) {
 	return &r, nil
 }
 
-func (self *RemoteCatalogClient) ListResources(page int, perPage int) ([]Resource, int, error) {
+// Retrieves a page from the resource collection
+func (c *RemoteCatalogClient) ListResources(page int, perPage int) ([]Resource, int, error) {
 	res, err := catalog.HTTPRequest("GET",
 		fmt.Sprintf("%v/%v?%v=%v&%v=%v",
-			self.serverEndpoint, FTypeResources,
+			c.serverEndpoint, TypeResources,
 			catalog.GetParamPage, page, catalog.GetParamPerPage, perPage),
 		nil,
 		nil,
-		self.ticket,
+		c.ticket,
 	)
 	if err != nil {
 		return nil, 0, err
 	}
+	defer res.Body.Close()
 
-	if res.StatusCode == http.StatusNotFound {
-		return nil, 0, &NotFoundError{res.Status}
-	} else if res.StatusCode != http.StatusOK {
-		return nil, 0, fmt.Errorf("%v", res.StatusCode)
+	switch res.StatusCode {
+	case http.StatusBadRequest:
+		return nil, 0, &BadRequestError{ErrorMsg(res)}
+	case http.StatusConflict:
+		return nil, 0, &ConflictError{ErrorMsg(res)}
+	case http.StatusNotFound:
+		return nil, 0, &NotFoundError{ErrorMsg(res)}
+	default:
+		if res.StatusCode != http.StatusOK {
+			return nil, 0, fmt.Errorf("Error listing resources: %v", ErrorMsg(res))
+		}
 	}
 
 	decoder := json.NewDecoder(res.Body)
-	defer res.Body.Close()
-
 	var coll ResourceCollection
 	err = decoder.Decode(&coll)
 	if err != nil {
@@ -232,22 +365,35 @@ func (self *RemoteCatalogClient) ListResources(page int, perPage int) ([]Resourc
 	return coll.Resources, coll.Total, nil
 }
 
-func (self *RemoteCatalogClient) FilterResources(path, op, value string, page, perPage int) ([]Resource, int, error) {
+// Filter resources
+func (c *RemoteCatalogClient) FilterResources(path, op, value string, page, perPage int) ([]Resource, int, error) {
 	res, err := catalog.HTTPRequest("GET",
 		fmt.Sprintf("%v/%v/%v/%v/%v?%v=%v&%v=%v",
-			self.serverEndpoint, FTypeResources, path, op, value,
+			c.serverEndpoint, TypeResources, path, op, value,
 			catalog.GetParamPage, page, catalog.GetParamPerPage, perPage),
 		nil,
 		nil,
-		self.ticket,
+		c.ticket,
 	)
 	if err != nil {
 		return nil, 0, err
 	}
-
-	decoder := json.NewDecoder(res.Body)
 	defer res.Body.Close()
 
+	switch res.StatusCode {
+	case http.StatusBadRequest:
+		return nil, 0, &BadRequestError{ErrorMsg(res)}
+	case http.StatusConflict:
+		return nil, 0, &ConflictError{ErrorMsg(res)}
+	case http.StatusNotFound:
+		return nil, 0, &NotFoundError{ErrorMsg(res)}
+	default:
+		if res.StatusCode != http.StatusOK {
+			return nil, 0, fmt.Errorf("Error filtering resources: %v", ErrorMsg(res))
+		}
+	}
+
+	decoder := json.NewDecoder(res.Body)
 	var coll ResourceCollection
 	err = decoder.Decode(&coll)
 	if err != nil {
@@ -255,4 +401,16 @@ func (self *RemoteCatalogClient) FilterResources(path, op, value string, page, p
 	}
 
 	return coll.Resources, coll.Total, nil
+}
+
+// Returns the message field of a resource.Error response
+func ErrorMsg(res *http.Response) string {
+	decoder := json.NewDecoder(res.Body)
+
+	var e Error
+	err := decoder.Decode(&e)
+	if err != nil {
+		return res.Status
+	}
+	return e.Message
 }

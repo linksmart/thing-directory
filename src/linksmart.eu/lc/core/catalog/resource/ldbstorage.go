@@ -36,8 +36,15 @@ func NewLevelDBStorage(dsn string, opts *opt.Options) (CatalogStorage, error) {
 // CRUD
 func (s *LevelDBStorage) add(d *Device) error {
 
-	bytes, err := json.Marshal(&d)
+	bytes, err := json.Marshal(d)
 	if err != nil {
+		return err
+	}
+
+	_, err = s.db.Get([]byte(d.Id), nil)
+	if err == nil {
+		return &ConflictError{"Device id is not unique."}
+	} else if err != leveldb.ErrNotFound {
 		return err
 	}
 
@@ -69,7 +76,7 @@ func (s *LevelDBStorage) get(id string) (*Device, error) {
 
 func (s *LevelDBStorage) update(id string, d *Device) error {
 
-	bytes, err := json.Marshal(&d)
+	bytes, err := json.Marshal(d)
 	if err != nil {
 		return err
 	}

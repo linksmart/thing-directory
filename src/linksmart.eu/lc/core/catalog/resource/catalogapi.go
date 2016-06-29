@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	FTypeDevices   = "devices"
-	FTypeResources = "resources"
+	TypeDevices    = "devices"
+	TypeResources  = "resources"
 	CtxRootDir     = "/ctx"
 	CtxPathCatalog = "/catalog.jsonld"
 )
@@ -98,7 +98,7 @@ func (a ReadableCatalogAPI) Index(w http.ResponseWriter, req *http.Request) {
 // DEVICES
 
 // Adds a Device
-func (a WritableCatalogAPI) Add(w http.ResponseWriter, req *http.Request) {
+func (a WritableCatalogAPI) Post(w http.ResponseWriter, req *http.Request) {
 	body, err := ioutil.ReadAll(req.Body)
 	req.Body.Close()
 	if err != nil {
@@ -109,6 +109,11 @@ func (a WritableCatalogAPI) Add(w http.ResponseWriter, req *http.Request) {
 	var d Device
 	if err := json.Unmarshal(body, &d); err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "Error processing the request:", err.Error())
+		return
+	}
+
+	if d.Id != "" {
+		ErrorResponse(w, http.StatusBadRequest, "Creating a device with defined ID is not possible using a POST request.")
 		return
 	}
 
@@ -128,7 +133,7 @@ func (a WritableCatalogAPI) Add(w http.ResponseWriter, req *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
-	w.Header().Set("Location", fmt.Sprintf("%s/%s/%s", a.apiLocation, FTypeDevices, id))
+	w.Header().Set("Location", fmt.Sprintf("%s/%s/%s", a.apiLocation, TypeDevices, id))
 	w.WriteHeader(http.StatusCreated)
 }
 
@@ -160,7 +165,7 @@ func (a ReadableCatalogAPI) Get(w http.ResponseWriter, req *http.Request) {
 
 // Updates an existing device (Response: StatusOK)
 // If the device does not exist, a new one will be created with the given id (Response: StatusCreated)
-func (a WritableCatalogAPI) Update(w http.ResponseWriter, req *http.Request) {
+func (a WritableCatalogAPI) Put(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 
 	body, err := ioutil.ReadAll(req.Body)
@@ -188,7 +193,7 @@ func (a WritableCatalogAPI) Update(w http.ResponseWriter, req *http.Request) {
 				return
 			}
 			w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
-			w.Header().Set("Location", fmt.Sprintf("%s/%s/%s", a.apiLocation, FTypeDevices, id))
+			w.Header().Set("Location", fmt.Sprintf("%s/%s/%s", a.apiLocation, TypeDevices, id))
 			w.WriteHeader(http.StatusCreated)
 			return
 		case *ConflictError:

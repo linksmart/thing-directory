@@ -210,10 +210,9 @@ func setupRouter(config *Config) (*mux.Router, func() error, error) {
 	r.Methods("GET").Path(config.ApiLocation).Handler(commonHandlers.ThenFunc(api.Index))
 
 	// Devices
-	// CRUD
-	r.Methods("POST").Path(config.ApiLocation + "/devices/").Handler(commonHandlers.ThenFunc(api.Add))
+	r.Methods("POST").Path(config.ApiLocation + "/devices/").Handler(commonHandlers.ThenFunc(api.Post))
 	r.Methods("GET").Path(config.ApiLocation + "/devices/{id}").Handler(commonHandlers.ThenFunc(api.Get))
-	r.Methods("PUT").Path(config.ApiLocation + "/devices/{id}").Handler(commonHandlers.ThenFunc(api.Update))
+	r.Methods("PUT").Path(config.ApiLocation + "/devices/{id}").Handler(commonHandlers.ThenFunc(api.Put))
 	r.Methods("DELETE").Path(config.ApiLocation + "/devices/{id}").Handler(commonHandlers.ThenFunc(api.Delete))
 	// Listing, filtering
 	r.Methods("GET").Path(config.ApiLocation + "/devices").Handler(commonHandlers.ThenFunc(api.List))
@@ -221,6 +220,9 @@ func setupRouter(config *Config) (*mux.Router, func() error, error) {
 
 	// Resources
 	r.Methods("GET").Path(config.ApiLocation + "/resources").Handler(commonHandlers.ThenFunc(api.ListResources))
+	// Listing, filtering
+	// Accept an id with zero or one slash: [^/]+/?[^/]*
+	// -> [^/]+ one or more of anything but slashes /? optional slash [^/]* zero or more of anything but slashes
 	r.Methods("GET").Path(config.ApiLocation + "/resources/{id:[^/]+/?[^/]*}").Handler(commonHandlers.ThenFunc(api.GetResource))
 	r.Methods("GET").Path(config.ApiLocation + "/resources/{path}/{op}/{value:.*}").Handler(commonHandlers.ThenFunc(api.FilterResources))
 

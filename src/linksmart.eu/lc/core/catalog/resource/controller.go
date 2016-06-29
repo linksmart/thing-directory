@@ -62,7 +62,7 @@ func (c *Controller) add(d Device) (string, error) {
 		// System generated id
 		d.Id = c.newDeviceURN()
 	}
-	d.URL = fmt.Sprintf("%s/%s/%s", c.apiLocation, FTypeDevices, d.Id)
+	d.URL = fmt.Sprintf("%s/%s/%s", c.apiLocation, TypeDevices, d.Id)
 	d.Type = ApiDeviceType
 	d.Created = time.Now().UTC()
 	d.Updated = d.Created
@@ -84,7 +84,7 @@ func (c *Controller) add(d Device) (string, error) {
 				return "", &ConflictError{fmt.Sprintf("Resource id %s is not unique", d.Resources[i].Id)}
 			}
 		}
-		d.Resources[i].URL = fmt.Sprintf("%s/%s/%s", c.apiLocation, FTypeResources, d.Resources[i].Id)
+		d.Resources[i].URL = fmt.Sprintf("%s/%s/%s", c.apiLocation, TypeResources, d.Resources[i].Id)
 		d.Resources[i].Type = ApiResourceType
 		d.Resources[i].Device = d.URL
 	}
@@ -160,7 +160,7 @@ func (c *Controller) update(id string, d Device) error {
 		if sd.Resources[i].Id == "" {
 			sd.Resources[i].Id = c.newResourceURN()
 		}
-		sd.Resources[i].URL = fmt.Sprintf("%s/%s/%s", c.apiLocation, FTypeResources, sd.Resources[i].Id)
+		sd.Resources[i].URL = fmt.Sprintf("%s/%s/%s", c.apiLocation, TypeResources, sd.Resources[i].Id)
 		sd.Resources[i].Type = ApiResourceType
 		sd.Resources[i].Device = sd.URL
 	}
