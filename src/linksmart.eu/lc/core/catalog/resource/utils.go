@@ -53,7 +53,11 @@ func RegisterDeviceWithKeepalive(endpoint string, discover bool, d Device, sigCh
 	}
 
 	// Configure client
-	client := NewRemoteCatalogClient(endpoint, ticket)
+	client, err := NewRemoteCatalogClient(endpoint, ticket)
+	if err != nil {
+		logger.Printf("RegisterDeviceWithKeepalive() ERROR: Failed to create remote-catalog client: %v", err.Error())
+		return
+	}
 
 	// Will not keepalive registration without a TTL
 	if d.Ttl == 0 {
@@ -82,7 +86,11 @@ func RegisterDeviceWithKeepalive(endpoint string, discover bool, d Device, sigCh
 				}
 			}
 			logger.Println("RegisterDeviceWithKeepalive() Will use the new endpoint:", endpoint)
-			client := NewRemoteCatalogClient(endpoint, ticket)
+			client, err := NewRemoteCatalogClient(endpoint, ticket)
+			if err != nil {
+				logger.Printf("RegisterDeviceWithKeepalive() ERROR: Failed to create remote-catalog client: %v", err.Error())
+				return
+			}
 			go keepAlive(client, &d, ksigCh, kerrCh)
 
 		// catch a shutdown signal from the upstream
@@ -128,14 +136,14 @@ func keepAlive(client CatalogClient, d *Device, sigCh <-chan bool, errCh chan<- 
 					logger.Printf("keepAlive() ERROR: Registration %v not found in the remote catalog. TTL expired?", d.Id)
 					_, err = client.Add(d)
 					if err != nil {
-						logger.Printf("keepAlive() ERROR: %v", err)
+						logger.Printf("keepAlive() Error adding registration: %v", err)
 						errTries += 1
 					} else {
 						logger.Printf("keepAlive() Added Device registration %v", d.Id)
 						errTries = 0
 					}
 				default:
-					logger.Printf("keepAlive() ERROR: %v", err)
+					logger.Printf("keepAlive() Error updating registration: %v", err)
 					errTries += 1
 				}
 			} else {

@@ -17,17 +17,17 @@ type RemoteCatalogClient struct {
 	ticket         *obtainer.Client
 }
 
-func NewRemoteCatalogClient(serverEndpoint string, ticket *obtainer.Client) CatalogClient {
+func NewRemoteCatalogClient(serverEndpoint string, ticket *obtainer.Client) (CatalogClient, error) {
 	// Check if serverEndpoint is a correct URL
 	endpointUrl, err := url.Parse(serverEndpoint)
 	if err != nil {
-		return &RemoteCatalogClient{}
+		return nil, fmt.Errorf("Error parsing catalog endpoint url: %s", err)
 	}
 
 	return &RemoteCatalogClient{
 		serverEndpoint: endpointUrl,
 		ticket:         ticket,
-	}
+	}, nil
 }
 
 // Retrieves a device
