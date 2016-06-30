@@ -47,9 +47,9 @@ func setupRouter() (*mux.Router, func(), error) {
 
 	r := mux.NewRouter().StrictSlash(true)
 	// CRUD
-	r.Methods("POST").Path(TestApiLocation + "/").HandlerFunc(api.Add)
+	r.Methods("POST").Path(TestApiLocation + "/").HandlerFunc(api.Post)
 	r.Methods("GET").Path(TestApiLocation + "/{id:[^/]+/?[^/]*}").HandlerFunc(api.Get)
-	r.Methods("PUT").Path(TestApiLocation + "/{id:[^/]+/?[^/]*}").HandlerFunc(api.Update)
+	r.Methods("PUT").Path(TestApiLocation + "/{id:[^/]+/?[^/]*}").HandlerFunc(api.Put)
 	r.Methods("DELETE").Path(TestApiLocation + "/{id:[^/]+/?[^/]*}").HandlerFunc(api.Delete)
 	// List, Filter
 	r.Methods("GET").Path(TestApiLocation).HandlerFunc(api.List)
@@ -228,11 +228,7 @@ func TestRetrieve(t *testing.T) {
 	// Create
 	url := ts.URL + TestApiLocation + "/" + service.Id
 	t.Log("Calling PUT", url)
-	req, err := http.NewRequest("PUT", url, bytes.NewReader(b))
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	res, err := http.DefaultClient.Do(req)
+	res, err := httpPut(url, bytes.NewReader(b))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -284,11 +280,7 @@ func TestUpdate(t *testing.T) {
 	// Create
 	url := ts.URL + TestApiLocation + "/" + service.Id
 	t.Log("Calling PUT", url)
-	req, err := http.NewRequest("PUT", url, bytes.NewReader(b))
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	res, err := http.DefaultClient.Do(req)
+	res, err := httpPut(url, bytes.NewReader(b))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -299,11 +291,7 @@ func TestUpdate(t *testing.T) {
 	b, _ = json.Marshal(service2)
 
 	t.Log("Calling PUT", url)
-	req, err = http.NewRequest("PUT", url, bytes.NewReader(b))
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	res, err = http.DefaultClient.Do(req)
+	res, err = httpPut(url, bytes.NewReader(b))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -332,16 +320,12 @@ func TestUpdate(t *testing.T) {
 		t.Fatalf("The retrieved service is not the same as the added one:\n Added:\n %v \n Retrieved: \n %v", service2, service3)
 	}
 
-	// Create with user-defined ID
+	// Create with user-defined ID (PUT for creation)
 	service4 := mockedService("1")
 	b, _ = json.Marshal(service4)
 	url = ts.URL + TestApiLocation + "/service123"
 	t.Log("Calling PUT", url)
-	req, err = http.NewRequest("PUT", url, bytes.NewReader(b))
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	res, err = http.DefaultClient.Do(req)
+	res, err = httpPut(url, bytes.NewReader(b))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -376,18 +360,14 @@ func TestDelete(t *testing.T) {
 	// Create
 	url := ts.URL + TestApiLocation + "/" + service.Id
 	t.Log("Calling PUT", url)
-	req, err := http.NewRequest("PUT", url, bytes.NewReader(b))
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	res, err := http.DefaultClient.Do(req)
+	res, err := httpPut(url, bytes.NewReader(b))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
 	// Delete
 	t.Log("Calling DELETE", url)
-	req, err = http.NewRequest("DELETE", url, bytes.NewReader([]byte{}))
+	req, err := http.NewRequest("DELETE", url, bytes.NewReader([]byte{}))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -489,4 +469,16 @@ func TestFilter(t *testing.T) {
 	if !sameServices(service1, &collection2.Services[0], false) {
 		t.Fatalf("The retrieved service is not the same as the added one:\n Added:\n %v \n Retrieved: \n %v", service1, collection2.Services[0])
 	}
+}
+
+func httpPut(url string, r *bytes.Reader) (*http.Response, error) {
+	req, err := http.NewRequest("PUT", url, r)
+	if err != nil {
+		return nil, err
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }

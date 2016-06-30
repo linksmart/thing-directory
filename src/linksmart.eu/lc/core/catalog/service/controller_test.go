@@ -49,13 +49,13 @@ func TestAddService(t *testing.T) {
 	defer shutdown()
 
 	// User-defined id
-	r := &Service{}
+	var r Service
 	uuid := "E9203BE9-D705-42A8-8B12-F28E7EA2FC99"
 	r.Name = "ServiceName"
 	r.Id = uuid + "/" + r.Name
 	r.Ttl = 30
 
-	id, err := controller.add(*r)
+	id, err := controller.add(r)
 	if err != nil {
 		t.Fatalf("Unexpected error on add: %v", err.Error())
 	}
@@ -63,16 +63,16 @@ func TestAddService(t *testing.T) {
 		t.Fatalf("User defined ID is not returned. Getting %v instead of %v\n", id, r.Id)
 	}
 
-	_, err = controller.add(*r)
+	_, err = controller.add(r)
 	if err == nil {
 		t.Error("Didn't get any error when adding a service with non-unique id.")
 	}
 
 	// System-generated id
-	r2 := &Service{}
+	var r2 Service
 	r2.Name = "ServiceName"
 
-	id, err = controller.add(*r2)
+	id, err = controller.add(r2)
 	if err != nil {
 		t.Fatalf("Unexpected error on add: %v", err.Error())
 	}
@@ -89,19 +89,19 @@ func TestUpdateService(t *testing.T) {
 	}
 	defer shutdown()
 
-	r := &Service{}
+	var r Service
 	uuid := "E9203BE9-D705-42A8-8B12-F28E7EA2FC99"
 	r.Name = "ServiceName"
 	r.Id = uuid + "/" + r.Name
 	r.Ttl = 30
 
-	_, err = controller.add(*r)
+	_, err = controller.add(r)
 	if err != nil {
 		t.Errorf("Unexpected error on add: %v", err.Error())
 	}
 	r.Name = "UpdatedName"
 
-	err = controller.update(r.Id, *r)
+	err = controller.update(r.Id, r)
 	if err != nil {
 		t.Errorf("Unexpected error on update: %v", err.Error())
 	}
@@ -124,7 +124,7 @@ func TestGetService(t *testing.T) {
 	}
 	defer shutdown()
 
-	r := &Service{
+	r := Service{
 		Name: "TestName",
 	}
 	uuid := "E9203BE9-D705-42A8-8B12-F28E7EA2FC99"
@@ -132,7 +132,7 @@ func TestGetService(t *testing.T) {
 	r.Id = uuid + "/" + r.Name
 	r.Ttl = 30
 
-	_, err = controller.add(*r)
+	_, err = controller.add(r)
 	if err != nil {
 		t.Errorf("Unexpected error on add: %v", err.Error())
 	}
@@ -155,13 +155,13 @@ func TestDeleteService(t *testing.T) {
 	}
 	defer shutdown()
 
-	r := &Service{}
+	var r Service
 	uuid := "E9203BE9-D705-42A8-8B12-F28E7EA2FC99"
 	r.Name = "ServiceName"
 	r.Id = uuid + "/" + r.Name
 	r.Ttl = 30
 
-	_, err = controller.add(*r)
+	_, err = controller.add(r)
 	if err != nil {
 		t.Errorf("Unexpected error on add: %v", err.Error())
 	}
@@ -185,14 +185,14 @@ func TestListServices(t *testing.T) {
 	}
 	defer shutdown()
 
-	r := &Service{}
+	var r Service
 
 	// Add 10 entries
 	for i := 0; i < 11; i++ {
 		r.Name = string(i)
 		r.Id = "TestID" + "/" + r.Name
 		r.Ttl = 30
-		_, err := controller.add(*r)
+		_, err := controller.add(r)
 
 		if err != nil {
 			t.Errorf("Unexpected error on add: %v", err.Error())
@@ -261,7 +261,6 @@ func TestFilterService(t *testing.T) {
 		}
 	}
 }
-
 
 func TestCleanExpired(t *testing.T) {
 	t.Log(TestStorageType)
