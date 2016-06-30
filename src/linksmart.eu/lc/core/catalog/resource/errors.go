@@ -36,7 +36,9 @@ func ErrorResponse(w http.ResponseWriter, code int, msgs ...string) {
 		code,
 		msg,
 	}
-	logger.Println("ERROR:", msg)
+	if code >= 500 {
+		logger.Println("ERROR:", msg)
+	}
 	b, _ := json.Marshal(e)
 	w.Header().Set("Content-Type", "application/json;version="+ApiVersion)
 	w.WriteHeader(code)
