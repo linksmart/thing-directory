@@ -136,7 +136,7 @@ func setupRouter(config *Config) (*mux.Router, func() error, error) {
 		return nil, nil, fmt.Errorf("Could not create catalog API storage. Unsupported type: %v", config.Storage.Type)
 	}
 
-	controller, err := catalog.NewController(storage, config.ApiLocation)
+	controller, err := catalog.NewController(storage, config.ApiLocation, listeners...)
 	if err != nil {
 		storage.Close()
 		return nil, nil, fmt.Errorf("Failed to start the controller: %v", err.Error())
@@ -148,7 +148,6 @@ func setupRouter(config *Config) (*mux.Router, func() error, error) {
 		config.ApiLocation,
 		utils.StaticLocation,
 		config.Description,
-		listeners...,
 	)
 
 	commonHandlers := alice.New(

@@ -35,8 +35,8 @@ func (s *Service) validate() error {
 // Checks whether the service can be tunneled in GC
 func (s *Service) isGCTunnelable() bool {
 	// Until the service discovery in GC is not working properly,
-	// we can only tunnel services that never expire (tll == -1)
-	if s.Ttl != -1 {
+	// we can only tunnel services that never expire (tll == 0)
+	if s.Ttl != 0 {
 		return false
 	}
 

@@ -32,7 +32,6 @@ type ReadableCatalogAPI struct {
 	apiLocation string
 	ctxPathRoot string
 	description string
-	listeners   []Listener
 }
 
 // Writable catalog api
@@ -40,19 +39,18 @@ type WritableCatalogAPI struct {
 	*ReadableCatalogAPI
 }
 
-func NewReadableCatalogAPI(controller CatalogController, apiLocation, staticLocation, description string, listeners ...Listener) *ReadableCatalogAPI {
+func NewReadableCatalogAPI(controller CatalogController, apiLocation, staticLocation, description string) *ReadableCatalogAPI {
 	return &ReadableCatalogAPI{
 		controller:  controller,
 		apiLocation: apiLocation,
 		ctxPathRoot: staticLocation + CtxRootDir,
 		description: description,
-		listeners:   listeners,
 	}
 }
 
-func NewWritableCatalogAPI(controller CatalogController, apiLocation, staticLocation, description string, listeners ...Listener) *WritableCatalogAPI {
+func NewWritableCatalogAPI(controller CatalogController, apiLocation, staticLocation, description string) *WritableCatalogAPI {
 	return &WritableCatalogAPI{
-		NewReadableCatalogAPI(controller, apiLocation, staticLocation, description, listeners...),
+		NewReadableCatalogAPI(controller, apiLocation, staticLocation, description),
 	}
 }
 
@@ -203,11 +201,6 @@ func (a WritableCatalogAPI) Post(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	// notify listeners
-	for _, l := range a.listeners {
-		go l.added(s)
-	}
-
 	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
 	w.Header().Set("Location", fmt.Sprintf("%s/%s", a.apiLocation, id))
 	w.WriteHeader(http.StatusCreated)
@@ -258,11 +251,6 @@ func (a WritableCatalogAPI) Put(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	// notify listeners
-	for _, l := range a.listeners {
-		go l.updated(s)
-	}
-
 	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
 	w.WriteHeader(http.StatusOK)
 }
@@ -281,11 +269,6 @@ func (a WritableCatalogAPI) Delete(w http.ResponseWriter, req *http.Request) {
 			ErrorResponse(w, http.StatusInternalServerError, "Error deleting the service:", err.Error())
 			return
 		}
-	}
-
-	// notify listeners
-	for _, l := range a.listeners {
-		go l.deleted(params["id"])
 	}
 
 	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)

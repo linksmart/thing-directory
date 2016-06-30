@@ -15,6 +15,7 @@ type Controller struct {
 	sync.RWMutex
 	storage     CatalogStorage
 	apiLocation string
+	listeners   []Listener
 	ticker      *time.Ticker
 
 	// startTime and counter for ID generation
@@ -25,12 +26,13 @@ type Controller struct {
 	exp_sid *avl.Tree
 }
 
-func NewController(storage CatalogStorage, apiLocation string) (CatalogController, error) {
+func NewController(storage CatalogStorage, apiLocation string, listeners ...Listener) (CatalogController, error) {
 	c := Controller{
 		storage:     storage,
 		apiLocation: apiLocation,
 		exp_sid:     avl.New(timeKeys, avl.AllowDuplicates),
 		startTime:   time.Now().UTC().Unix(),
+		listeners:   listeners,
 	}
 
 	err := c.initIndices()
@@ -74,6 +76,11 @@ func (c *Controller) add(s Service) (string, error) {
 
 	// Add secondary indices
 	c.addIndices(&s)
+
+	// notify listeners
+	for _, l := range c.listeners {
+		go l.added(s)
+	}
 
 	return s.Id, nil
 }
@@ -125,6 +132,11 @@ func (c *Controller) update(id string, s Service) error {
 	c.removeIndices(&cp)
 	c.addIndices(ss)
 
+	// notify listeners
+	for _, l := range c.listeners {
+		go l.updated(s)
+	}
+
 	return nil
 }
 
@@ -144,6 +156,11 @@ func (c *Controller) delete(id string) error {
 
 	// Remove secondary indices
 	c.removeIndices(old)
+
+	// notify listeners
+	for _, l := range c.listeners {
+		go l.deleted(old.Id)
+	}
 
 	return nil
 }
