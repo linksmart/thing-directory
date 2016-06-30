@@ -20,7 +20,7 @@ func (sc *ServiceConfig) GetService() (*Service, error) {
 type CatalogClient interface {
 	// CRUD
 	Get(id string) (*Service, error)
-	Add(s *Service) error
+	Add(s *Service) (string, error)
 	Update(id string, s *Service) error
 	Delete(id string) error
 

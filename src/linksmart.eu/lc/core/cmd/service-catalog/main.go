@@ -168,11 +168,12 @@ func setupRouter(config *Config) (*mux.Router, func() error, error) {
 
 	// Configure routers
 	r := mux.NewRouter().StrictSlash(true)
-
-	// CRUD
-	r.Methods("POST").Path(config.ApiLocation + "/").Handler(commonHandlers.ThenFunc(api.Add))
+	// Handlers
+	r.Methods("POST").Path(config.ApiLocation + "/").Handler(commonHandlers.ThenFunc(api.Post))
+	// Accept an id with zero or one slash: [^/]+/?[^/]*
+	// -> [^/]+ one or more of anything but slashes /? optional slash [^/]* zero or more of anything but slashes
 	r.Methods("GET").Path(config.ApiLocation + "/{id:[^/]+/?[^/]*}").Handler(commonHandlers.ThenFunc(api.Get))
-	r.Methods("PUT").Path(config.ApiLocation + "/{id:[^/]+/?[^/]*}").Handler(commonHandlers.ThenFunc(api.Update))
+	r.Methods("PUT").Path(config.ApiLocation + "/{id:[^/]+/?[^/]*}").Handler(commonHandlers.ThenFunc(api.Put))
 	r.Methods("DELETE").Path(config.ApiLocation + "/{id:[^/]+/?[^/]*}").Handler(commonHandlers.ThenFunc(api.Delete))
 	// List, Filter
 	r.Methods("GET").Path(config.ApiLocation).Handler(commonHandlers.ThenFunc(api.List))

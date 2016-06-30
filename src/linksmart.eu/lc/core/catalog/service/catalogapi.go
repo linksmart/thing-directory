@@ -57,7 +57,7 @@ func NewWritableCatalogAPI(controller CatalogController, apiLocation, staticLoca
 }
 
 // API Index: Lists services
-func (self ReadableCatalogAPI) List(w http.ResponseWriter, req *http.Request) {
+func (a ReadableCatalogAPI) List(w http.ResponseWriter, req *http.Request) {
 	err := req.ParseForm()
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query:", err.Error())
@@ -70,17 +70,17 @@ func (self ReadableCatalogAPI) List(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	services, total, err := self.controller.list(page, perPage)
+	services, total, err := a.controller.list(page, perPage)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	coll := &Collection{
-		Context:     self.ctxPathRoot + CtxPathCatalog,
-		Id:          self.apiLocation,
+		Context:     a.ctxPathRoot + CtxPathCatalog,
+		Id:          a.apiLocation,
 		Type:        ApiCollectionType,
-		Description: self.description,
+		Description: a.description,
 		Services:    services,
 		Page:        page,
 		PerPage:     perPage,
@@ -98,7 +98,7 @@ func (self ReadableCatalogAPI) List(w http.ResponseWriter, req *http.Request) {
 }
 
 // Filters services
-func (self ReadableCatalogAPI) Filter(w http.ResponseWriter, req *http.Request) {
+func (a ReadableCatalogAPI) Filter(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 	path := params["path"]
 	op := params["op"]
@@ -116,17 +116,17 @@ func (self ReadableCatalogAPI) Filter(w http.ResponseWriter, req *http.Request) 
 		return
 	}
 
-	services, total, err := self.controller.filter(path, op, value, page, perPage)
+	services, total, err := a.controller.filter(path, op, value, page, perPage)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	coll := &Collection{
-		Context:     self.ctxPathRoot + CtxPathCatalog,
-		Id:          self.apiLocation,
+		Context:     a.ctxPathRoot + CtxPathCatalog,
+		Id:          a.apiLocation,
 		Type:        ApiCollectionType,
-		Description: self.description,
+		Description: a.description,
 		Services:    services,
 		Page:        page,
 		PerPage:     perPage,
@@ -169,7 +169,7 @@ func (a ReadableCatalogAPI) Get(w http.ResponseWriter, req *http.Request) {
 }
 
 // Adds a service
-func (a WritableCatalogAPI) Add(w http.ResponseWriter, req *http.Request) {
+func (a WritableCatalogAPI) Post(w http.ResponseWriter, req *http.Request) {
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, err.Error())
@@ -215,7 +215,7 @@ func (a WritableCatalogAPI) Add(w http.ResponseWriter, req *http.Request) {
 
 // Updates an existing service (Response: StatusOK)
 // or creates a new one with the given id (Response: StatusCreated)
-func (a WritableCatalogAPI) Update(w http.ResponseWriter, req *http.Request) {
+func (a WritableCatalogAPI) Put(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 
 	body, err := ioutil.ReadAll(req.Body)

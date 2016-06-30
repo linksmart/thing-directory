@@ -148,7 +148,10 @@ func (c *MQTTConnector) discoverBrokerEndpoint() error {
 		return err
 	}
 
-	rcc := service.NewRemoteCatalogClient(endpoint, nil)
+	rcc, err := service.NewRemoteCatalogClient(endpoint, nil)
+	if err != nil {
+		return err
+	}
 	res, _, err := rcc.Filter("meta.serviceType", "equals", DNSSDServiceTypeMQTT, 1, 50)
 	if err != nil {
 		return err
