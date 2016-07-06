@@ -29,10 +29,6 @@ func NewClient(providerName, providerURL, username, password, serviceID string) 
 	}, nil
 }
 
-func (c *Client) Ticket() string {
-	return c.ticket
-}
-
 // Obtain the ticket, create one if it's not available
 func (c *Client) Obtain() (string, error) {
 	c.Lock()
