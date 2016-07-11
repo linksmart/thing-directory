@@ -70,6 +70,10 @@
                 "id": {
                     "type": "string"
                 },
+                "@context": {
+                    "type": "string",
+                    "format": "url"
+                },
                 "type": {
                     "type": "string"
                 },
