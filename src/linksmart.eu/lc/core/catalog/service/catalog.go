@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -24,11 +25,9 @@ type Service struct {
 
 // Validates the Service configuration
 func (s *Service) validate() error {
-	/*	if s.Id == "" || len(strings.Split(s.Id, "/")) != 2 || s.Name == "" || s.Ttl == 0 {
-			return false
-		}
-		return true*/
-
+	if len(s.Protocols) == 0 {
+		return fmt.Errorf("at least one protocol must be defined in the service registration")
+	}
 	return nil
 }
 

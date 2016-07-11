@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	CtxRootDir      = "/ctx"
-	CtxPathCatalog  = "/catalog.jsonld"
+	CtxRootDir     = "/ctx"
+	CtxPathCatalog = "/catalog.jsonld"
 )
 
 type Collection struct {
@@ -27,20 +27,15 @@ type Collection struct {
 }
 
 // Read-only catalog api
-type ReadableCatalogAPI struct {
+type CatalogAPI struct {
 	controller  CatalogController
 	apiLocation string
 	ctxPathRoot string
 	description string
 }
 
-// Writable catalog api
-type WritableCatalogAPI struct {
-	*ReadableCatalogAPI
-}
-
-func NewReadableCatalogAPI(controller CatalogController, apiLocation, staticLocation, description string) *ReadableCatalogAPI {
-	return &ReadableCatalogAPI{
+func NewCatalogAPI(controller CatalogController, apiLocation, staticLocation, description string) *CatalogAPI {
+	return &CatalogAPI{
 		controller:  controller,
 		apiLocation: apiLocation,
 		ctxPathRoot: staticLocation + CtxRootDir,
@@ -48,14 +43,8 @@ func NewReadableCatalogAPI(controller CatalogController, apiLocation, staticLoca
 	}
 }
 
-func NewWritableCatalogAPI(controller CatalogController, apiLocation, staticLocation, description string) *WritableCatalogAPI {
-	return &WritableCatalogAPI{
-		NewReadableCatalogAPI(controller, apiLocation, staticLocation, description),
-	}
-}
-
 // API Index: Lists services
-func (a ReadableCatalogAPI) List(w http.ResponseWriter, req *http.Request) {
+func (a *CatalogAPI) List(w http.ResponseWriter, req *http.Request) {
 	err := req.ParseForm()
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query:", err.Error())
@@ -96,7 +85,7 @@ func (a ReadableCatalogAPI) List(w http.ResponseWriter, req *http.Request) {
 }
 
 // Filters services
-func (a ReadableCatalogAPI) Filter(w http.ResponseWriter, req *http.Request) {
+func (a *CatalogAPI) Filter(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 	path := params["path"]
 	op := params["op"]
@@ -141,7 +130,7 @@ func (a ReadableCatalogAPI) Filter(w http.ResponseWriter, req *http.Request) {
 }
 
 // Retrieves a service
-func (a ReadableCatalogAPI) Get(w http.ResponseWriter, req *http.Request) {
+func (a *CatalogAPI) Get(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 
 	s, err := a.controller.get(params["id"])
@@ -167,7 +156,7 @@ func (a ReadableCatalogAPI) Get(w http.ResponseWriter, req *http.Request) {
 }
 
 // Adds a service
-func (a WritableCatalogAPI) Post(w http.ResponseWriter, req *http.Request) {
+func (a *CatalogAPI) Post(w http.ResponseWriter, req *http.Request) {
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, err.Error())
@@ -208,7 +197,7 @@ func (a WritableCatalogAPI) Post(w http.ResponseWriter, req *http.Request) {
 
 // Updates an existing service (Response: StatusOK)
 // or creates a new one with the given id (Response: StatusCreated)
-func (a WritableCatalogAPI) Put(w http.ResponseWriter, req *http.Request) {
+func (a *CatalogAPI) Put(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 
 	body, err := ioutil.ReadAll(req.Body)
@@ -256,7 +245,7 @@ func (a WritableCatalogAPI) Put(w http.ResponseWriter, req *http.Request) {
 }
 
 // Deletes a service
-func (a WritableCatalogAPI) Delete(w http.ResponseWriter, req *http.Request) {
+func (a *CatalogAPI) Delete(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 
 	err := a.controller.delete(params["id"])

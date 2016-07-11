@@ -112,7 +112,7 @@ func main() {
 }
 
 func setupRouter(config *Config) (*mux.Router, func() error, error) {
-	listeners := []catalog.Listener{}
+	var listeners []catalog.Listener
 	// GC publisher if configured
 	if config.GC.TunnelingService != "" {
 		endpoint, _ := url.Parse(config.GC.TunnelingService)
@@ -143,7 +143,7 @@ func setupRouter(config *Config) (*mux.Router, func() error, error) {
 	}
 
 	// Create catalog API object
-	api := catalog.NewWritableCatalogAPI(
+	api := catalog.NewCatalogAPI(
 		controller,
 		config.ApiLocation,
 		utils.StaticLocation,

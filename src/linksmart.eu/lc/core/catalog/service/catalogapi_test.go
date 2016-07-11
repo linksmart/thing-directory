@@ -38,7 +38,7 @@ func setupRouter() (*mux.Router, func(), error) {
 		return nil, nil, fmt.Errorf("Failed to start the controller: %v", err.Error())
 	}
 
-	api := NewWritableCatalogAPI(
+	api := NewCatalogAPI(
 		controller,
 		TestApiLocation,
 		TestStaticLocation,

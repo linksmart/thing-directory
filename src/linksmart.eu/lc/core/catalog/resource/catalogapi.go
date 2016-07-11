@@ -66,7 +66,7 @@ func NewWritableCatalogAPI(controller CatalogController, apiLocation, staticLoca
 }
 
 // Index of API
-func (a ReadableCatalogAPI) Index(w http.ResponseWriter, req *http.Request) {
+func (a *ReadableCatalogAPI) Index(w http.ResponseWriter, req *http.Request) {
 	total, err := a.controller.total()
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, "Error counting devices:", err.Error())
@@ -98,7 +98,7 @@ func (a ReadableCatalogAPI) Index(w http.ResponseWriter, req *http.Request) {
 // DEVICES
 
 // Adds a Device
-func (a WritableCatalogAPI) Post(w http.ResponseWriter, req *http.Request) {
+func (a *WritableCatalogAPI) Post(w http.ResponseWriter, req *http.Request) {
 	body, err := ioutil.ReadAll(req.Body)
 	req.Body.Close()
 	if err != nil {
@@ -138,7 +138,7 @@ func (a WritableCatalogAPI) Post(w http.ResponseWriter, req *http.Request) {
 }
 
 // Gets a single Device
-func (a ReadableCatalogAPI) Get(w http.ResponseWriter, req *http.Request) {
+func (a *ReadableCatalogAPI) Get(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 
 	d, err := a.controller.get(params["id"])
@@ -165,7 +165,7 @@ func (a ReadableCatalogAPI) Get(w http.ResponseWriter, req *http.Request) {
 
 // Updates an existing device (Response: StatusOK)
 // If the device does not exist, a new one will be created with the given id (Response: StatusCreated)
-func (a WritableCatalogAPI) Put(w http.ResponseWriter, req *http.Request) {
+func (a *WritableCatalogAPI) Put(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 
 	body, err := ioutil.ReadAll(req.Body)
@@ -213,7 +213,7 @@ func (a WritableCatalogAPI) Put(w http.ResponseWriter, req *http.Request) {
 }
 
 // Deletes a device
-func (a WritableCatalogAPI) Delete(w http.ResponseWriter, req *http.Request) {
+func (a *WritableCatalogAPI) Delete(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 
 	err := a.controller.delete(params["id"])
@@ -233,7 +233,7 @@ func (a WritableCatalogAPI) Delete(w http.ResponseWriter, req *http.Request) {
 }
 
 // Lists devices in a DeviceCollection
-func (a ReadableCatalogAPI) List(w http.ResponseWriter, req *http.Request) {
+func (a *ReadableCatalogAPI) List(w http.ResponseWriter, req *http.Request) {
 	err := req.ParseForm()
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query:", err.Error())
@@ -273,7 +273,7 @@ func (a ReadableCatalogAPI) List(w http.ResponseWriter, req *http.Request) {
 }
 
 // Lists filtered devices in a DeviceCollection
-func (a ReadableCatalogAPI) Filter(w http.ResponseWriter, req *http.Request) {
+func (a *ReadableCatalogAPI) Filter(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 	path := params["path"]
 	op := params["op"]
@@ -320,7 +320,7 @@ func (a ReadableCatalogAPI) Filter(w http.ResponseWriter, req *http.Request) {
 // RESOURCES
 
 // Gets a single Resource
-func (a ReadableCatalogAPI) GetResource(w http.ResponseWriter, req *http.Request) {
+func (a *ReadableCatalogAPI) GetResource(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 
 	r, err := a.controller.getResource(params["id"])
@@ -346,7 +346,7 @@ func (a ReadableCatalogAPI) GetResource(w http.ResponseWriter, req *http.Request
 }
 
 // Lists resources in a ResourceCollection
-func (a ReadableCatalogAPI) ListResources(w http.ResponseWriter, req *http.Request) {
+func (a *ReadableCatalogAPI) ListResources(w http.ResponseWriter, req *http.Request) {
 	err := req.ParseForm()
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query:", err.Error())
@@ -386,7 +386,7 @@ func (a ReadableCatalogAPI) ListResources(w http.ResponseWriter, req *http.Reque
 }
 
 // Lists filtered resources in a ResourceCollection
-func (a ReadableCatalogAPI) FilterResources(w http.ResponseWriter, req *http.Request) {
+func (a *ReadableCatalogAPI) FilterResources(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 	path := params["path"]
 	op := params["op"]

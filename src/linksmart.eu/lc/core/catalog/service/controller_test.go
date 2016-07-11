@@ -54,6 +54,7 @@ func TestAddService(t *testing.T) {
 	r.Name = "ServiceName"
 	r.Id = uuid + "/" + r.Name
 	r.Ttl = 30
+	r.Protocols = []Protocol{Protocol{Type: "REST", Endpoint: map[string]interface{}{"url": "http://localhost:9000/api"}}}
 
 	id, err := controller.add(r)
 	if err != nil {
@@ -71,6 +72,7 @@ func TestAddService(t *testing.T) {
 	// System-generated id
 	var r2 Service
 	r2.Name = "ServiceName"
+	r2.Protocols = []Protocol{Protocol{Type: "REST", Endpoint: map[string]interface{}{"url": "http://localhost:9000/api"}}}
 
 	id, err = controller.add(r2)
 	if err != nil {
@@ -94,6 +96,7 @@ func TestUpdateService(t *testing.T) {
 	r.Name = "ServiceName"
 	r.Id = uuid + "/" + r.Name
 	r.Ttl = 30
+	r.Protocols = []Protocol{Protocol{Type: "REST", Endpoint: map[string]interface{}{"url": "http://localhost:9000/api"}}}
 
 	_, err = controller.add(r)
 	if err != nil {
@@ -131,6 +134,7 @@ func TestGetService(t *testing.T) {
 	r.Name = "ServiceName"
 	r.Id = uuid + "/" + r.Name
 	r.Ttl = 30
+	r.Protocols = []Protocol{Protocol{Type: "REST", Endpoint: map[string]interface{}{"url": "http://localhost:9000/api"}}}
 
 	_, err = controller.add(r)
 	if err != nil {
@@ -160,6 +164,7 @@ func TestDeleteService(t *testing.T) {
 	r.Name = "ServiceName"
 	r.Id = uuid + "/" + r.Name
 	r.Ttl = 30
+	r.Protocols = []Protocol{Protocol{Type: "REST", Endpoint: map[string]interface{}{"url": "http://localhost:9000/api"}}}
 
 	_, err = controller.add(r)
 	if err != nil {
@@ -192,6 +197,7 @@ func TestListServices(t *testing.T) {
 		r.Name = string(i)
 		r.Id = "TestID" + "/" + r.Name
 		r.Ttl = 30
+		r.Protocols = []Protocol{Protocol{Type: "REST", Endpoint: map[string]interface{}{"url": "http://localhost:9000/api"}}}
 		_, err := controller.add(r)
 
 		if err != nil {
@@ -234,7 +240,8 @@ func TestFilterService(t *testing.T) {
 
 	for i := 0; i < 5; i++ {
 		_, err := controller.add(Service{
-			Name: fmt.Sprintf("boring_%d", i),
+			Name:      fmt.Sprintf("boring_%d", i),
+			Protocols: []Protocol{Protocol{Type: "REST", Endpoint: map[string]interface{}{"url": "http://localhost:9000/api"}}},
 		})
 		if err != nil {
 			t.Fatal("Error adding a service:", err.Error())
@@ -242,10 +249,12 @@ func TestFilterService(t *testing.T) {
 	}
 
 	controller.add(Service{
-		Name: "interesting_1",
+		Name:      "interesting_1",
+		Protocols: []Protocol{Protocol{Type: "REST", Endpoint: map[string]interface{}{"url": "http://localhost:9000/api"}}},
 	})
 	controller.add(Service{
-		Name: "interesting_2",
+		Name:      "interesting_2",
+		Protocols: []Protocol{Protocol{Type: "REST", Endpoint: map[string]interface{}{"url": "http://localhost:9000/api"}}},
 	})
 
 	services, total, err := controller.filter("name", "prefix", "interesting", 1, 10)
@@ -271,8 +280,9 @@ func TestCleanExpired(t *testing.T) {
 	defer shutdown()
 
 	var d = Service{
-		Name: "my_service",
-		Ttl:  1,
+		Name:      "my_service",
+		Ttl:       1,
+		Protocols: []Protocol{Protocol{Type: "REST", Endpoint: map[string]interface{}{"url": "http://localhost:9000/api"}}},
 	}
 
 	id, err := controller.add(d)

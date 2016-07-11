@@ -78,7 +78,6 @@ func (c *RemoteCatalogClient) Add(s *Service) (string, error) {
 		err error
 	)
 
-
 	if id == "" { // Let the system generate an id
 		res, err = catalog.HTTPRequest("POST",
 			c.serverEndpoint.String()+"/",
@@ -120,7 +119,6 @@ func (c *RemoteCatalogClient) Add(s *Service) (string, error) {
 		}
 		defer res.Body.Close()
 	}
-
 
 	switch res.StatusCode {
 	case http.StatusBadRequest:
@@ -291,7 +289,6 @@ func (c *RemoteCatalogClient) Filter(path, op, value string, page, perPage int) 
 
 	return coll.Services, len(coll.Services), nil
 }
-
 
 // Returns the message field of a resource.Error response
 func ErrorMsg(res *http.Response) string {

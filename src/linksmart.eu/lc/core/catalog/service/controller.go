@@ -86,12 +86,7 @@ func (c *Controller) add(s Service) (string, error) {
 }
 
 func (c *Controller) get(id string) (*Service, error) {
-	s, err := c.storage.get(id)
-	if err != nil {
-		return nil, err
-	}
-
-	return s, nil
+	return c.storage.get(id)
 }
 
 func (c *Controller) update(id string, s Service) error {
