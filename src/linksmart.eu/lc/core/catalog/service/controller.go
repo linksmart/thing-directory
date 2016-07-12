@@ -30,11 +30,12 @@ func NewController(storage CatalogStorage, apiLocation string, listeners ...List
 	c := Controller{
 		storage:     storage,
 		apiLocation: apiLocation,
-		exp_sid:     avl.New(timeKeys, avl.AllowDuplicates),
+		exp_sid:     avl.New(timeKeys, avl.AllowDuplicates), // allows more than one service with the same expiry time
 		startTime:   time.Now().UTC().Unix(),
 		listeners:   listeners,
 	}
 
+	// Initialize secondary indices (if a persistent storage backend is present)
 	err := c.initIndices()
 	if err != nil {
 		return nil, err
@@ -169,7 +170,7 @@ func (c *Controller) filter(path, op, value string, page, perPage int) ([]Servic
 	defer c.RUnlock()
 
 	matches := make([]Service, 0)
-	pp := 100
+	pp := MaxPerPage
 	for p := 1; ; p++ {
 		services, t, err := c.storage.list(p, pp)
 		if err != nil {
@@ -253,9 +254,9 @@ func (c *Controller) newURN() string {
 	return fmt.Sprintf("urn:ls_service:%x", c.startTime+c.counter)
 }
 
-// Initialize secondary indices
+// Initialize secondary indices (from a persistent storage backend)
 func (c *Controller) initIndices() error {
-	perPage := 100
+	perPage := MaxPerPage
 	for page := 1; ; page++ {
 		devices, total, err := c.storage.list(page, perPage)
 		if err != nil {
@@ -288,12 +289,17 @@ func (c *Controller) addIndices(s *Service) {
 func (c *Controller) removeIndices(s *Service) {
 
 	// Remove the expiry time index
+	// INFO:
+	// More than one service can have the same expiry time (i.e. map's key)
+	//	which leads to non-unique keys in the maps.
+	// This code removes keys with that expiry time (keeping them in a temp) until the
+	// 	desired target is reached. It then adds the items in the temp back to the tree.
 	if s.Ttl != 0 {
-		var temp []Map // Keep duplicates in temp and store them back
+		var temp []Map
 		for m := range c.exp_sid.Iter() {
 			id := m.(Map).value.(string)
 			if id == s.Id {
-				for { // go through all duplicates
+				for { // go through all duplicates (same expiry times)
 					r := c.exp_sid.Remove(m)
 					if r == nil {
 						break
