@@ -11,10 +11,9 @@ import (
 )
 
 const (
-	TypeDevices    = "devices"
-	TypeResources  = "resources"
-	CtxRootDir     = "/ctx"
-	CtxPathCatalog = "/catalog.jsonld"
+	TypeDevices   = "devices"
+	TypeResources = "resources"
+	CtxPath       = "/ctx/rc.jsonld"
 )
 
 type DeviceCollection struct {
@@ -37,11 +36,21 @@ type ResourceCollection struct {
 	Total     int        `json:"total"`
 }
 
+type JsonldSimpleDevice struct {
+	Context string `json:"@context"`
+	*SimpleDevice
+}
+
+type JsonldResource struct {
+	Context string `json:"@context"`
+	*Resource
+}
+
 // Read-only catalog api
 type ReadableCatalogAPI struct {
 	controller  CatalogController
 	apiLocation string
-	ctxPathRoot string
+	ctxPath     string
 	description string
 }
 
@@ -54,7 +63,7 @@ func NewReadableCatalogAPI(controller CatalogController, apiLocation, staticLoca
 	return &ReadableCatalogAPI{
 		controller:  controller,
 		apiLocation: apiLocation,
-		ctxPathRoot: staticLocation + CtxRootDir,
+		ctxPath:     staticLocation + CtxPath,
 		description: description,
 	}
 }
@@ -153,7 +162,12 @@ func (a *ReadableCatalogAPI) Get(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	b, err := json.Marshal(d)
+	ldd := JsonldSimpleDevice{
+		Context:      a.ctxPath,
+		SimpleDevice: d,
+	}
+
+	b, err := json.Marshal(ldd)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
@@ -253,7 +267,7 @@ func (a *ReadableCatalogAPI) List(w http.ResponseWriter, req *http.Request) {
 	}
 
 	coll := &DeviceCollection{
-		Context: a.ctxPathRoot + CtxPathCatalog,
+		Context: a.ctxPath,
 		Id:      a.apiLocation,
 		Type:    ApiDeviceCollectionType,
 		Devices: simpleDevices,
@@ -298,7 +312,7 @@ func (a *ReadableCatalogAPI) Filter(w http.ResponseWriter, req *http.Request) {
 	}
 
 	coll := &DeviceCollection{
-		Context: a.ctxPathRoot + CtxPathCatalog,
+		Context: a.ctxPath,
 		Id:      a.apiLocation,
 		Type:    ApiDeviceCollectionType,
 		Devices: simpleDevices,
@@ -335,7 +349,12 @@ func (a *ReadableCatalogAPI) GetResource(w http.ResponseWriter, req *http.Reques
 		}
 	}
 
-	b, err := json.Marshal(r)
+	ldr := JsonldResource{
+		Context:  a.ctxPath,
+		Resource: r,
+	}
+
+	b, err := json.Marshal(ldr)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
@@ -366,7 +385,7 @@ func (a *ReadableCatalogAPI) ListResources(w http.ResponseWriter, req *http.Requ
 	}
 
 	coll := &ResourceCollection{
-		Context:   a.ctxPathRoot + CtxPathCatalog,
+		Context:   a.ctxPath,
 		Id:        a.apiLocation,
 		Type:      ApiResourceCollectionType,
 		Resources: resources,
@@ -411,7 +430,7 @@ func (a *ReadableCatalogAPI) FilterResources(w http.ResponseWriter, req *http.Re
 	}
 
 	coll := &ResourceCollection{
-		Context:   a.ctxPathRoot + CtxPathCatalog,
+		Context:   a.ctxPath,
 		Id:        a.apiLocation,
 		Type:      ApiResourceCollectionType,
 		Resources: resources,

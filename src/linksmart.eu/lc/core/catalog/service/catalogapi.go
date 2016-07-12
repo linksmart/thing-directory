@@ -11,8 +11,7 @@ import (
 )
 
 const (
-	CtxRootDir     = "/ctx"
-	CtxPathCatalog = "/catalog.jsonld"
+	CtxPath = "/ctx/sc.jsonld"
 )
 
 type Collection struct {
@@ -26,11 +25,16 @@ type Collection struct {
 	Total       int       `json:"total"`
 }
 
+type JsonldService struct {
+	Context string `json:"@context"`
+	*Service
+}
+
 // Read-only catalog api
 type CatalogAPI struct {
 	controller  CatalogController
 	apiLocation string
-	ctxPathRoot string
+	ctxPath     string
 	description string
 }
 
@@ -38,7 +42,7 @@ func NewCatalogAPI(controller CatalogController, apiLocation, staticLocation, de
 	return &CatalogAPI{
 		controller:  controller,
 		apiLocation: apiLocation,
-		ctxPathRoot: staticLocation + CtxRootDir,
+		ctxPath:     staticLocation + CtxPath,
 		description: description,
 	}
 }
@@ -64,7 +68,7 @@ func (a *CatalogAPI) List(w http.ResponseWriter, req *http.Request) {
 	}
 
 	coll := &Collection{
-		Context:     a.ctxPathRoot + CtxPathCatalog,
+		Context:     a.ctxPath,
 		Id:          a.apiLocation,
 		Type:        ApiCollectionType,
 		Description: a.description,
@@ -110,7 +114,7 @@ func (a *CatalogAPI) Filter(w http.ResponseWriter, req *http.Request) {
 	}
 
 	coll := &Collection{
-		Context:     a.ctxPathRoot + CtxPathCatalog,
+		Context:     a.ctxPath,
 		Id:          a.apiLocation,
 		Type:        ApiCollectionType,
 		Description: a.description,
@@ -145,7 +149,12 @@ func (a *CatalogAPI) Get(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	b, err := json.Marshal(s)
+	lds := JsonldService{
+		Context: a.ctxPath,
+		Service: s,
+	}
+
+	b, err := json.Marshal(lds)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
