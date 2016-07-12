@@ -49,8 +49,8 @@ type Resource struct {
 type Protocol struct {
 	Type         string                 `json:"type"`
 	Endpoint     map[string]interface{} `json:"endpoint"`
-	Methods      []string               `json:"methods"`
-	ContentTypes []string               `json:"content-types"`
+	Methods      []string               `json:"methods,omitempty"`
+	ContentTypes []string               `json:"content-types,omitempty"`
 }
 
 // Validates the Device configuration
@@ -92,6 +92,19 @@ func (r *Resource) validate() error {
 	}
 	if strings.HasPrefix(r.Id, "/") || strings.HasSuffix(r.Id, "/") {
 		return fmt.Errorf("Resource id should not start or end with an slash. Given: %s", r.Id)
+	}
+
+	// Validate protocols
+	if len(r.Protocols) == 0 {
+		return fmt.Errorf("At least one protocol must be defined for every resource")
+	}
+	for _, protocol := range r.Protocols {
+		if protocol.Type == "" {
+			return fmt.Errorf("Each resource protocol must have a type")
+		}
+		if len(protocol.Endpoint) == 0 {
+			return fmt.Errorf("Each resource protocol must have at least one endpoint")
+		}
 	}
 
 	return nil
