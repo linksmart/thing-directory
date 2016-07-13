@@ -25,9 +25,20 @@ type Service struct {
 
 // Validates the Service configuration
 func (s *Service) validate() error {
+
+	// Validate protocols
 	if len(s.Protocols) == 0 {
-		return fmt.Errorf("at least one protocol must be defined in the service registration")
+		return fmt.Errorf("At least one protocol must be defined")
 	}
+	for _, protocol := range s.Protocols {
+		if protocol.Type == "" {
+			return fmt.Errorf("Each protocol must have a type")
+		}
+		if len(protocol.Endpoint) == 0 {
+			return fmt.Errorf("Each protocol must have at least one endpoint")
+		}
+	}
+
 	return nil
 }
 
@@ -56,8 +67,8 @@ func (s *Service) isGCTunnelable() bool {
 type Protocol struct {
 	Type         string                 `json:"type"`
 	Endpoint     map[string]interface{} `json:"endpoint"`
-	Methods      []string               `json:"methods"`
-	ContentTypes []string               `json:"content-types"`
+	Methods      []string               `json:"methods,omitempty"`
+	ContentTypes []string               `json:"content-types,omitempty"`
 }
 
 // Interfaces

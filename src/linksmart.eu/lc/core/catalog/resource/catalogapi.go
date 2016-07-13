@@ -18,6 +18,7 @@ const (
 )
 
 type DeviceCollection struct {
+	Context string         `json:"@context,omitempty"`
 	Id      string         `json:"id"`
 	Type    string         `json:"type"`
 	Devices []SimpleDevice `json:"devices"`
@@ -27,12 +28,23 @@ type DeviceCollection struct {
 }
 
 type ResourceCollection struct {
+	Context   string     `json:"@context,omitempty"`
 	Id        string     `json:"id"`
 	Type      string     `json:"type"`
 	Resources []Resource `json:"resources"`
 	Page      int        `json:"page"`
 	PerPage   int        `json:"per_page"`
 	Total     int        `json:"total"`
+}
+
+type JsonldSimpleDevice struct {
+	Context string `json:"@context"`
+	*SimpleDevice
+}
+
+type JsonldResource struct {
+	Context string `json:"@context"`
+	*Resource
 }
 
 // Read-only catalog api
@@ -151,7 +163,12 @@ func (a *ReadableCatalogAPI) Get(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	b, err := a.MarshalJSONLD(d)
+	ldd := JsonldSimpleDevice{
+		Context:      a.ctxPath,
+		SimpleDevice: d,
+	}
+
+	b, err := json.Marshal(ldd)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
@@ -251,6 +268,7 @@ func (a *ReadableCatalogAPI) List(w http.ResponseWriter, req *http.Request) {
 	}
 
 	coll := &DeviceCollection{
+		Context: a.ctxPathRoot + CtxPathCatalog,
 		Id:      a.apiLocation,
 		Type:    ApiDeviceCollectionType,
 		Devices: simpleDevices,
@@ -295,6 +313,7 @@ func (a *ReadableCatalogAPI) Filter(w http.ResponseWriter, req *http.Request) {
 	}
 
 	coll := &DeviceCollection{
+		Context: a.ctxPath,
 		Id:      a.apiLocation,
 		Type:    ApiDeviceCollectionType,
 		Devices: simpleDevices,
@@ -303,7 +322,7 @@ func (a *ReadableCatalogAPI) Filter(w http.ResponseWriter, req *http.Request) {
 		Total:   total,
 	}
 
-	b, err := a.MarshalJSONLD(coll)
+	b, err := json.Marshal(coll)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
@@ -331,7 +350,12 @@ func (a *ReadableCatalogAPI) GetResource(w http.ResponseWriter, req *http.Reques
 		}
 	}
 
-	b, err := a.MarshalJSONLD(r)
+	ldr := JsonldResource{
+		Context:  a.ctxPath,
+		Resource: r,
+	}
+
+	b, err := json.Marshal(ldr)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
@@ -362,6 +386,7 @@ func (a *ReadableCatalogAPI) ListResources(w http.ResponseWriter, req *http.Requ
 	}
 
 	coll := &ResourceCollection{
+		Context:   a.ctxPath,
 		Id:        a.apiLocation,
 		Type:      ApiResourceCollectionType,
 		Resources: resources,
@@ -370,7 +395,7 @@ func (a *ReadableCatalogAPI) ListResources(w http.ResponseWriter, req *http.Requ
 		Total:     total,
 	}
 
-	b, err := a.MarshalJSONLD(coll)
+	b, err := json.Marshal(coll)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
@@ -406,6 +431,7 @@ func (a *ReadableCatalogAPI) FilterResources(w http.ResponseWriter, req *http.Re
 	}
 
 	coll := &ResourceCollection{
+		Context:   a.ctxPath,
 		Id:        a.apiLocation,
 		Type:      ApiResourceCollectionType,
 		Resources: resources,
@@ -414,7 +440,7 @@ func (a *ReadableCatalogAPI) FilterResources(w http.ResponseWriter, req *http.Re
 		Total:     total,
 	}
 
-	b, err := a.MarshalJSONLD(coll)
+	b, err := json.Marshal(coll)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
@@ -422,49 +448,4 @@ func (a *ReadableCatalogAPI) FilterResources(w http.ResponseWriter, req *http.Re
 
 	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
 	w.Write(b)
-}
-
-// Marshals supported structs to JSON-LD i.e. with a `@context` field
-func (a *ReadableCatalogAPI) MarshalJSONLD(v interface{}) ([]byte, error) {
-	switch v.(type) {
-
-	case *SimpleDevice:
-		return json.Marshal(&struct {
-			Context string `json:"@context"`
-			*SimpleDevice
-		}{
-			Context:      a.ctxPath,
-			SimpleDevice: v.(*SimpleDevice),
-		})
-
-	case *Resource:
-		return json.Marshal(&struct {
-			Context string `json:"@context"`
-			*Resource
-		}{
-			Context:  a.ctxPath,
-			Resource: v.(*Resource),
-		})
-
-	case *DeviceCollection:
-		return json.Marshal(&struct {
-			Context string `json:"@context"`
-			*DeviceCollection
-		}{
-			Context:          a.ctxPath,
-			DeviceCollection: v.(*DeviceCollection),
-		})
-
-	case *ResourceCollection:
-		return json.Marshal(&struct {
-			Context string `json:"@context"`
-			*ResourceCollection
-		}{
-			Context:            a.ctxPath,
-			ResourceCollection: v.(*ResourceCollection),
-		})
-
-	}
-
-	return nil, fmt.Errorf("jsonld: Cannot marshal unsupported type %v to JSON-LD.", reflect.TypeOf(v))
 }

@@ -33,10 +33,11 @@ func NewController(storage CatalogStorage, apiLocation string) (CatalogControlle
 		storage:     storage,
 		apiLocation: apiLocation,
 		rid_did:     avl.New(stringKeys, 0),
-		exp_did:     avl.New(timeKeys, avl.AllowDuplicates),
+		exp_did:     avl.New(timeKeys, avl.AllowDuplicates), // allows more than one device with the same expiry time
 		startTime:   time.Now().UTC().Unix(),
 	}
 
+	// Initialize secondary indices (if a persistent storage backend is present)
 	err := c.initIndices()
 	if err != nil {
 		return nil, err
@@ -212,7 +213,7 @@ func (c *Controller) filter(path, op, value string, page, perPage int) ([]Simple
 	defer c.RUnlock()
 
 	matches := make([]SimpleDevice, 0)
-	pp := 100
+	pp := MaxPerPage
 	for p := 1; ; p++ {
 		slice, t, err := c.storage.list(p, pp)
 		if err != nil {
@@ -432,9 +433,9 @@ func (c *Controller) newResourceURN() string {
 	return fmt.Sprintf("urn:ls_resource:%x", c.startTime+c.counter)
 }
 
-// Initialize secondary indices
+// Initialize secondary indices (from a persistent storage backend)
 func (c *Controller) initIndices() error {
-	perPage := 100
+	perPage := MaxPerPage
 	for page := 1; ; page++ {
 		devices, total, err := c.storage.list(page, perPage)
 		if err != nil {
@@ -474,12 +475,17 @@ func (c *Controller) removeIndices(d *Device) {
 	}
 
 	// Remove the expiry time index
+	// INFO:
+	// More than one device can have the same expiry time (i.e. map's key)
+	//	which leads to non-unique keys in the maps.
+	// This code removes keys with that expiry time (keeping them in a temp) until the
+	// 	desired target is reached. It then adds the items in the temp back to the tree.
 	if d.Ttl != 0 {
-		var temp []Map // Keep duplicates in temp and store them back
+		var temp []Map
 		for m := range c.exp_did.Iter() {
 			id := m.(Map).value.(string)
 			if id == d.Id {
-				for { // go through all duplicates
+				for { // go through all duplicates (same expiry times)
 					r := c.exp_did.Remove(m)
 					if r == nil {
 						break

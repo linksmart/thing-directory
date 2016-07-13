@@ -12,10 +12,11 @@ import (
 )
 
 const (
-	CtxPath = "/ctx/catalog.jsonld"
+	CtxPath = "/ctx/sc.jsonld"
 )
 
 type Collection struct {
+	Context     string    `json:"@context,omitempty"`
 	Id          string    `json:"id"`
 	Type        string    `json:"type"`
 	Description string    `json:"description"`
@@ -25,11 +26,16 @@ type Collection struct {
 	Total       int       `json:"total"`
 }
 
+type JsonldService struct {
+	Context string `json:"@context"`
+	*Service
+}
+
 // Read-only catalog api
 type CatalogAPI struct {
 	controller  CatalogController
 	apiLocation string
-	ctxPath string
+	ctxPath     string
 	description string
 }
 
@@ -37,7 +43,7 @@ func NewCatalogAPI(controller CatalogController, apiLocation, staticLocation, de
 	return &CatalogAPI{
 		controller:  controller,
 		apiLocation: apiLocation,
-		ctxPath: staticLocation + CtxPath,
+		ctxPath:     staticLocation + CtxPath,
 		description: description,
 	}
 }
@@ -63,6 +69,7 @@ func (a *CatalogAPI) List(w http.ResponseWriter, req *http.Request) {
 	}
 
 	coll := &Collection{
+		Context:     a.ctxPath,
 		Id:          a.apiLocation,
 		Type:        ApiCollectionType,
 		Description: a.description,
@@ -72,7 +79,7 @@ func (a *CatalogAPI) List(w http.ResponseWriter, req *http.Request) {
 		Total:       total,
 	}
 
-	b, err := a.MarshalJSONLD(coll)
+	b, err := json.Marshal(coll)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
@@ -108,6 +115,7 @@ func (a *CatalogAPI) Filter(w http.ResponseWriter, req *http.Request) {
 	}
 
 	coll := &Collection{
+		Context:     a.ctxPath,
 		Id:          a.apiLocation,
 		Type:        ApiCollectionType,
 		Description: a.description,
@@ -117,7 +125,7 @@ func (a *CatalogAPI) Filter(w http.ResponseWriter, req *http.Request) {
 		Total:       total,
 	}
 
-	b, err := a.MarshalJSONLD(coll)
+	b, err := json.Marshal(coll)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
@@ -142,7 +150,12 @@ func (a *CatalogAPI) Get(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	b, err := a.MarshalJSONLD(s)
+	lds := JsonldService{
+		Context: a.ctxPath,
+		Service: s,
+	}
+
+	b, err := json.Marshal(lds)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
@@ -259,31 +272,4 @@ func (a *CatalogAPI) Delete(w http.ResponseWriter, req *http.Request) {
 
 	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
 	w.WriteHeader(http.StatusOK)
-}
-
-// Marshals supported structs to JSON-LD i.e. with a `@context` field
-func (a *CatalogAPI) MarshalJSONLD(v interface{}) ([]byte, error) {
-	switch v.(type) {
-
-	case *Service:
-		return json.Marshal(&struct {
-			Context string `json:"@context"`
-			*Service
-		}{
-			Context:      a.ctxPath,
-			Service: v.(*Service),
-		})
-
-	case *Collection:
-		return json.Marshal(&struct {
-			Context string `json:"@context"`
-			*Collection
-		}{
-			Context:          a.ctxPath,
-			Collection: v.(*Collection),
-		})
-
-	}
-
-	return nil, fmt.Errorf("jsonld: Cannot marshal unsupported type %v to JSON-LD.", reflect.TypeOf(v))
 }
