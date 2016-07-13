@@ -8,7 +8,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"linksmart.eu/lc/core/catalog"
-	"reflect"
 )
 
 const (
