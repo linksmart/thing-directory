@@ -26,7 +26,7 @@ type Collection struct {
 	Total       int       `json:"total"`
 }
 
-type JsonldService struct {
+type JSONLDService struct {
 	Context string `json:"@context"`
 	*Service
 }
@@ -150,7 +150,7 @@ func (a *CatalogAPI) Get(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	lds := JsonldService{
+	lds := JSONLDService{
 		Context: a.ctxPath,
 		Service: s,
 	}

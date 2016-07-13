@@ -37,12 +37,12 @@ type ResourceCollection struct {
 	Total     int        `json:"total"`
 }
 
-type JsonldSimpleDevice struct {
+type JSONLDSimpleDevice struct {
 	Context string `json:"@context"`
 	*SimpleDevice
 }
 
-type JsonldResource struct {
+type JSONLDResource struct {
 	Context string `json:"@context"`
 	*Resource
 }
@@ -163,7 +163,7 @@ func (a *ReadableCatalogAPI) Get(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	ldd := JsonldSimpleDevice{
+	ldd := JSONLDSimpleDevice{
 		Context:      a.ctxPath,
 		SimpleDevice: d,
 	}
@@ -268,7 +268,7 @@ func (a *ReadableCatalogAPI) List(w http.ResponseWriter, req *http.Request) {
 	}
 
 	coll := &DeviceCollection{
-		Context: a.ctxPathRoot + CtxPathCatalog,
+		Context: a.ctxPath,
 		Id:      a.apiLocation,
 		Type:    ApiDeviceCollectionType,
 		Devices: simpleDevices,
@@ -277,7 +277,7 @@ func (a *ReadableCatalogAPI) List(w http.ResponseWriter, req *http.Request) {
 		Total:   total,
 	}
 
-	b, err := a.MarshalJSONLD(coll)
+	b, err := json.Marshal(coll)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
@@ -350,7 +350,7 @@ func (a *ReadableCatalogAPI) GetResource(w http.ResponseWriter, req *http.Reques
 		}
 	}
 
-	ldr := JsonldResource{
+	ldr := JSONLDResource{
 		Context:  a.ctxPath,
 		Resource: r,
 	}
