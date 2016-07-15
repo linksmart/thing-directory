@@ -238,7 +238,10 @@ func (c *Controller) filter(path, op, value string, page, perPage int) ([]Simple
 		}
 	}
 	// Pagination
-	offset, limit := catalog.GetPagingAttr(len(matches), page, perPage, MaxPerPage)
+	offset, limit, err := catalog.GetPagingAttr(len(matches), page, perPage, MaxPerPage)
+	if err != nil {
+		return nil, 0, &BadRequestError{fmt.Sprintf("Unable to paginate: %s", err)}
+	}
 	// Return the page
 	return matches[offset : offset+limit], len(matches), nil
 }
@@ -325,7 +328,10 @@ func (c *Controller) listResources(page, perPage int) ([]Resource, int, error) {
 		deviceIDs[i] = x.(Map).value.(string)
 	}
 	// Pagination
-	offset, limit := catalog.GetPagingAttr(total, page, perPage, MaxPerPage)
+	offset, limit, err := catalog.GetPagingAttr(total, page, perPage, MaxPerPage)
+	if err != nil {
+		return nil, 0, &BadRequestError{fmt.Sprintf("Unable to paginate: %s", err)}
+	}
 
 	// Blank page
 	if limit == 0 {
@@ -394,7 +400,10 @@ func (c *Controller) filterResources(path, op, value string, page, perPage int) 
 		}
 	}
 	// Pagination
-	offset, limit := catalog.GetPagingAttr(len(matches), page, perPage, MaxPerPage)
+	offset, limit, err := catalog.GetPagingAttr(len(matches), page, perPage, MaxPerPage)
+	if err != nil {
+		return nil, 0, &BadRequestError{fmt.Sprintf("Unable to paginate: %s", err)}
+	}
 	// Return the page
 	return matches[offset : offset+limit], len(matches), nil
 }

@@ -194,7 +194,10 @@ func (c *Controller) filter(path, op, value string, page, perPage int) ([]Servic
 		}
 	}
 	// Pagination
-	offset, limit := catalog.GetPagingAttr(len(matches), page, perPage, MaxPerPage)
+	offset, limit, err := catalog.GetPagingAttr(len(matches), page, perPage, MaxPerPage)
+	if err != nil {
+		return nil, 0, &BadRequestError{fmt.Sprintf("Unable to paginate: %s", err)}
+	}
 	// Return the page
 	return matches[offset : offset+limit], len(matches), nil
 }

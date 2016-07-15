@@ -110,7 +110,10 @@ func (s *LevelDBStorage) list(page int, perPage int) (Devices, int, error) {
 	if err != nil {
 		return nil, 0, err
 	}
-	offset, limit := catalog.GetPagingAttr(total, page, perPage, MaxPerPage)
+	offset, limit, err := catalog.GetPagingAttr(total, page, perPage, MaxPerPage)
+	if err != nil {
+		return nil, 0, &BadRequestError{fmt.Sprintf("Unable to paginate: %s", err)}
+	}
 
 	// TODO: is there a better way to do this?
 	// github.com/syndtr/goleveldb/leveldb/iterator

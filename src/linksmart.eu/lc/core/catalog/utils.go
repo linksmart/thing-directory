@@ -90,11 +90,10 @@ func DiscoverCatalogEndpoint(serviceType string) (endpoint string, err error) {
 }
 
 // Returns a 'slice' of the given slice based on the requested 'page'
-func GetPageOfSlice(slice []string, page, perPage, maxPerPage int) []string {
+func GetPageOfSlice(slice []string, page, perPage, maxPerPage int) ([]string, error) {
 	err := ValidatePagingParams(page, perPage, maxPerPage)
 	if err != nil {
-		logger.Printf("GetPageOfSlice() Bad input: %s\n", err)
-		return []string{}
+		return nil, err
 	}
 
 	keys := []string{}
@@ -115,35 +114,34 @@ func GetPageOfSlice(slice []string, page, perPage, maxPerPage int) []string {
 		l := r - perPage
 		keys = slice[l:r]
 	}
-	return keys
+	return keys, nil
 }
 
 // Returns offset and limit representing a subset of the given slice total size
 //	 based on the requested 'page'
-func GetPagingAttr(total, page, perPage, maxPerPage int) (int, int) {
+func GetPagingAttr(total, page, perPage, maxPerPage int) (int, int, error) {
 	err := ValidatePagingParams(page, perPage, maxPerPage)
 	if err != nil {
-		logger.Printf("GetPagingAttr() Bad input: %s\n", err)
-		return 0, 0
+		return 0, 0, err
 	}
 
 	if page == 1 {
 		// first page
 		if perPage > total {
-			return 0, total
+			return 0, total, nil
 		} else {
-			return 0, perPage
+			return 0, perPage, nil
 		}
 	} else if page == int(total/perPage)+1 {
 		// last page
-		return perPage * (page - 1), total - perPage*(page-1)
+		return perPage * (page - 1), total - perPage*(page-1), nil
 	} else if page <= total/perPage && page*perPage <= total {
 		// another page
 		r := page * perPage
 		l := r - perPage
-		return l, r - l
+		return l, r - l, nil
 	}
-	return 0, 0
+	return 0, 0, nil
 }
 
 // Validates paging parameters
