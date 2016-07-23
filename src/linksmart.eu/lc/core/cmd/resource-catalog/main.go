@@ -24,9 +24,11 @@ import (
 	sc "linksmart.eu/lc/core/catalog/service"
 
 	_ "linksmart.eu/lc/sec/auth/cas/obtainer"
+	_ "linksmart.eu/lc/sec/auth/keycloak/obtainer"
 	"linksmart.eu/lc/sec/auth/obtainer"
 
 	_ "linksmart.eu/lc/sec/auth/cas/validator"
+	_ "linksmart.eu/lc/sec/auth/keycloak/validator"
 	"linksmart.eu/lc/sec/auth/validator"
 )
 

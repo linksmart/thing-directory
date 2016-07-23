@@ -23,6 +23,7 @@ import (
 	catalog "linksmart.eu/lc/core/catalog/service"
 
 	_ "linksmart.eu/lc/sec/auth/cas/validator"
+	_ "linksmart.eu/lc/sec/auth/keycloak/validator"
 	"linksmart.eu/lc/sec/auth/validator"
 )
 
