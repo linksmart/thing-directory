@@ -4,29 +4,29 @@ package validator
 
 import (
 	"fmt"
-	"net/http"
 	"sync"
 
 	"linksmart.eu/lc/sec/authz"
+	"log"
+	"os"
+	"strconv"
 )
 
 // Interface methods to validate Service Ticket
 type Driver interface {
-	// Given a valid ticket for the specified serviceID,
-	//	ValidateTicket must return true with a set of user attributes.
-	Validate(serverAddr, serviceID, ticket string) (bool, map[string]string, error)
-	// Handler must perform ticket validation and authorization
-	//	in form of a HTTP middleware function
-	// The usage of *authz.Conf is optional and must be discarded if set to nil
-	Handler(serverAddr, serviceID string, authz *authz.Conf, next http.Handler) http.Handler
+	// Validate must validate a ticket, given the server address and service ID
+	//	When ticket is valid, it must return true together with the UserProfile
+	//	When ticket is invalid, it must return false and provide the reason in the UserProfile.Status
+	Validate(serverAddr, serviceID, ticket string) (bool, *UserProfile, error)
 }
 
 var (
 	driversMu sync.Mutex
 	drivers   = make(map[string]Driver)
+	logger    *log.Logger
 )
 
-// Register a driver
+// Register registers a device (called by a driver)
 func Register(name string, driver Driver) {
 	driversMu.Lock()
 	defer driversMu.Unlock()
@@ -36,8 +36,8 @@ func Register(name string, driver Driver) {
 	drivers[name] = driver
 }
 
-// Setup the driver
-// 	authz is optional and can be set to nil
+// Setup configures and returns the Validator
+// 	parameter authz is optional and can be set to nil
 func Setup(name, serverAddr, serviceID string, authz *authz.Conf) (*Validator, error) {
 	driversMu.Lock()
 	driveri, ok := drivers[name]
@@ -47,30 +47,43 @@ func Setup(name, serverAddr, serviceID string, authz *authz.Conf) (*Validator, e
 	}
 	validator := &Validator{
 		driver:     driveri,
+		driverName: name,
 		serverAddr: serverAddr,
 		serviceID:  serviceID,
 		authz:      authz,
 	}
 
+	// Initialize the logger
+	logger = log.New(os.Stdout, fmt.Sprintf("[%s] ", name), 0)
+	v, err := strconv.Atoi(os.Getenv("DEBUG"))
+	if err == nil && v == 1 {
+		logger.SetFlags(log.Ltime | log.Lshortfile)
+	}
+
 	return validator, nil
 }
 
-// Obtainer struct
+// Validator struct
 type Validator struct {
 	driver     Driver
+	driverName string
 	serverAddr string
 	serviceID  string
 	// Authorization is optional
 	authz *authz.Conf
 }
 
-// Wrapper functions
-// These functions are public
-
-func (v *Validator) Validate(ticket string) (bool, map[string]string, error) {
+// Validate validates a ticket
+//	When ticket is valid, it returns true together with the UserProfile
+//	When ticket is invalid, it returns false and provide the reason in the UserProfile.Status
+func (v *Validator) Validate(ticket string) (bool, *UserProfile, error) {
 	return v.driver.Validate(v.serverAddr, v.serviceID, ticket)
 }
 
-func (v *Validator) Handler(next http.Handler) http.Handler {
-	return v.driver.Handler(v.serverAddr, v.serviceID, v.authz, next)
+// UserProfile is the profile of user that is returned by the Validator
+type UserProfile struct {
+	Username string
+	Groups   []string
+	// Status is the message given when token is not validated
+	Status string
 }

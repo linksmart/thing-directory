@@ -5,7 +5,7 @@ package authz
 import "strings"
 
 // Authorized checks whether a user/group is authorized to access resource using a specific method
-func (authz *Conf) Authorized(resource, method, user, group string) bool {
+func (authz *Conf) Authorized(resource, method, user string, groups []string) bool {
 	// Create a tree of paths
 	// e.g. parses /path1/path2/path3 to [/path1/path2/path3 /path1/path2 /path1]
 	// e.g. parses / to [/]
@@ -28,12 +28,23 @@ func (authz *Conf) Authorized(resource, method, user, group string) bool {
 		}
 		return false
 	}
+	// Check whether there is a match between two slices
+	inSliceM := func(slice1 []string, slice2 []string) bool {
+		for _, a := range slice1 {
+			for _, b := range slice2 {
+				if b == a {
+					return true
+				}
+			}
+		}
+		return false
+	}
 
 	for _, rule := range authz.Rules {
 		for _, res := range resource_tree {
 			// Return true if user or group matches a rule
 			if inSlice(res, rule.Resources) && inSlice(method, rule.Methods) &&
-				(inSlice(user, rule.Users) || inSlice(group, rule.Groups)) {
+				(inSlice(user, rule.Users) || inSliceM(groups, rule.Groups)) {
 				return true
 			}
 		}
