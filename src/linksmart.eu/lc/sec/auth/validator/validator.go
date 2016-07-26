@@ -4,12 +4,12 @@ package validator
 
 import (
 	"fmt"
-	"sync"
-
-	"linksmart.eu/lc/sec/authz"
 	"log"
 	"os"
 	"strconv"
+	"sync"
+
+	"linksmart.eu/lc/sec/authz"
 )
 
 // Interface methods to validate Service Ticket
@@ -26,7 +26,7 @@ var (
 	logger    *log.Logger
 )
 
-// Register registers a device (called by a driver)
+// Register registers a driver (called by a the driver package)
 func Register(name string, driver Driver) {
 	driversMu.Lock()
 	defer driversMu.Unlock()
@@ -45,13 +45,6 @@ func Setup(name, serverAddr, serviceID string, authz *authz.Conf) (*Validator, e
 	if !ok {
 		return nil, fmt.Errorf("Auth: unknown validator %s (forgot to import driver?)", name)
 	}
-	validator := &Validator{
-		driver:     driveri,
-		driverName: name,
-		serverAddr: serverAddr,
-		serviceID:  serviceID,
-		authz:      authz,
-	}
 
 	// Initialize the logger
 	logger = log.New(os.Stdout, fmt.Sprintf("[%s] ", name), 0)
@@ -60,7 +53,13 @@ func Setup(name, serverAddr, serviceID string, authz *authz.Conf) (*Validator, e
 		logger.SetFlags(log.Ltime | log.Lshortfile)
 	}
 
-	return validator, nil
+	return &Validator{
+		driver:     driveri,
+		driverName: name,
+		serverAddr: serverAddr,
+		serviceID:  serviceID,
+		authz:      authz,
+	}, nil
 }
 
 // Validator struct

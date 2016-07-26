@@ -4,28 +4,29 @@ package obtainer
 
 import (
 	"fmt"
+	"log"
+	"os"
+	"strconv"
 	"sync"
 )
 
 // Interface methods to login, obtain Service Ticket, and logout
 type Driver interface {
-	// Given serverAddr, valid username and password,
-	// 	Login must return a Ticket Granting Ticket (TGT).
+	// Login must return a Ticket Granting Ticket (TGT), given serverAddr, valid username and password
 	Login(serverAddr, username, password string) (string, error)
-	// Given serverAddr, valid TGT and serviceID,
-	//	RequestTicket must return a Service Ticket.
+	// RequestTicket must return a Service Ticket, given serverAddr, valid TGT and serviceID
 	RequestTicket(serverAddr, TGT, serviceID string) (string, error)
-	// Given serverAddr, and a valid TGT,
-	// 	Logout must expire the TGT.
+	// Logout must expire the TGT, given serverAddr, and a valid TGT
 	Logout(serverAddr, TGT string) error
 }
 
 var (
 	driversMu sync.Mutex
 	drivers   = make(map[string]Driver)
+	logger    *log.Logger
 )
 
-// Register a driver
+// Register registers a driver (called by a the driver package)
 func Register(name string, driver Driver) {
 	driversMu.Lock()
 	defer driversMu.Unlock()
@@ -35,7 +36,7 @@ func Register(name string, driver Driver) {
 	drivers[name] = driver
 }
 
-// Setup the driver
+// Setup configures and returns the Obtainer
 func Setup(name, serverAddr string) (*Obtainer, error) {
 	driversMu.Lock()
 	driveri, ok := drivers[name]
@@ -43,11 +44,18 @@ func Setup(name, serverAddr string) (*Obtainer, error) {
 	if !ok {
 		return nil, fmt.Errorf("Auth: unknown obtainer %s (forgot to import driver?)", name)
 	}
-	obtainer := &Obtainer{
+
+	// Initialize the logger
+	logger = log.New(os.Stdout, fmt.Sprintf("[%s] ", name), 0)
+	v, err := strconv.Atoi(os.Getenv("DEBUG"))
+	if err == nil && v == 1 {
+		logger.SetFlags(log.Ltime | log.Lshortfile)
+	}
+
+	return &Obtainer{
 		driver:     driveri,
 		serverAddr: serverAddr,
-	}
-	return obtainer, nil
+	}, nil
 }
 
 // Obtainer struct

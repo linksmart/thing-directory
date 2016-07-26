@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"linksmart.eu/lc/sec/auth"
+	"encoding/json"
 	_ "linksmart.eu/lc/sec/auth/cas/obtainer"
 	_ "linksmart.eu/lc/sec/auth/keycloak/obtainer"
 	"linksmart.eu/lc/sec/auth/obtainer"
@@ -30,15 +30,13 @@ func (v *Validator) Handler(next http.Handler) http.Handler {
 		// Authorization header
 		Authorization := r.Header.Get("Authorization")
 		if Authorization == "" {
-			logger.Printf("[%s] %q %s\n", r.Method, r.URL.String(), "Unauthorized request.")
-			auth.HTTPErrorResponse(http.StatusUnauthorized, "Unauthorized request.", w)
+			ErrorResponse(w, http.StatusUnauthorized, "Unauthorized request.")
 			return
 		}
 
 		parts := strings.SplitN(Authorization, " ", 2)
 		if len(parts) != 2 {
-			logger.Printf("[%s] %q %s\n", r.Method, r.URL.String(), "Invalid format for Authorization header field.")
-			auth.HTTPErrorResponse(http.StatusBadRequest, "Invalid format for Authorization header field.", w)
+			ErrorResponse(w, http.StatusBadRequest, "Invalid format for Authorization header field.")
 			return
 		}
 		method, value := parts[0], parts[1]
@@ -52,8 +50,7 @@ func (v *Validator) Handler(next http.Handler) http.Handler {
 
 			token, statuscode, err = v.basicAuth(value)
 			if err != nil {
-				logger.Printf("[%s] %q %s\n", r.Method, r.URL.String(), err.Error())
-				auth.HTTPErrorResponse(statuscode, err.Error(), w)
+				ErrorResponse(w, statuscode, err.Error())
 				return
 			}
 			v.validateHandlerFunc(w, r, token, next)
@@ -65,8 +62,7 @@ func (v *Validator) Handler(next http.Handler) http.Handler {
 			return
 
 		default:
-			logger.Printf("[%s] %q %s\n", r.Method, r.URL.String(), "Invalid Authorization method.")
-			auth.HTTPErrorResponse(http.StatusUnauthorized, "Invalid Authorization method.", w)
+			ErrorResponse(w, http.StatusUnauthorized, "Invalid Authorization method.")
 			return
 		}
 
@@ -80,17 +76,15 @@ func (v *Validator) validateHandlerFunc(w http.ResponseWriter, r *http.Request, 
 	// Validate Token
 	valid, profile, err := v.driver.Validate(v.serverAddr, v.serviceID, token)
 	if err != nil {
-		logger.Printf("[%s] %q %s\n", r.Method, r.URL.String(), "Authentication server error: "+err.Error())
-		auth.HTTPErrorResponse(http.StatusInternalServerError, "Authentication server error: "+err.Error(), w)
+		ErrorResponse(w, http.StatusInternalServerError, "Authentication server error:", err.Error())
 		return
 	}
 	if !valid {
 		if profile != nil && profile.Status != "" {
-			logger.Printf("[%s] %q %s\n", r.Method, r.URL.String(), profile.Status)
-			auth.HTTPErrorResponse(http.StatusUnauthorized, "Unauthorized request: "+profile.Status, w)
+			ErrorResponse(w, http.StatusUnauthorized, "Unauthorized request:", profile.Status)
 			return
 		}
-		auth.HTTPErrorResponse(http.StatusUnauthorized, "Unauthorized request.", w)
+		ErrorResponse(w, http.StatusUnauthorized, "Unauthorized request.")
 		return
 	}
 
@@ -99,10 +93,8 @@ func (v *Validator) validateHandlerFunc(w http.ResponseWriter, r *http.Request, 
 		// Check if user matches authorization rules
 		authorized := v.authz.Authorized(r.URL.Path, r.Method, profile.Username, profile.Groups)
 		if !authorized {
-			logger.Printf("[%s] %q Access denied for user `%s` member of %s\n", r.Method, r.URL.String(),
-				profile.Username, profile.Groups)
-			auth.HTTPErrorResponse(http.StatusForbidden,
-				fmt.Sprintf("Access denied for user `%s` member of %s", profile.Username, profile.Groups), w)
+			ErrorResponse(w, http.StatusForbidden,
+				fmt.Sprintf("Access denied for user `%s` member of %s", profile.Username, profile.Groups))
 			return
 		}
 	}
@@ -134,7 +126,6 @@ func (v *Validator) basicAuth(credentials string) (string, int, error) {
 		client, err = obtainer.NewClient(v.driverName, v.serverAddr, pair[0], pair[1], v.serviceID)
 		if err != nil {
 			return "", http.StatusInternalServerError, fmt.Errorf("Basic Auth: Unable to create client for token generation: %s", err)
-
 		}
 
 		clients[credentials] = client
@@ -143,20 +134,35 @@ func (v *Validator) basicAuth(credentials string) (string, int, error) {
 	token, err := client.Obtain()
 	if err != nil {
 		return "", http.StatusUnauthorized, fmt.Errorf("Basic Auth: Unable to obtain ticket: %s", err)
-
 	}
 
 	valid, _, err := v.driver.Validate(v.serverAddr, v.serviceID, token)
 	if err != nil {
 		return "", http.StatusInternalServerError, fmt.Errorf("Basic Auth: Validation error: %s", err)
-
 	}
 	if !valid {
 		token, err = client.Renew()
 		if err != nil {
 			return "", http.StatusUnauthorized, fmt.Errorf("Basic Auth: Unable to renew ticket: %s", err)
-
 		}
 	}
 	return token, http.StatusOK, nil
+}
+
+// ErrorResponse writes error to HTTP ResponseWriter
+func ErrorResponse(w http.ResponseWriter, code int, msgs ...string) {
+	msg := strings.Join(msgs, " ")
+	e := map[string]interface{}{
+		"code":    code,
+		"message": msg,
+	}
+	if code >= 500 {
+		logger.Printf("ERROR %s: %s", http.StatusText(code), msg)
+	} else {
+		logger.Printf("%s: %s", http.StatusText(code), msg)
+	}
+	b, _ := json.Marshal(e)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	w.Write(b)
 }

@@ -6,14 +6,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 
 	"linksmart.eu/lc/sec/auth/obtainer"
-	"log"
-	"strconv"
 )
 
 const (
