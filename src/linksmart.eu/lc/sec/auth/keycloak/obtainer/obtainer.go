@@ -53,6 +53,7 @@ func (o *KeycloakObtainer) RequestTicket(serverAddr, credentials, serviceID stri
 	if err != nil {
 		return "", fmt.Errorf("%s", err)
 	}
+	defer res.Body.Close()
 	logger.Println("RequestTicket()", res.Status)
 
 	if res.StatusCode != http.StatusOK {
@@ -60,7 +61,6 @@ func (o *KeycloakObtainer) RequestTicket(serverAddr, credentials, serviceID stri
 	}
 
 	b, err := ioutil.ReadAll(res.Body)
-	defer res.Body.Close()
 	if err != nil {
 		return "", fmt.Errorf("%s", err)
 	}

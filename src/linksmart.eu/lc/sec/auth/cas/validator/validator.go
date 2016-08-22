@@ -43,6 +43,7 @@ func (v *CASValidator) Validate(serverAddr, serviceID, ticket string) (bool, *va
 	if err != nil {
 		return false, nil, fmt.Errorf("%s", err)
 	}
+	defer res.Body.Close()
 
 	// Check for server errors
 	if res.StatusCode != http.StatusOK {
@@ -51,7 +52,6 @@ func (v *CASValidator) Validate(serverAddr, serviceID, ticket string) (bool, *va
 
 	// User attributes / error message
 	body, err := ioutil.ReadAll(res.Body)
-	defer res.Body.Close()
 	if err != nil {
 		return false, nil, fmt.Errorf("%s", err)
 	}
@@ -119,6 +119,7 @@ func (v *CASValidator) Validate(serverAddr, serviceID, ticket string) (bool, *va
 //	if err != nil {
 //		return false, bodyMap, fErr(err)
 //	}
+//  defer res.Body.Close()
 //	fmt.Println("CAS:", res.Status)
 
 //	// Check for server errors
@@ -128,7 +129,6 @@ func (v *CASValidator) Validate(serverAddr, serviceID, ticket string) (bool, *va
 
 //	// User attributes / error message
 //	body, err := ioutil.ReadAll(res.Body)
-//	defer res.Body.Close()
 //	if err != nil {
 //		return false, bodyMap, fErr(err)
 //	}

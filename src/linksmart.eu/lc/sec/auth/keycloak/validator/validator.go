@@ -49,6 +49,7 @@ func (v *KeycloakValidator) Validate(serverAddr, serviceID, ticket string) (bool
 	if err != nil {
 		return false, nil, fmt.Errorf("%s", err)
 	}
+	defer res.Body.Close()
 
 	if res.StatusCode == http.StatusForbidden {
 		return false, nil, nil
@@ -62,7 +63,6 @@ func (v *KeycloakValidator) Validate(serverAddr, serviceID, ticket string) (bool
 
 	// User attributes / error message
 	b, err := ioutil.ReadAll(res.Body)
-	defer res.Body.Close()
 	if err != nil {
 		return false, nil, fmt.Errorf("%s", err)
 	}

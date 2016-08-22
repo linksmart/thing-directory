@@ -45,6 +45,7 @@ func (o *CASObtainer) Login(serverAddr, username, password string) (string, erro
 	if err != nil {
 		return "", fmt.Errorf("%s", err)
 	}
+	defer res.Body.Close()
 	logger.Println("Login()", res.Status)
 
 	// Check for credentials
@@ -68,10 +69,10 @@ func (o *CASObtainer) RequestTicket(serverAddr, TGT, serviceID string) (string, 
 	if err != nil {
 		return "", fmt.Errorf("%s", err)
 	}
+	defer res.Body.Close()
 	logger.Println("RequestTicket()", res.Status)
 
 	body, err := ioutil.ReadAll(res.Body)
-	defer res.Body.Close()
 	if err != nil {
 		return "", fmt.Errorf("%s", err)
 	}
@@ -94,6 +95,7 @@ func (o *CASObtainer) Logout(serverAddr, TGT string) error {
 	if err != nil {
 		return fmt.Errorf("%s", err)
 	}
+	defer res.Body.Close()
 	logger.Println("Logout()", res.Status)
 
 	// Check for server errors
