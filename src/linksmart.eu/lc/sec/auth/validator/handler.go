@@ -36,7 +36,7 @@ func (v *Validator) Handler(next http.Handler) http.Handler {
 		Authorization := r.Header.Get("Authorization")
 		if Authorization == "" {
 			if v.authz != nil {
-				if ok := v.authz.Authorized(r.URL.Path, r.Method, "anonymous", []string{"anonymous"}); ok {
+				if ok := v.authz.Authorized(r.URL.Path, r.Method, "", []string{"anonymous"}); ok {
 					// Anonymous access, proceed to the next handler
 					next.ServeHTTP(w, r)
 					return
