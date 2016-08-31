@@ -41,7 +41,7 @@ func init() {
 }
 
 // Validate validates the token
-func (v *KeycloakValidator) Validate(serverAddr, serviceID, ticket string) (bool, *validator.UserProfile, error) {
+func (v *KeycloakValidator) Validate(serverAddr, clientID, ticket string) (bool, *validator.UserProfile, error) {
 
 	// Get the public key
 	res, err := http.Get(serverAddr)
@@ -61,26 +61,32 @@ func (v *KeycloakValidator) Validate(serverAddr, serviceID, ticket string) (bool
 		return false, nil, fmt.Errorf("Error getting the public key from the authentication server response: %s", err)
 	}
 
+	// Decode the public key
+	decoded, err := base64.StdEncoding.DecodeString(body["public_key"].(string))
+	if err != nil {
+		return false, nil, fmt.Errorf("Error decoding the authentication server public key: %s", err)
+	}
+
 	// Parse the public key
-	key, _ := base64.StdEncoding.DecodeString(body["public_key"].(string))
-	re, err := x509.ParsePKIXPublicKey(key)
+	publicKey, err := x509.ParsePKIXPublicKey(decoded)
 	if err != nil {
 		return false, nil, fmt.Errorf("Error pasring the authentication server public key: %s", err)
 	}
 
-	if _, ok := re.(*rsa.PublicKey); !ok {
+	if _, ok := publicKey.(*rsa.PublicKey); !ok {
 		return false, nil, fmt.Errorf("The authentication server's public key type is not RSA.")
 	}
 
 	// Parse the jwt id_token
 	token, err := jwt.Parse(ticket, func(token *jwt.Token) (interface{}, error) {
-		// Don't forget to validate the alg is what you expect:
+		// Make sure that the algorithm is RS256
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+			return nil, fmt.Errorf("Unable to validate authentication token. Unexpected signing method: %v", token.Header["alg"])
 		}
-		return re, nil
+		return publicKey, nil
 	})
 
+	// Check the validation errors
 	if !token.Valid {
 		if ve, ok := err.(*jwt.ValidationError); ok {
 			if ve.Errors&jwt.ValidationErrorMalformed != 0 {
@@ -98,8 +104,8 @@ func (v *KeycloakValidator) Validate(serverAddr, serviceID, ticket string) (bool
 	// Get the claims
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
 		// Check if audience matches the client id
-		if claims["aud"].(string) != serviceID {
-			return false, &validator.UserProfile{Status: fmt.Sprintf("Unable to authenticate with client `%s`. Expecting `%s`.", claims["aud"].(string), serviceID)}, nil
+		if claims["aud"].(string) != clientID {
+			return false, &validator.UserProfile{Status: fmt.Sprintf("Unable to authenticate with client `%s`. Expecting `%s`.", claims["aud"].(string), clientID)}, nil
 		}
 
 		// Get the user data
