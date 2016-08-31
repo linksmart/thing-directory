@@ -20,6 +20,12 @@
 			"branch": "master"
 		},
 		{
+			"importpath": "github.com/dgrijalva/jwt-go",
+			"repository": "https://github.com/dgrijalva/jwt-go",
+			"revision": "63734eae1ef55eaac06fdc0f312615f2e321e273",
+			"branch": "master"
+		},
+		{
 			"importpath": "github.com/golang/snappy",
 			"repository": "https://github.com/golang/snappy",
 			"revision": "723cc1e459b8eea2dea4583200fd60757d40097a",

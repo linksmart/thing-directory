@@ -3,14 +3,19 @@
 package validator
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
 	"strconv"
 
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/base64"
+	"encoding/json"
+	"io/ioutil"
+	"net/http"
+
+	jwt "github.com/dgrijalva/jwt-go"
 	"linksmart.eu/lc/sec/auth/validator"
 )
 
@@ -38,51 +43,76 @@ func init() {
 // Validate validates the token
 func (v *KeycloakValidator) Validate(serverAddr, serviceID, ticket string) (bool, *validator.UserProfile, error) {
 
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s%s", serverAddr, userInfoPath), nil)
+	// Get the public key
+	res, err := http.Get(serverAddr)
 	if err != nil {
-		return false, nil, fmt.Errorf("%s", err)
-	}
-
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", ticket))
-	res, err := client.Do(req)
-	if err != nil {
-		return false, nil, fmt.Errorf("%s", err)
+		return false, nil, fmt.Errorf("Error getting the public key from the authentication server: %s", err)
 	}
 	defer res.Body.Close()
 
-	if res.StatusCode == http.StatusForbidden {
-		return false, nil, nil
-	}
-
-	// Check for server errors
-	if res.StatusCode != http.StatusOK {
-		return false, nil, fmt.Errorf("%s", res.Status)
-	}
-	logger.Println("Validate()", res.Status, "Valid ticket.")
-
-	// User attributes / error message
 	b, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return false, nil, fmt.Errorf("%s", err)
+		return false, nil, fmt.Errorf("Error getting the public key from the authentication server response: %s", err)
 	}
 
-	var body struct {
-		Groups   []string `json:"groups"`
-		Username string   `json:"preferred_username"`
-	}
+	body := make(map[string]interface{})
 	err = json.Unmarshal(b, &body)
 	if err != nil {
-		return false, nil, fmt.Errorf("Unable to parse response body: %s", err)
+		return false, nil, fmt.Errorf("Error getting the public key from the authentication server response: %s", err)
 	}
 
-	if body.Username == "" && len(body.Groups) == 0 {
-		return false, nil, fmt.Errorf("User profile does not contain `preferred_username` and `groups`.")
+	// Parse the public key
+	key, _ := base64.StdEncoding.DecodeString(body["public_key"].(string))
+	re, err := x509.ParsePKIXPublicKey(key)
+	if err != nil {
+		return false, nil, fmt.Errorf("Error pasring the authentication server public key: %s", err)
 	}
 
-	// Valid token + attributes
-	return true, &validator.UserProfile{
-		Username: body.Username,
-		Groups:   body.Groups,
-	}, nil
+	if _, ok := re.(*rsa.PublicKey); !ok {
+		return false, nil, fmt.Errorf("The authentication server's public key type is not RSA.")
+	}
+
+	// Parse the jwt id_token
+	token, err := jwt.Parse(ticket, func(token *jwt.Token) (interface{}, error) {
+		// Don't forget to validate the alg is what you expect:
+		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+		}
+		return re, nil
+	})
+
+	if !token.Valid {
+		if ve, ok := err.(*jwt.ValidationError); ok {
+			if ve.Errors&jwt.ValidationErrorMalformed != 0 {
+				return false, &validator.UserProfile{Status: fmt.Sprintf("Invalid authentication token.")}, nil
+			} else if ve.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
+				return false, &validator.UserProfile{Status: fmt.Sprintf("Authentication token is either expired or not active yet")}, nil
+			} else {
+				return false, &validator.UserProfile{Status: fmt.Sprintf("Error validating the authentication token: %s", err)}, nil
+			}
+		} else {
+			return false, &validator.UserProfile{Status: fmt.Sprintf("Invalid authentication token: %s", err)}, nil
+		}
+	}
+
+	// Get the claims
+	if claims, ok := token.Claims.(jwt.MapClaims); ok {
+		// Check if audience matches the client id
+		if claims["aud"].(string) != serviceID {
+			return false, &validator.UserProfile{Status: fmt.Sprintf("Unable to authenticate with client `%s`. Expecting `%s`.", claims["aud"].(string), serviceID)}, nil
+		}
+
+		// Get the user data
+		// convert groups attribute to []string
+		groupInts := claims["groups"].([]interface{})
+		groups := make([]string, len(groupInts))
+		for i := range groupInts {
+			groups[i] = groupInts[i].(string)
+		}
+		return true, &validator.UserProfile{
+			Username: claims["preferred_username"].(string),
+			Groups:   groups,
+		}, nil
+	}
+	return false, nil, fmt.Errorf("Unable to extract claims from the jwt token.")
 }
