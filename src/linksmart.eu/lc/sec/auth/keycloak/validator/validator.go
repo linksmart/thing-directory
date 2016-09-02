@@ -12,69 +12,68 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"linksmart.eu/lc/sec/auth/validator"
 )
 
-const (
-	userInfoPath = "/protocol/openid-connect/userinfo"
-	driverName   = "keycloak"
-)
+const DriverName = "keycloak"
 
 type KeycloakValidator struct{}
 
-var logger *log.Logger
+var (
+	logger    *log.Logger
+	publicKey *rsa.PublicKey
+)
 
 func init() {
 	// Initialize the logger
-	logger = log.New(os.Stdout, fmt.Sprintf("[%s] ", driverName), 0)
+	logger = log.New(os.Stdout, fmt.Sprintf("[%s] ", DriverName), 0)
 	v, err := strconv.Atoi(os.Getenv("DEBUG"))
 	if err == nil && v == 1 {
 		logger.SetFlags(log.Ltime | log.Lshortfile)
 	}
 
 	// Register the driver as a auth/validator
-	validator.Register(driverName, &KeycloakValidator{})
+	validator.Register(DriverName, &KeycloakValidator{})
 }
 
 // Validate validates the token
 func (v *KeycloakValidator) Validate(serverAddr, clientID, ticket string) (bool, *validator.UserProfile, error) {
 
-	// Get the public key
-	res, err := http.Get(serverAddr)
-	if err != nil {
-		return false, nil, fmt.Errorf("Error getting the public key from the authentication server: %s", err)
-	}
-	defer res.Body.Close()
+	if publicKey == nil {
+		// Get the public key
+		res, err := http.Get(serverAddr)
+		if err != nil {
+			return false, nil, fmt.Errorf("Error getting the public key from the authentication server: %s", err)
+		}
+		defer res.Body.Close()
 
-	b, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return false, nil, fmt.Errorf("Error getting the public key from the authentication server response: %s", err)
-	}
+		var body struct {
+			PublicKey string `json:"public_key"`
+		}
+		err = json.NewDecoder(res.Body).Decode(&body)
+		if err != nil {
+			return false, nil, fmt.Errorf("Error getting the public key from the authentication server response: %s", err)
+		}
 
-	body := make(map[string]interface{})
-	err = json.Unmarshal(b, &body)
-	if err != nil {
-		return false, nil, fmt.Errorf("Error getting the public key from the authentication server response: %s", err)
-	}
+		// Decode the public key
+		decoded, err := base64.StdEncoding.DecodeString(body.PublicKey)
+		if err != nil {
+			return false, nil, fmt.Errorf("Error decoding the authentication server public key: %s", err)
+		}
 
-	// Decode the public key
-	decoded, err := base64.StdEncoding.DecodeString(body["public_key"].(string))
-	if err != nil {
-		return false, nil, fmt.Errorf("Error decoding the authentication server public key: %s", err)
-	}
+		// Parse the public key
+		parsed, err := x509.ParsePKIXPublicKey(decoded)
+		if err != nil {
+			return false, nil, fmt.Errorf("Error pasring the authentication server public key: %s", err)
+		}
 
-	// Parse the public key
-	publicKey, err := x509.ParsePKIXPublicKey(decoded)
-	if err != nil {
-		return false, nil, fmt.Errorf("Error pasring the authentication server public key: %s", err)
-	}
-
-	if _, ok := publicKey.(*rsa.PublicKey); !ok {
-		return false, nil, fmt.Errorf("The authentication server's public key type is not RSA.")
+		var ok bool
+		if publicKey, ok = parsed.(*rsa.PublicKey); !ok {
+			return false, nil, fmt.Errorf("The authentication server's public key type is not RSA.")
+		}
 	}
 
 	// Parse the jwt id_token
@@ -85,40 +84,53 @@ func (v *KeycloakValidator) Validate(serverAddr, clientID, ticket string) (bool,
 		}
 		return publicKey, nil
 	})
+	if err != nil {
+		return false, &validator.UserProfile{Status: fmt.Sprintf("Invalid token: %s", err)}, nil
+	}
 
 	// Check the validation errors
 	if !token.Valid {
 		if ve, ok := err.(*jwt.ValidationError); ok {
 			if ve.Errors&jwt.ValidationErrorMalformed != 0 {
-				return false, &validator.UserProfile{Status: fmt.Sprintf("Invalid authentication token.")}, nil
+				return false, &validator.UserProfile{Status: fmt.Sprintf("Invalid token.")}, nil
 			} else if ve.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
-				return false, &validator.UserProfile{Status: fmt.Sprintf("Authentication token is either expired or not active yet")}, nil
+				return false, &validator.UserProfile{Status: fmt.Sprintf("Token is either expired or not active yet")}, nil
 			} else {
-				return false, &validator.UserProfile{Status: fmt.Sprintf("Error validating the authentication token: %s", err)}, nil
+				return false, &validator.UserProfile{Status: fmt.Sprintf("Error validating the token: %s", err)}, nil
 			}
 		} else {
-			return false, &validator.UserProfile{Status: fmt.Sprintf("Invalid authentication token: %s", err)}, nil
+			return false, &validator.UserProfile{Status: fmt.Sprintf("Invalid token: %s", err)}, nil
 		}
 	}
 
 	// Get the claims
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
+		if claims["typ"].(string) != "ID" {
+			return false, &validator.UserProfile{Status: fmt.Sprintf("Wrong token type `%s` for accessing resource. Expecting type `ID`.", claims["typ"])}, nil
+		}
 		// Check if audience matches the client id
 		if claims["aud"].(string) != clientID {
-			return false, &validator.UserProfile{Status: fmt.Sprintf("Unable to authenticate with client `%s`. Expecting `%s`.", claims["aud"].(string), clientID)}, nil
+			return false, &validator.UserProfile{Status: fmt.Sprintf("The token is issued for client `%s` rather than `%s`.", claims["aud"], clientID)}, nil
 		}
 
 		// Get the user data
-		// convert groups attribute to []string
-		groupInts := claims["groups"].([]interface{})
+		groupInts, ok := claims["groups"].([]interface{})
+		if !ok {
+			return false, nil, fmt.Errorf("Unable to get the user's group membership")
+		}
+		// convert []interface{} to []string
 		groups := make([]string, len(groupInts))
 		for i := range groupInts {
 			groups[i] = groupInts[i].(string)
 		}
+		username, ok := claims["preferred_username"].(string)
+		if !ok {
+			return false, nil, fmt.Errorf("Unable to get the user's username.")
+		}
 		return true, &validator.UserProfile{
-			Username: claims["preferred_username"].(string),
+			Username: username,
 			Groups:   groups,
 		}, nil
 	}
-	return false, nil, fmt.Errorf("Unable to extract claims from the jwt token.")
+	return false, nil, fmt.Errorf("Unable to extract claims from the jwt id_token.")
 }

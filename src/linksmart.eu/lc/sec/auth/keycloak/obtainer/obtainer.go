@@ -11,14 +11,13 @@ import (
 	"net/url"
 	"os"
 	"strconv"
-	"strings"
 
 	"linksmart.eu/lc/sec/auth/obtainer"
 )
 
 const (
-	ticketPath = "/protocol/openid-connect/token"
-	driverName = "keycloak"
+	TicketPath = "/protocol/openid-connect/token"
+	DriverName = "keycloak"
 )
 
 type KeycloakObtainer struct{}
@@ -27,28 +26,40 @@ var logger *log.Logger
 
 func init() {
 	// Initialize the logger
-	logger = log.New(os.Stdout, fmt.Sprintf("[%s] ", driverName), 0)
+	logger = log.New(os.Stdout, fmt.Sprintf("[%s] ", DriverName), 0)
 	v, err := strconv.Atoi(os.Getenv("DEBUG"))
 	if err == nil && v == 1 {
 		logger.SetFlags(log.Ltime | log.Lshortfile)
 	}
 
 	// Register the driver as a auth/obtainer
-	obtainer.Register(driverName, &KeycloakObtainer{})
+	obtainer.Register(DriverName, &KeycloakObtainer{})
 }
 
-// Login returns the given credentials to be used by RequestTicket in Openid's implicit flow
-func (o *KeycloakObtainer) Login(serverAddr, username, password string) (string, error) {
-	return fmt.Sprintf("%s:%s", username, password), nil
+// Login returns the serialized credentials to be used by RequestTicket
+func (o *KeycloakObtainer) Login(_, username, password string) (string, error) {
+	credentials := map[string]string{
+		"username": username,
+		"password": password,
+	}
+	b, err := json.Marshal(&credentials)
+	if err != nil {
+		return "", fmt.Errorf("Error serializing credentials: %s", err)
+	}
+	return string(b), nil
 }
 
 // RequestTicket requests a ticket
-func (o *KeycloakObtainer) RequestTicket(serverAddr, credentials, serviceID string) (string, error) {
-	res, err := http.PostForm(serverAddr+ticketPath, url.Values{
+func (o *KeycloakObtainer) RequestTicket(serverAddr, sCredentials, clientID string) (string, error) {
+	// de-serialize credentials
+	var credentials map[string]string
+	json.Unmarshal([]byte(sCredentials), &credentials)
+
+	res, err := http.PostForm(serverAddr+TicketPath, url.Values{
 		"grant_type": {"password"},
-		"client_id":  {serviceID},
-		"username":   {strings.Split(credentials, ":")[0]},
-		"password":   {strings.Split(credentials, ":")[1]},
+		"client_id":  {clientID},
+		"username":   {credentials["username"]},
+		"password":   {credentials["password"]},
 	})
 	if err != nil {
 		return "", fmt.Errorf("%s", err)
@@ -66,7 +77,7 @@ func (o *KeycloakObtainer) RequestTicket(serverAddr, credentials, serviceID stri
 	}
 
 	var body struct {
-		Token string `json:"access_token"`
+		Token string `json:"id_token"`
 	}
 	err = json.Unmarshal(b, &body)
 	if err != nil {
@@ -76,7 +87,7 @@ func (o *KeycloakObtainer) RequestTicket(serverAddr, credentials, serviceID stri
 	return body.Token, nil
 }
 
-// Logout expires the ticket
-func (o *KeycloakObtainer) Logout(serverAddr, TGT string) error {
-	return fmt.Errorf("Logout() Not Implemented.")
+// Logout expires the ticket (Not applicable in the current flow)
+func (o *KeycloakObtainer) Logout(_, _ string) error {
+	return nil
 }
