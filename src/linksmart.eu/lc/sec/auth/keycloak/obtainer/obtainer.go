@@ -3,6 +3,7 @@
 package obtainer
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -11,6 +12,8 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
+	"time"
 
 	"linksmart.eu/lc/sec/auth/obtainer"
 )
@@ -36,30 +39,72 @@ func init() {
 	obtainer.Register(DriverName, &KeycloakObtainer{})
 }
 
-// Login returns the serialized credentials to be used by RequestTicket
-func (o *KeycloakObtainer) Login(_, username, password string) (string, error) {
-	credentials := map[string]string{
-		"username": username,
-		"password": password,
-	}
-	b, err := json.Marshal(&credentials)
-	if err != nil {
-		return "", fmt.Errorf("Error serializing credentials: %s", err)
-	}
-	return string(b), nil
+type Token struct {
+	RefreshToken string `json:"refresh_token"`
+	IdToken      string `json:"id_token"`
 }
 
-// RequestTicket requests a ticket
-func (o *KeycloakObtainer) RequestTicket(serverAddr, sCredentials, clientID string) (string, error) {
-	// de-serialize credentials
-	var credentials map[string]string
-	json.Unmarshal([]byte(sCredentials), &credentials)
+// Login queries and returns the token object
+func (o *KeycloakObtainer) Login(serverAddr, username, password, clientID string) (string, error) {
 
 	res, err := http.PostForm(serverAddr+TicketPath, url.Values{
 		"grant_type": {"password"},
 		"client_id":  {clientID},
-		"username":   {credentials["username"]},
-		"password":   {credentials["password"]},
+		"username":   {username},
+		"password":   {password},
+	})
+	if err != nil {
+		return "", fmt.Errorf("%s", err)
+	}
+	defer res.Body.Close()
+	logger.Println("Login()", res.Status)
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return "", fmt.Errorf("%s", err)
+	}
+	if res.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("%s: %s", res.Status, string(body))
+	}
+
+	var token Token
+	err = json.Unmarshal(body, &token)
+	if err != nil {
+		return "", fmt.Errorf("Error getting the token: %s", err)
+	}
+	if len(strings.Split(token.RefreshToken, ".")) != 3 {
+		return "", fmt.Errorf("Invalid format for refresh_token.")
+	}
+
+	serialized, _ := json.Marshal(&token)
+	return string(serialized), nil
+}
+
+// RequestTicket returns the id_token
+//  acquired either from the token object given in the parameter sToken or by requesting it from the server
+func (o *KeycloakObtainer) RequestTicket(serverAddr, sToken, clientID string) (string, error) {
+	// deserialize the token
+	var token Token
+	json.Unmarshal([]byte(sToken), &token)
+
+	// decode the id_token acquired on Login()
+	decoded, err := base64.RawStdEncoding.DecodeString(strings.Split(token.IdToken, ".")[1])
+	if err != nil {
+		return "", fmt.Errorf("Error decoding the id_token: %s", err)
+	}
+	var idToken map[string]interface{}
+	json.Unmarshal(decoded, &idToken)
+	// if id_token is still valid, no need to request a new one
+	if int64(idToken["exp"].(float64)) > time.Now().Unix() {
+		logger.Println("RequestTicket() Using the newly acquired token.")
+		return token.IdToken, nil
+	}
+
+	// get a new id_token using the refresh_token
+	res, err := http.PostForm(serverAddr+TicketPath, url.Values{
+		"grant_type":    {"refresh_token"},
+		"client_id":     {clientID},
+		"refresh_token": {token.RefreshToken},
 	})
 	if err != nil {
 		return "", fmt.Errorf("%s", err)
@@ -67,24 +112,20 @@ func (o *KeycloakObtainer) RequestTicket(serverAddr, sCredentials, clientID stri
 	defer res.Body.Close()
 	logger.Println("RequestTicket()", res.Status)
 
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return "", fmt.Errorf("%s", err)
+	}
 	if res.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("%s", res.Status)
+		return "", fmt.Errorf("%s: %s", res.Status, string(body))
 	}
 
-	b, err := ioutil.ReadAll(res.Body)
+	err = json.Unmarshal(body, &token)
 	if err != nil {
-		return "", fmt.Errorf("%s", err)
+		return "", fmt.Errorf("Error getting the token: %s", err)
 	}
 
-	var body struct {
-		Token string `json:"id_token"`
-	}
-	err = json.Unmarshal(b, &body)
-	if err != nil {
-		return "", fmt.Errorf("%s", err)
-	}
-
-	return body.Token, nil
+	return token.IdToken, nil
 }
 
 // Logout expires the ticket (Not applicable in the current flow)

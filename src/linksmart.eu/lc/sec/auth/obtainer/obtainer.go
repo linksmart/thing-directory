@@ -12,8 +12,8 @@ import (
 
 // Interface methods to login, obtain Service Ticket, and logout
 type Driver interface {
-	// Login must return a Ticket Granting Ticket (TGT), given serverAddr, valid username and password
-	Login(serverAddr, username, password string) (string, error)
+	// Login must return a Ticket Granting Ticket (TGT), given serverAddr, valid username, password, and serviceID
+	Login(serverAddr, username, password, serviceID string) (string, error)
 	// RequestTicket must return a Service Ticket, given serverAddr, valid TGT and serviceID
 	RequestTicket(serverAddr, TGT, serviceID string) (string, error)
 	// Logout must expire the TGT, given serverAddr, and a valid TGT
@@ -67,8 +67,8 @@ type Obtainer struct {
 // Wrapper functions
 // These functions are public
 
-func (o *Obtainer) Login(username, password string) (string, error) {
-	return o.driver.Login(o.serverAddr, username, password)
+func (o *Obtainer) Login(username, password, serviceID string) (string, error) {
+	return o.driver.Login(o.serverAddr, username, password, serviceID)
 }
 
 func (o *Obtainer) RequestTicket(TGT, serviceID string) (string, error) {

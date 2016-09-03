@@ -5,11 +5,11 @@ package obtainer
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"path"
-	"log"
 	"strconv"
 
 	"linksmart.eu/lc/sec/auth/obtainer"
@@ -37,7 +37,7 @@ func init() {
 }
 
 // Request Ticker Granting Ticket (TGT) from CAS Server
-func (o *CASObtainer) Login(serverAddr, username, password string) (string, error) {
+func (o *CASObtainer) Login(serverAddr, username, password, _ string) (string, error) {
 	res, err := http.PostForm(serverAddr+ticketPath, url.Values{
 		"username": {username},
 		"password": {password},

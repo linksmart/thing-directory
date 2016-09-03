@@ -38,7 +38,7 @@ func (c *Client) Obtain() (string, error) {
 
 	if c.ticket == "" {
 		// Get Ticket Granting Ticket
-		TGT, err := c.obtainer.Login(c.username, c.password)
+		TGT, err := c.obtainer.Login(c.username, c.password, c.serviceID)
 		if err != nil {
 			return "", err
 		}
@@ -65,7 +65,7 @@ func (c *Client) Renew() (string, error) {
 	ticket, err := c.obtainer.RequestTicket(c.tgt, c.serviceID)
 	if err != nil {
 		// Get a new Ticket Granting Ticket
-		TGT, err := c.obtainer.Login(c.username, c.password)
+		TGT, err := c.obtainer.Login(c.username, c.password, c.serviceID)
 		if err != nil {
 			return "", err
 		}
