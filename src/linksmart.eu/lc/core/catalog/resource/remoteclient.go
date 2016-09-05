@@ -104,7 +104,7 @@ func (c *RemoteCatalogClient) Add(d *Device) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		defer res.Body.Close()
+		res.Body.Close() // close before re-using res
 		if res.StatusCode != http.StatusNotFound {
 			return "", &ConflictError{fmt.Sprintf("Device id %s is not unique.", id)}
 		}
@@ -156,7 +156,7 @@ func (c *RemoteCatalogClient) Update(id string, d *Device) error {
 	if err != nil {
 		return err
 	}
-	defer res.Body.Close()
+	res.Body.Close() // close before re-using res
 	if res.StatusCode == http.StatusNotFound {
 		return &NotFoundError{fmt.Sprintf("Device with id %s is not found.", id)}
 	}
