@@ -30,6 +30,11 @@
     + A service never expires if Ttl is not set. Ttl=-1 is no longer valid.
     + New filtering path is 
       * /<path>/<op>/<value> (with pagination)
+  - Changes to the lc/sec package
+    + Added support for the Basic Authentication protocol
+    + Added support Authorization Bearer header (X_Auth_Token is deprecated) 
+    + Support for KeyCloak authentication backend (OpenID protocol)
+    + Support for partially-public APIs by enabling access to anonymous users
 
 * 0.2.0
   - Migration from Godepts to GB vendor
