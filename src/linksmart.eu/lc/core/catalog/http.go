@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"linksmart.eu/lc/sec/auth/obtainer"
+	"fmt"
 )
 
 // Serves static and all /static/ctx files as ld+json
@@ -45,16 +46,16 @@ func HTTPRequest(method string, url string, headers map[string][]string, body io
 	return http.DefaultClient.Do(req)
 }
 
-// Send an HTTP request with X-Auth-Token entity-header.
+// Send an HTTP request with Authorization entity-header.
 //	Ticket is renewed once in case of failure.
 func HTTPDoAuth(req *http.Request, ticket *obtainer.Client) (*http.Response, error) {
-	X_Auth_Token, err := ticket.Obtain()
+	bearer, err := ticket.Obtain()
 	if err != nil {
 		return nil, err
 	}
 
 	// Set auth header and send the request
-	req.Header.Set("X-Auth-Token", X_Auth_Token)
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", bearer))
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -66,14 +67,14 @@ func HTTPDoAuth(req *http.Request, ticket *obtainer.Client) (*http.Response, err
 	if res.StatusCode == http.StatusUnauthorized {
 		// Get a new ticket and retry again
 		logger.Println("HTTPDoAuth() Invalid authentication ticket.")
-		X_Auth_Token, err = ticket.Renew()
+		bearer, err = ticket.Renew()
 		if err != nil {
 			return nil, err
 		}
 		logger.Println("HTTPDoAuth() Ticket was renewed.")
 
 		// Reset the header and try again
-		req.Header.Set("X-Auth-Token", X_Auth_Token)
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", bearer))
 		return http.DefaultClient.Do(req)
 	}
 
