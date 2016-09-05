@@ -54,17 +54,17 @@ func (o *KeycloakObtainer) Login(serverAddr, username, password, clientID string
 		"password":   {password},
 	})
 	if err != nil {
-		return "", fmt.Errorf("%s", err)
+		return "", err
 	}
 	defer res.Body.Close()
 	logger.Println("Login()", res.Status)
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return "", fmt.Errorf("%s", err)
+		return "", err
 	}
 	if res.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("%s: %s", res.Status, string(body))
+		return "", fmt.Errorf("Unable to login with username `%s`: %s", username, string(body))
 	}
 
 	var token Token
@@ -107,22 +107,22 @@ func (o *KeycloakObtainer) RequestTicket(serverAddr, sToken, clientID string) (s
 		"refresh_token": {token.RefreshToken},
 	})
 	if err != nil {
-		return "", fmt.Errorf("%s", err)
+		return "", err
 	}
 	defer res.Body.Close()
 	logger.Println("RequestTicket()", res.Status)
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return "", fmt.Errorf("%s", err)
+		return "", err
 	}
 	if res.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("%s: %s", res.Status, string(body))
+		return "", fmt.Errorf("Error getting a new token: %s", string(body))
 	}
 
 	err = json.Unmarshal(body, &token)
 	if err != nil {
-		return "", fmt.Errorf("Error getting the token: %s", err)
+		return "", fmt.Errorf("Error parsing the new token: %s", err)
 	}
 
 	return token.IdToken, nil

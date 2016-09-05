@@ -41,7 +41,7 @@ func init() {
 func (v *CASValidator) Validate(serverAddr, serviceID, ticket string) (bool, *validator.UserProfile, error) {
 	res, err := http.Get(fmt.Sprintf("%s%s?service=%s&ticket=%s", serverAddr, casProtocolValidatePath, serviceID, ticket))
 	if err != nil {
-		return false, nil, fmt.Errorf("%s", err)
+		return false, nil, err
 	}
 	defer res.Body.Close()
 
@@ -53,7 +53,7 @@ func (v *CASValidator) Validate(serverAddr, serviceID, ticket string) (bool, *va
 	// User attributes / error message
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return false, nil, fmt.Errorf("%s", err)
+		return false, nil, err
 	}
 
 	// Create an xml document from response body

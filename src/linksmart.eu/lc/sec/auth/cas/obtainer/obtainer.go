@@ -43,19 +43,19 @@ func (o *CASObtainer) Login(serverAddr, username, password, _ string) (string, e
 		"password": {password},
 	})
 	if err != nil {
-		return "", fmt.Errorf("%s", err)
+		return "", err
 	}
 	defer res.Body.Close()
 	logger.Println("Login()", res.Status)
 
 	// Check for credentials
 	if res.StatusCode != http.StatusCreated {
-		return "", fmt.Errorf(fmt.Sprintf("Unable to obtain ticket (TGT) for user `%s`.", username))
+		return "", fmt.Errorf("Unable to obtain ticket (TGT) for user `%s`.", username)
 	}
 
 	locationHeader, err := res.Location()
 	if err != nil {
-		return "", fmt.Errorf("%s", err)
+		return "", err
 	}
 
 	return path.Base(locationHeader.Path), nil
@@ -67,14 +67,14 @@ func (o *CASObtainer) RequestTicket(serverAddr, TGT, serviceID string) (string, 
 		"service": {serviceID},
 	})
 	if err != nil {
-		return "", fmt.Errorf("%s", err)
+		return "", err
 	}
 	defer res.Body.Close()
 	logger.Println("RequestTicket()", res.Status)
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return "", fmt.Errorf("%s", err)
+		return "", err
 	}
 
 	// Check for TGT errors
@@ -89,11 +89,11 @@ func (o *CASObtainer) RequestTicket(serverAddr, TGT, serviceID string) (string, 
 func (o *CASObtainer) Logout(serverAddr, TGT string) error {
 	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s%s%s", serverAddr, ticketPath, TGT), nil)
 	if err != nil {
-		return fmt.Errorf("%s", err)
+		return err
 	}
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("%s", err)
+		return err
 	}
 	defer res.Body.Close()
 	logger.Println("Logout()", res.Status)
