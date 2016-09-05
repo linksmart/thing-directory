@@ -54,7 +54,7 @@ func (c *RemoteCatalogClient) Get(id string) (*SimpleDevice, error) {
 		return nil, &NotFoundError{ErrorMsg(res)}
 	default:
 		if res.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("Error getting device: %v", ErrorMsg(res))
+			return nil, fmt.Errorf(ErrorMsg(res))
 		}
 	}
 
@@ -95,7 +95,7 @@ func (c *RemoteCatalogClient) Add(d *Device) (string, error) {
 	} else { // User-defined id
 
 		// Check if id is unique
-		res, err = catalog.HTTPRequest("GET",
+		resGet, err := catalog.HTTPRequest("GET",
 			fmt.Sprintf("%v/%v/%v", c.serverEndpoint, TypeDevices, id),
 			nil,
 			nil,
@@ -104,9 +104,21 @@ func (c *RemoteCatalogClient) Add(d *Device) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		res.Body.Close() // close before re-using res
-		if res.StatusCode != http.StatusNotFound {
+		defer resGet.Body.Close()
+
+		// Make sure registration is not found
+		// catch every status but http.StatusNotFound
+		switch resGet.StatusCode {
+		case http.StatusOK:
 			return "", &ConflictError{fmt.Sprintf("Device id %s is not unique.", id)}
+		case http.StatusBadRequest:
+			return "", &BadRequestError{ErrorMsg(resGet)}
+		case http.StatusConflict:
+			return "", &ConflictError{ErrorMsg(resGet)}
+		default:
+			if resGet.StatusCode != http.StatusNotFound {
+				return "", fmt.Errorf(ErrorMsg(resGet))
+			}
 		}
 
 		// Now add
@@ -131,7 +143,7 @@ func (c *RemoteCatalogClient) Add(d *Device) (string, error) {
 		return "", &NotFoundError{ErrorMsg(res)}
 	default:
 		if res.StatusCode != http.StatusCreated {
-			return "", fmt.Errorf("Error adding device: %v", ErrorMsg(res))
+			return "", fmt.Errorf(ErrorMsg(res))
 		}
 	}
 
@@ -147,7 +159,7 @@ func (c *RemoteCatalogClient) Add(d *Device) (string, error) {
 // Updates a device
 func (c *RemoteCatalogClient) Update(id string, d *Device) error {
 	// Check if id is found
-	res, err := catalog.HTTPRequest("GET",
+	resGet, err := catalog.HTTPRequest("GET",
 		fmt.Sprintf("%v/%v/%v", c.serverEndpoint, TypeDevices, id),
 		nil,
 		nil,
@@ -156,13 +168,23 @@ func (c *RemoteCatalogClient) Update(id string, d *Device) error {
 	if err != nil {
 		return err
 	}
-	res.Body.Close() // close before re-using res
-	if res.StatusCode == http.StatusNotFound {
-		return &NotFoundError{fmt.Sprintf("Device with id %s is not found.", id)}
+	resGet.Body.Close() // close before re-using res
+
+	switch resGet.StatusCode {
+	case http.StatusBadRequest:
+		return &BadRequestError{ErrorMsg(resGet)}
+	case http.StatusConflict:
+		return &ConflictError{ErrorMsg(resGet)}
+	case http.StatusNotFound:
+		return &NotFoundError{ErrorMsg(resGet)}
+	default:
+		if resGet.StatusCode != http.StatusOK {
+			return fmt.Errorf(ErrorMsg(resGet))
+		}
 	}
 
 	b, _ := json.Marshal(d)
-	res, err = catalog.HTTPRequest("PUT",
+	res, err := catalog.HTTPRequest("PUT",
 		fmt.Sprintf("%v/%v/%v", c.serverEndpoint, TypeDevices, id),
 		map[string][]string{"Content-Type": []string{"application/ld+json"}},
 		bytes.NewReader(b),
@@ -182,7 +204,7 @@ func (c *RemoteCatalogClient) Update(id string, d *Device) error {
 		return &NotFoundError{ErrorMsg(res)}
 	default:
 		if res.StatusCode != http.StatusOK {
-			return fmt.Errorf("Error updating device: %v", ErrorMsg(res))
+			return fmt.Errorf(ErrorMsg(res))
 		}
 	}
 
@@ -211,7 +233,7 @@ func (c *RemoteCatalogClient) Delete(id string) error {
 		return &NotFoundError{ErrorMsg(res)}
 	default:
 		if res.StatusCode != http.StatusOK {
-			return fmt.Errorf("Error deleting device: %v", ErrorMsg(res))
+			return fmt.Errorf(ErrorMsg(res))
 		}
 	}
 
@@ -241,7 +263,7 @@ func (c *RemoteCatalogClient) List(page int, perPage int) ([]SimpleDevice, int, 
 		return nil, 0, &NotFoundError{ErrorMsg(res)}
 	default:
 		if res.StatusCode != http.StatusOK {
-			return nil, 0, fmt.Errorf("Error listing devices: %v", ErrorMsg(res))
+			return nil, 0, fmt.Errorf(ErrorMsg(res))
 		}
 	}
 
@@ -279,7 +301,7 @@ func (c *RemoteCatalogClient) Filter(path, op, value string, page, perPage int) 
 		return nil, 0, &NotFoundError{ErrorMsg(res)}
 	default:
 		if res.StatusCode != http.StatusOK {
-			return nil, 0, fmt.Errorf("Error filtering devices: %v", ErrorMsg(res))
+			return nil, 0, fmt.Errorf(ErrorMsg(res))
 		}
 	}
 
@@ -315,7 +337,7 @@ func (c *RemoteCatalogClient) GetResource(id string) (*Resource, error) {
 		return nil, &NotFoundError{ErrorMsg(res)}
 	default:
 		if res.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("Error getting resource: %v", ErrorMsg(res))
+			return nil, fmt.Errorf(ErrorMsg(res))
 		}
 	}
 
@@ -353,7 +375,7 @@ func (c *RemoteCatalogClient) ListResources(page int, perPage int) ([]Resource, 
 		return nil, 0, &NotFoundError{ErrorMsg(res)}
 	default:
 		if res.StatusCode != http.StatusOK {
-			return nil, 0, fmt.Errorf("Error listing resources: %v", ErrorMsg(res))
+			return nil, 0, fmt.Errorf(ErrorMsg(res))
 		}
 	}
 
@@ -391,7 +413,7 @@ func (c *RemoteCatalogClient) FilterResources(path, op, value string, page, perP
 		return nil, 0, &NotFoundError{ErrorMsg(res)}
 	default:
 		if res.StatusCode != http.StatusOK {
-			return nil, 0, fmt.Errorf("Error filtering resources: %v", ErrorMsg(res))
+			return nil, 0, fmt.Errorf(ErrorMsg(res))
 		}
 	}
 
@@ -414,5 +436,5 @@ func ErrorMsg(res *http.Response) string {
 	if err != nil {
 		return res.Status
 	}
-	return e.Message
+	return fmt.Sprintf("(%d) %s",res.StatusCode ,e.Message)
 }
