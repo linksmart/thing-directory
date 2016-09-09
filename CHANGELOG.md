@@ -1,6 +1,8 @@
 # CHANGELOG
 
-* 0.3.0-SNAPHSOT
+* 0.4.0-SNAPHSOT
+
+* 0.3.0
   - Fixed a minor bug whereby 'meta' of registrations in RC and SC were not updated
   - Added Dockerfile to build docker container directly from the source code
   - Fixed a minor bug of RC/SC remoteclient ignoring the server response on adding new registrations
