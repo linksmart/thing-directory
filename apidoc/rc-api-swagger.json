@@ -3,14 +3,17 @@
     "info": {
         "version": "1.0.0",
         "title": "LinkSmart Resource Catalog API",
-        "description": "API documetnation of the LinkSmart® Resource Catalog"
+        "description": "API documetnation of the LinkSmart® Resource Catalog\n\nFor more information, visit the [Wiki](https://linksmart.eu/redmine/projects/linksmart-local-connect/wiki/Resource_Catalog_API).\n"
     },
     "basePath": "/rc",
-    "externalDocs": {
-        "url": "https://linksmart.eu/redmine/projects/linksmart-local-connect/wiki/Resource_Catalog_API"
-    },
     "produces": [
         "application/ld+json"
+    ],
+    "tags": [
+        {
+            "name": "rc",
+            "description": "Resource Catalog"
+        }
     ],
     "definitions": {
         "APIIndex": {
@@ -240,7 +243,10 @@
     "paths": {
         "/": {
             "get": {
-                "description": "Retrieves API index",
+                "tags": [
+                    "rc"
+                ],
+                "summary": "Retrieves API index",
                 "responses": {
                     "200": {
                         "description": "Successful response",
@@ -262,7 +268,10 @@
         },
         "/devices": {
             "get": {
-                "description": "Retrieves index of `Devices`.",
+                "tags": [
+                    "rc"
+                ],
+                "summary": "Retrieves index of `Devices`.",
                 "parameters": [
                     {
                         "$ref": "#/parameters/ParamPage"
@@ -318,7 +327,10 @@
         },
         "/devices/": {
             "post": {
-                "description": "Creates new `Device` object",
+                "tags": [
+                    "rc"
+                ],
+                "summary": "Creates new `Device` object",
                 "parameters": [
                     {
                         "name": "device",
@@ -424,7 +436,10 @@
         },
         "/devices/{id}": {
             "get": {
-                "description": "Retrieves a `Device` object",
+                "tags": [
+                    "rc"
+                ],
+                "summary": "Retrieves a `Device` object",
                 "parameters": [
                     {
                         "name": "id",
@@ -550,7 +565,10 @@
                 }
             },
             "put": {
-                "description": "Updates the existing `Device` or creates a new one (with the provided ID)",
+                "tags": [
+                    "rc"
+                ],
+                "summary": "Updates the existing `Device` or creates a new one (with the provided ID)",
                 "parameters": [
                     {
                         "name": "id",
@@ -664,7 +682,10 @@
                 }
             },
             "delete": {
-                "description": "Deletes the `Device`",
+                "tags": [
+                    "rc"
+                ],
+                "summary": "Deletes the `Device`",
                 "parameters": [
                     {
                         "name": "id",
@@ -695,7 +716,10 @@
         },
         "/devices/{path}/{op}/{value}": {
             "get": {
-                "description": "Devices filtering API",
+                "tags": [
+                    "rc"
+                ],
+                "summary": "Devices filtering API",
                 "parameters": [
                     {
                         "name": "path",
@@ -746,7 +770,10 @@
         },
         "/resources": {
             "get": {
-                "description": "Retrieves index of `Resources`.",
+                "tags": [
+                    "rc"
+                ],
+                "summary": "Retrieves index of `Resources`.",
                 "parameters": [
                     {
                         "$ref": "#/parameters/ParamPage"
@@ -808,7 +835,10 @@
         },
         "/resources/{id}": {
             "get": {
-                "description": "Retrieves a `Resource` object",
+                "tags": [
+                    "rc"
+                ],
+                "summary": "Retrieves a `Resource` object",
                 "parameters": [
                     {
                         "name": "id",
@@ -920,7 +950,10 @@
         },
         "/resources/{path}/{op}/{value}": {
             "get": {
-                "description": "Resources filtering API",
+                "tags": [
+                    "rc"
+                ],
+                "summary": "Resources filtering API",
                 "parameters": [
                     {
                         "name": "path",

@@ -3,14 +3,17 @@
     "info": {
         "version": "1.0.0",
         "title": "LinkSmart Service Catalog API",
-        "description": "API documetnation of the LinkSmart® Service Catalog"
+        "description": "API documetnation of the LinkSmart® Service Catalog\n\nFor more information, visit the [Wiki](https://linksmart.eu/redmine/projects/linksmart-local-connect/wiki/Service_Catalog_API).\n"
     },
     "basePath": "/sc",
-    "externalDocs": {
-        "url": "https://linksmart.eu/redmine/projects/linksmart-local-connect/wiki/Service_Catalog_API"
-    },
     "produces": [
         "application/ld+json"
+    ],
+    "tags": [
+        {
+            "name": "sc",
+            "description": "Service Catalog"
+        }
     ],
     "definitions": {
         "WritableService": {
@@ -242,7 +245,10 @@
     "paths": {
         "/": {
             "get": {
-                "description": "Retrieves API index.",
+                "tags": [
+                    "sc"
+                ],
+                "summary": "Retrieves API index.",
                 "parameters": [
                     {
                         "$ref": "#/parameters/ParamPage"
@@ -270,7 +276,10 @@
                 }
             },
             "post": {
-                "description": "Creates new `Service` object",
+                "tags": [
+                    "sc"
+                ],
+                "summary": "Creates new `Service` object",
                 "parameters": [
                     {
                         "name": "service",
@@ -309,7 +318,10 @@
         },
         "/{id}": {
             "get": {
-                "description": "Retrieves a `Service` object",
+                "tags": [
+                    "sc"
+                ],
+                "summary": "Retrieves a `Service` object",
                 "parameters": [
                     {
                         "name": "id",
@@ -344,7 +356,10 @@
                 }
             },
             "put": {
-                "description": "Updates the existing `Service` or creates a new one (with the provided ID)",
+                "tags": [
+                    "sc"
+                ],
+                "summary": "Updates the existing `Service` or creates a new one (with the provided ID)",
                 "parameters": [
                     {
                         "name": "id",
@@ -388,7 +403,10 @@
                 }
             },
             "delete": {
-                "description": "Deletes the `Service`",
+                "tags": [
+                    "sc"
+                ],
+                "summary": "Deletes the `Service`",
                 "parameters": [
                     {
                         "name": "id",
@@ -419,7 +437,10 @@
         },
         "/{path}/{op}/{value}": {
             "get": {
-                "description": "Service filtering API",
+                "tags": [
+                    "sc"
+                ],
+                "summary": "Service filtering API",
                 "parameters": [
                     {
                         "name": "path",
