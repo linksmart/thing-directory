@@ -53,8 +53,8 @@ func (v *Validator) Handler(next http.Handler) http.Handler {
 		}
 		method, value := parts[0], parts[1]
 
-		switch method {
-		case "Bearer": // i.e. Authorization: Bearer token
+		switch {
+		case method == "Bearer": // i.e. Authorization: Bearer token
 			// value == token
 			statuscode, err := v.validationChain(value, r.URL.Path, r.Method)
 			if err != nil {
@@ -62,7 +62,7 @@ func (v *Validator) Handler(next http.Handler) http.Handler {
 				return
 			}
 
-		case "Basic": // i.e. Authorization: Basic base64_encoded_credentials
+		case method == "Basic" && v.basicEnabled: // i.e. Authorization: Basic base64_encoded_credentials
 			token, statuscode, err := v.basicAuth(value)
 			if err != nil {
 				errorResponse(w, statuscode, err.Error())
@@ -75,7 +75,7 @@ func (v *Validator) Handler(next http.Handler) http.Handler {
 			}
 
 		default:
-			errorResponse(w, http.StatusUnauthorized, "Invalid Authorization method.")
+			errorResponse(w, http.StatusUnauthorized, "Unsupported Authorization method:", method)
 			return
 		}
 

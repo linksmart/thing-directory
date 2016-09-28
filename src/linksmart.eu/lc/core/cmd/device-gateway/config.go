@@ -377,6 +377,8 @@ type ValidatorConf struct {
 	ProviderURL string `json:"providerURL"`
 	// Service ID
 	ServiceID string `json:"serviceID"`
+	// Basic Authentication switch
+	BasicEnabled bool `json:"basicEnabled"`
 	// Authorization config
 	Authz *authz.Conf `json:"authorization"`
 }

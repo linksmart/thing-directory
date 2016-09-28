@@ -160,7 +160,12 @@ func setupRouter(config *Config) (*mux.Router, func() error, error) {
 	// Append auth handler if enabled
 	if config.Auth.Enabled {
 		// Setup ticket validator
-		v, err := validator.Setup(config.Auth.Provider, config.Auth.ProviderURL, config.Auth.ServiceID, config.Auth.Authz)
+		v, err := validator.Setup(
+			config.Auth.Provider,
+			config.Auth.ProviderURL,
+			config.Auth.ServiceID,
+			config.Auth.BasicEnabled,
+			config.Auth.Authz)
 		if err != nil {
 			return nil, nil, err
 		}

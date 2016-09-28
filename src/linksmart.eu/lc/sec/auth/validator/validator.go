@@ -38,7 +38,7 @@ func Register(name string, driver Driver) {
 
 // Setup configures and returns the Validator
 // 	parameter authz is optional and can be set to nil
-func Setup(name, serverAddr, serviceID string, authz *authz.Conf) (*Validator, error) {
+func Setup(name, serverAddr, serviceID string, basicEnabled bool, authz *authz.Conf) (*Validator, error) {
 	driversMu.Lock()
 	driveri, ok := drivers[name]
 	driversMu.Unlock()
@@ -54,20 +54,22 @@ func Setup(name, serverAddr, serviceID string, authz *authz.Conf) (*Validator, e
 	}
 
 	return &Validator{
-		driver:     driveri,
-		driverName: name,
-		serverAddr: serverAddr,
-		serviceID:  serviceID,
-		authz:      authz,
+		driver:       driveri,
+		driverName:   name,
+		serverAddr:   serverAddr,
+		serviceID:    serviceID,
+		basicEnabled: basicEnabled,
+		authz:        authz,
 	}, nil
 }
 
 // Validator struct
 type Validator struct {
-	driver     Driver
-	driverName string
-	serverAddr string
-	serviceID  string
+	driver       Driver
+	driverName   string
+	serverAddr   string
+	serviceID    string
+	basicEnabled bool
 	// Authorization is optional
 	authz *authz.Conf
 }

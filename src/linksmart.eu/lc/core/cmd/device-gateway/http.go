@@ -47,7 +47,12 @@ func newRESTfulAPI(conf *Config, dataCh chan<- DataRequest) (*RESTfulAPI, error)
 	// Append auth handler if enabled
 	if conf.Auth.Enabled {
 		// Setup ticket validator
-		v, err := validator.Setup(conf.Auth.Provider, conf.Auth.ProviderURL, conf.Auth.ServiceID, conf.Auth.Authz)
+		v, err := validator.Setup(
+			conf.Auth.Provider,
+			conf.Auth.ProviderURL,
+			conf.Auth.ServiceID,
+			conf.Auth.BasicEnabled,
+			conf.Auth.Authz)
 		if err != nil {
 			return nil, err
 		}

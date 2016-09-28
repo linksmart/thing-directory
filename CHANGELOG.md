@@ -1,6 +1,7 @@
 # CHANGELOG
 
 * 0.4.0-SNAPHSOT
+  - Added configuration field to enable/disable basic auth (sc,rc,dgw)
 
 * 0.3.0
   - Fixed a minor bug whereby 'meta' of registrations in RC and SC were not updated
