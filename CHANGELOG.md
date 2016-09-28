@@ -2,6 +2,9 @@
 
 * 0.4.0-SNAPHSOT
   - Added configuration field to enable/disable basic auth (sc,rc,dgw)
+  - Device gateway
+    + REST GET: Removed Content-Type checking 
+    + REST PUT: Added Content-Type checking. Changed success response code from 204 (No Content) to 202 (Accepted)
 
 * 0.3.0
   - Fixed a minor bug whereby 'meta' of registrations in RC and SC were not updated

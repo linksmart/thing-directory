@@ -18,6 +18,7 @@ import (
 
 	_ "linksmart.eu/lc/sec/auth/cas/validator"
 	"linksmart.eu/lc/sec/auth/validator"
+	"strings"
 )
 
 // errorResponse used to serialize errors into JSON for RESTful responses
@@ -217,29 +218,17 @@ func (api *RESTfulAPI) createResourceGetHandler(resourceId string) http.HandlerF
 	return func(rw http.ResponseWriter, req *http.Request) {
 		logger.Printf("RESTfulAPI.createResourceGetHandler() %s %s", req.Method, req.RequestURI)
 
-		// Resolve mediaType
-		v := req.Header.Get("Content-Type")
-		mediaType, _, err := mime.ParseMediaType(v)
-		if err != nil {
-			api.respondWithBadRequest(rw, err.Error())
-			return
-		}
-
-		// Check if mediaType is supported by resource
-		isSupported := false
 		resource, found := api.config.FindResource(resourceId)
 		if !found {
 			api.respondWithNotFound(rw, "Resource does not exist")
 			return
 		}
+
+		// Get the first content-type
 		for _, p := range resource.Protocols {
-			if p.Type == ProtocolTypeREST {
-				isSupported = true
+			if p.Type == ProtocolTypeREST && len(p.ContentTypes) > 0 {
+				rw.Header().Set("Content-Type", p.ContentTypes[0])
 			}
-		}
-		if !isSupported {
-			api.respondWithUnsupportedMediaType(rw, "Media type is not supported by this resource")
-			return
 		}
 
 		// Retrieve data
@@ -253,9 +242,6 @@ func (api *RESTfulAPI) createResourceGetHandler(resourceId string) http.HandlerF
 
 		// Wait for the response
 		repl := <-dr.Reply
-
-		// Response to client
-		rw.Header().Set("Content-Type", mediaType)
 		if repl.IsError {
 			api.respondWithInternalServerError(rw, string(repl.Payload))
 			return
@@ -285,11 +271,17 @@ func (api *RESTfulAPI) createResourcePutHandler(resourceId string) http.HandlerF
 		}
 		for _, p := range resource.Protocols {
 			if p.Type == ProtocolTypeREST {
-				isSupported = true
+				for _, ct := range p.ContentTypes {
+					ct := strings.ToLower(ct)
+					if ct == mediaType {
+						isSupported = true
+					}
+				}
 			}
 		}
 		if !isSupported {
-			api.respondWithUnsupportedMediaType(rw, "Media type is not supported by this resource")
+			api.respondWithUnsupportedMediaType(rw,
+				fmt.Sprintf("`%s` media type is not supported by this resource", mediaType))
 			return
 		}
 
@@ -313,14 +305,11 @@ func (api *RESTfulAPI) createResourcePutHandler(resourceId string) http.HandlerF
 
 		// Wait for the response
 		repl := <-dr.Reply
-
-		// Respond to client
-		rw.Header().Set("Content-Type", mediaType)
 		if repl.IsError {
 			api.respondWithInternalServerError(rw, string(repl.Payload))
 			return
 		}
-		rw.WriteHeader(http.StatusNoContent)
+		rw.WriteHeader(http.StatusAccepted)
 	}
 }
 
