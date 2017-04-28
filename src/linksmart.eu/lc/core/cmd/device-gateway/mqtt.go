@@ -115,10 +115,11 @@ func (c *MQTTConnector) publisher() {
 			continue
 		}
 		topic := c.pubTopics[resp.ResourceId]
-		c.client.Publish(topic, byte(defaultQoS), false, resp.Payload)
-		// We dont' wait for confirmation from broker (avoid blocking here!)
-		//<-r
-		logger.Println("MQTTConnector.publisher() published to", topic)
+		// fire and forgot non-blocking publisher routine
+                go func(){
+                        c.client.Publish(topic, byte(defaultQoS), false, resp.Payload)
+                        logger.Println("MQTTConnector.publisher() published to", topic)
+                }()
 	}
 }
 
