@@ -55,17 +55,11 @@ func (c *Config) Validate() error {
 	if err != nil {
 		err = fmt.Errorf("storage DSN should be a valid URL")
 	}
-	if c.ApiLocation == "" {
-		err = fmt.Errorf("apiLocation must be defined")
-	}
 	if c.StaticDir == "" {
 		err = fmt.Errorf("staticDir must be defined")
 	}
-	if strings.HasSuffix(c.ApiLocation, "/") {
-		err = fmt.Errorf("apiLocation must not have a training slash")
-	}
 	if strings.HasSuffix(c.StaticDir, "/") {
-		err = fmt.Errorf("staticDir must not have a training slash")
+		err = fmt.Errorf("staticDir must not have a trailing slash")
 	}
 	if c.GC.TunnelingService != "" {
 		_, err := url.Parse(c.GC.TunnelingService)
@@ -94,6 +88,10 @@ func loadConfig(confPath string) (*Config, error) {
 	err = json.Unmarshal(file, config)
 	if err != nil {
 		return nil, err
+	}
+
+	if strings.HasSuffix(config.ApiLocation, "/") {
+		config.ApiLocation = strings.TrimSuffix(config.ApiLocation, "/")
 	}
 
 	if err = config.Validate(); err != nil {

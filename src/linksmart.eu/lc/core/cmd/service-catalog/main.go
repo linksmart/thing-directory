@@ -16,7 +16,6 @@ import (
 
 	"github.com/codegangsta/negroni"
 	"github.com/gorilla/context"
-	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/oleksandr/bonjour"
 	utils "linksmart.eu/lc/core/catalog"
@@ -114,7 +113,7 @@ func main() {
 	n.Run(endpoint)
 }
 
-func setupRouter(config *Config) (*mux.Router, func() error, error) {
+func setupRouter(config *Config) (*router, func() error, error) {
 	var listeners []catalog.Listener
 	// GC publisher if configured
 	if config.GC.TunnelingService != "" {
@@ -173,18 +172,17 @@ func setupRouter(config *Config) (*mux.Router, func() error, error) {
 		commonHandlers = commonHandlers.Append(v.Handler)
 	}
 
-	// Configure routers
-	r := mux.NewRouter().StrictSlash(true)
+	// Configure http api router
+	r := newRouter()
 	// Handlers
-	r.Methods("POST").Path(config.ApiLocation + "/").Handler(commonHandlers.ThenFunc(api.Post))
+	r.get(config.ApiLocation, commonHandlers.ThenFunc(api.List))
+	r.post(config.ApiLocation, commonHandlers.ThenFunc(api.Post))
 	// Accept an id with zero or one slash: [^/]+/?[^/]*
 	// -> [^/]+ one or more of anything but slashes /? optional slash [^/]* zero or more of anything but slashes
-	r.Methods("GET").Path(config.ApiLocation + "/{id:[^/]+/?[^/]*}").Handler(commonHandlers.ThenFunc(api.Get))
-	r.Methods("PUT").Path(config.ApiLocation + "/{id:[^/]+/?[^/]*}").Handler(commonHandlers.ThenFunc(api.Put))
-	r.Methods("DELETE").Path(config.ApiLocation + "/{id:[^/]+/?[^/]*}").Handler(commonHandlers.ThenFunc(api.Delete))
-	// List, Filter
-	r.Methods("GET").Path(config.ApiLocation).Handler(commonHandlers.ThenFunc(api.List))
-	r.Methods("GET").Path(config.ApiLocation + "/{path}/{op}/{value:.*}").Handler(commonHandlers.ThenFunc(api.Filter))
+	r.get(config.ApiLocation+"/{id:[^/]+/?[^/]*}", commonHandlers.ThenFunc(api.Get))
+	r.put(config.ApiLocation+"/{id:[^/]+/?[^/]*}", commonHandlers.ThenFunc(api.Put))
+	r.delete(config.ApiLocation+"/{id:[^/]+/?[^/]*}", commonHandlers.ThenFunc(api.Delete))
+	r.get(config.ApiLocation+"/{path}/{op}/{value:.*}", commonHandlers.ThenFunc(api.Filter))
 
 	return r, controller.Stop, nil
 }
