@@ -131,7 +131,7 @@ func (am *AgentManager) start() {
 							//case <-time.Tick(time.Duration(2) * time.Second):
 							//	logger.Printf("AgentManager: WARNING timeout while publishing data to publishOutbox")
 							default:
-								logger.Printf("AgentManager.start() WARNING: publishOutbox is blocked. Skipping current value...")
+								logger.Printf("AgentManager.start() WARNING: publishOutbox is full. Skipping current value...")
 							}
 						}
 					}

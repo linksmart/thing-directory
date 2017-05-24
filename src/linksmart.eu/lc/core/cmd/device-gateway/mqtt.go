@@ -68,7 +68,7 @@ func newMQTTConnector(conf *Config, dataReqCh chan<- DataRequest) *MQTTConnector
 	connector := &MQTTConnector{
 		config:        &config,
 		clientID:      fmt.Sprintf("%v-%v", conf.Id, time.Now().Unix()),
-		pubCh:         make(chan AgentResponse),
+		pubCh:         make(chan AgentResponse, 100), // buffer to compensate for pub latencies
 		subCh:         dataReqCh,
 		pubTopics:     pubTopics,
 		subTopicsRvsd: subTopicsRvsd,
@@ -115,11 +115,8 @@ func (c *MQTTConnector) publisher() {
 			continue
 		}
 		topic := c.pubTopics[resp.ResourceId]
-		// fire and forgot non-blocking publisher routine
-                go func(){
-                        c.client.Publish(topic, byte(defaultQoS), false, resp.Payload)
-                        logger.Println("MQTTConnector.publisher() published to", topic)
-                }()
+		c.client.Publish(topic, byte(defaultQoS), false, resp.Payload)
+		logger.Println("MQTTConnector.publisher() published to", topic)
 	}
 }
 
