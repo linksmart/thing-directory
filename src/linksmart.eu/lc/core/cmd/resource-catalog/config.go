@@ -60,17 +60,11 @@ func (c *Config) Validate() error {
 	if !supportedBackends[c.Storage.Type] {
 		err = fmt.Errorf("Unsupported storage backend")
 	}
-	if c.ApiLocation == "" {
-		err = fmt.Errorf("apiLocation must be defined")
-	}
 	if c.StaticDir == "" {
 		err = fmt.Errorf("staticDir must be defined")
 	}
-	if strings.HasSuffix(c.ApiLocation, "/") {
-		err = fmt.Errorf("apiLocation must not have a training slash")
-	}
 	if strings.HasSuffix(c.StaticDir, "/") {
-		err = fmt.Errorf("staticDir must not have a training slash")
+		err = fmt.Errorf("staticDir must not have a trailing slash")
 	}
 	for _, cat := range c.ServiceCatalog {
 		if cat.Endpoint == "" && cat.Discover == false {
@@ -109,6 +103,10 @@ func loadConfig(path string) (*Config, error) {
 	err = json.Unmarshal(file, c)
 	if err != nil {
 		return nil, err
+	}
+
+	if strings.HasSuffix(c.ApiLocation, "/") {
+		c.ApiLocation = strings.TrimSuffix(c.ApiLocation, "/")
 	}
 
 	if err = c.Validate(); err != nil {

@@ -16,7 +16,6 @@ import (
 
 	"github.com/codegangsta/negroni"
 	"github.com/gorilla/context"
-	"github.com/gorilla/mux"
 	"github.com/justinas/alice"
 	"github.com/oleksandr/bonjour"
 	utils "linksmart.eu/lc/core/catalog"
@@ -24,11 +23,10 @@ import (
 	sc "linksmart.eu/lc/core/catalog/service"
 
 	_ "linksmart.eu/lc/sec/auth/cas/obtainer"
-	_ "linksmart.eu/lc/sec/auth/keycloak/obtainer"
-	"linksmart.eu/lc/sec/auth/obtainer"
-
 	_ "linksmart.eu/lc/sec/auth/cas/validator"
+	_ "linksmart.eu/lc/sec/auth/keycloak/obtainer"
 	_ "linksmart.eu/lc/sec/auth/keycloak/validator"
+	"linksmart.eu/lc/sec/auth/obtainer"
 	"linksmart.eu/lc/sec/auth/validator"
 )
 
@@ -44,7 +42,7 @@ func main() {
 		logger.Fatalf("Error reading config file %v: %v", *confPath, err)
 	}
 
-	r, shutdownAPI, err := setupRouter(config)
+	router, shutdownAPI, err := setupRouter(config)
 	if err != nil {
 		logger.Fatal(err.Error())
 	}
@@ -154,7 +152,7 @@ func main() {
 		},
 	)
 	// Mount router
-	n.UseHandler(r)
+	n.UseHandler(router)
 
 	// Start listener
 	endpoint := fmt.Sprintf("%s:%s", config.BindAddr, strconv.Itoa(config.BindPort))
@@ -162,7 +160,7 @@ func main() {
 	n.Run(endpoint)
 }
 
-func setupRouter(config *Config) (*mux.Router, func() error, error) {
+func setupRouter(config *Config) (*router, func() error, error) {
 	// Setup API storage
 	var (
 		storage catalog.CatalogStorage
@@ -214,26 +212,23 @@ func setupRouter(config *Config) (*mux.Router, func() error, error) {
 		commonHandlers = commonHandlers.Append(v.Handler)
 	}
 
-	// Configure routers
-	r := mux.NewRouter().StrictSlash(true)
-	r.Methods("GET").Path(config.ApiLocation).Handler(commonHandlers.ThenFunc(api.Index))
-
+	// Configure http api router
+	r := newRouter()
+	// Index
+	r.get(config.ApiLocation, commonHandlers.ThenFunc(api.Index))
 	// Devices
-	r.Methods("POST").Path(config.ApiLocation + "/devices/").Handler(commonHandlers.ThenFunc(api.Post))
-	r.Methods("GET").Path(config.ApiLocation + "/devices/{id}").Handler(commonHandlers.ThenFunc(api.Get))
-	r.Methods("PUT").Path(config.ApiLocation + "/devices/{id}").Handler(commonHandlers.ThenFunc(api.Put))
-	r.Methods("DELETE").Path(config.ApiLocation + "/devices/{id}").Handler(commonHandlers.ThenFunc(api.Delete))
-	// Listing, filtering
-	r.Methods("GET").Path(config.ApiLocation + "/devices").Handler(commonHandlers.ThenFunc(api.List))
-	r.Methods("GET").Path(config.ApiLocation + "/devices/{path}/{op}/{value:.*}").Handler(commonHandlers.ThenFunc(api.Filter))
-
+	r.post(config.ApiLocation+"/devices", commonHandlers.ThenFunc(api.Post))
+	r.get(config.ApiLocation+"/devices/{id}", commonHandlers.ThenFunc(api.Get))
+	r.put(config.ApiLocation+"/devices/{id}", commonHandlers.ThenFunc(api.Put))
+	r.delete(config.ApiLocation+"/devices/{id}", commonHandlers.ThenFunc(api.Delete))
+	r.get(config.ApiLocation+"/devices", commonHandlers.ThenFunc(api.List))
+	r.get(config.ApiLocation+"/devices/{path}/{op}/{value:.*}", commonHandlers.ThenFunc(api.Filter))
 	// Resources
-	r.Methods("GET").Path(config.ApiLocation + "/resources").Handler(commonHandlers.ThenFunc(api.ListResources))
-	// Listing, filtering
+	r.get(config.ApiLocation+"/resources", commonHandlers.ThenFunc(api.ListResources))
 	// Accept an id with zero or one slash: [^/]+/?[^/]*
 	// -> [^/]+ one or more of anything but slashes /? optional slash [^/]* zero or more of anything but slashes
-	r.Methods("GET").Path(config.ApiLocation + "/resources/{id:[^/]+/?[^/]*}").Handler(commonHandlers.ThenFunc(api.GetResource))
-	r.Methods("GET").Path(config.ApiLocation + "/resources/{path}/{op}/{value:.*}").Handler(commonHandlers.ThenFunc(api.FilterResources))
+	r.get(config.ApiLocation+"/resources/{id:[^/]+/?[^/]*}", commonHandlers.ThenFunc(api.GetResource))
+	r.get(config.ApiLocation+"/resources/{path}/{op}/{value:.*}", commonHandlers.ThenFunc(api.FilterResources))
 
 	return r, controller.Stop, nil
 }
