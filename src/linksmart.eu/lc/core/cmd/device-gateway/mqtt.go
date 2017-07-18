@@ -235,10 +235,6 @@ func (c *MQTTConnector) onConnected(client MQTT.Client) {
 
 func (c *MQTTConnector) onConnectionLost(client MQTT.Client, reason error) {
 	logger.Println("MQTTPulbisher.onConnectionLost() lost connection to the broker: ", reason.Error())
-
-	// Initialize a new client and reconnect
-	c.configureMqttConnection()
-	go c.connect(0)
 }
 
 func (c *MQTTConnector) configureMqttConnection() {
@@ -248,7 +244,8 @@ func (c *MQTTConnector) configureMqttConnection() {
 		SetCleanSession(true).
 		SetConnectionLostHandler(c.onConnectionLost).
 		SetOnConnectHandler(c.onConnected).
-		SetAutoReconnect(false) // we take care of re-connect ourselves
+		SetAutoReconnect(true).
+		SetMessageChannelDepth(c.config.OfflineBuffer)
 
 	// Username/password authentication
 	if c.config.Username != "" && c.config.Password != "" {

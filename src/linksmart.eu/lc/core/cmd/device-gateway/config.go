@@ -260,14 +260,15 @@ func (p *RestProtocol) Validate() error {
 }
 
 type MqttProtocol struct {
-	Discover bool   `json:"discover"`
-	URL      string `json:"url"`
-	Prefix   string `json:"prefix"`
-	Username string `json:"username"`
-	Password string `json:"password"`
-	CaFile   string `json:"caFile"`
-	CertFile string `json:"certFile"`
-	KeyFile  string `json:"keyFile"`
+	Discover      bool   `json:"discover"`
+	URL           string `json:"url"`
+	Prefix        string `json:"prefix"`
+	Username      string `json:"username"`
+	Password      string `json:"password"`
+	CaFile        string `json:"caFile"`
+	CertFile      string `json:"certFile"`
+	KeyFile       string `json:"keyFile"`
+	OfflineBuffer uint   `json:"offlineBuffer"`
 }
 
 func (p *MqttProtocol) Validate() error {
