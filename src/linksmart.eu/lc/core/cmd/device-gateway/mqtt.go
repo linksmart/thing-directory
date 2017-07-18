@@ -248,7 +248,7 @@ func (c *MQTTConnector) configureMqttConnection() {
 		SetMessageChannelDepth(c.config.OfflineBuffer)
 
 	// Username/password authentication
-	if c.config.Username != "" && c.config.Password != "" {
+	if c.config.Username != "" {
 		connOpts.SetUsername(c.config.Username)
 		connOpts.SetPassword(c.config.Password)
 	}
