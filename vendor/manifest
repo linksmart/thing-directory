@@ -26,6 +26,12 @@
 			"branch": "master"
 		},
 		{
+			"importpath": "github.com/eclipse/paho.mqtt.golang",
+			"repository": "https://github.com/eclipse/paho.mqtt.golang",
+			"revision": "e9f694b2eba2cc7e1eeec8e488415d00587f508a",
+			"branch": "master"
+		},
+		{
 			"importpath": "github.com/golang/snappy",
 			"repository": "https://github.com/golang/snappy",
 			"revision": "723cc1e459b8eea2dea4583200fd60757d40097a",
@@ -112,6 +118,13 @@
 			"revision": "66f0418ca41253f8d1a024eb9754e9441a8e79b9",
 			"branch": "master",
 			"path": "/ipv6"
+		},
+		{
+			"importpath": "golang.org/x/net/proxy",
+			"repository": "https://go.googlesource.com/net",
+			"revision": "b3756b4b77d7b13260a0a2ec658753cf48922eac",
+			"branch": "master",
+			"path": "/proxy"
 		},
 		{
 			"importpath": "golang.org/x/net/websocket",

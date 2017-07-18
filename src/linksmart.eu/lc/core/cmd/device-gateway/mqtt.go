@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	MQTT "git.eclipse.org/gitroot/paho/org.eclipse.paho.mqtt.golang.git"
+	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"linksmart.eu/lc/core/catalog"
 	"linksmart.eu/lc/core/catalog/service"
 )
@@ -19,7 +19,7 @@ import (
 type MQTTConnector struct {
 	config        *MqttProtocol
 	clientID      string
-	client        *MQTT.Client
+	client        MQTT.Client
 	pubCh         chan AgentResponse
 	subCh         chan<- DataRequest
 	pubTopics     map[string]string
@@ -121,7 +121,7 @@ func (c *MQTTConnector) publisher() {
 }
 
 // processes incoming messages from the broker and writes DataRequets to the subCh
-func (c *MQTTConnector) messageHandler(client *MQTT.Client, msg MQTT.Message) {
+func (c *MQTTConnector) messageHandler(client MQTT.Client, msg MQTT.Message) {
 	logger.Printf("MQTTConnector.messageHandler() message received: topic: %v payload: %v\n", msg.Topic(), msg.Payload())
 
 	rid, ok := c.subTopicsRvsd[msg.Topic()]
@@ -217,7 +217,7 @@ func (c *MQTTConnector) connect(backOff int) {
 	return
 }
 
-func (c *MQTTConnector) onConnected(client *MQTT.Client) {
+func (c *MQTTConnector) onConnected(client MQTT.Client) {
 	// subscribe if there is at least one resource with SUB in MQTT protocol is configured
 	if len(c.subTopicsRvsd) > 0 {
 		logger.Println("MQTTPulbisher.onConnected() will (re-)subscribe to all configured SUB topics")
@@ -233,7 +233,7 @@ func (c *MQTTConnector) onConnected(client *MQTT.Client) {
 	}
 }
 
-func (c *MQTTConnector) onConnectionLost(client *MQTT.Client, reason error) {
+func (c *MQTTConnector) onConnectionLost(client MQTT.Client, reason error) {
 	logger.Println("MQTTPulbisher.onConnectionLost() lost connection to the broker: ", reason.Error())
 
 	// Initialize a new client and reconnect
