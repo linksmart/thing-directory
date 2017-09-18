@@ -17,13 +17,14 @@ import (
 
 // MQTTConnector provides MQTT protocol connectivity
 type MQTTConnector struct {
-	config        *MqttProtocol
-	clientID      string
-	client        MQTT.Client
-	pubCh         chan AgentResponse
-	subCh         chan<- DataRequest
-	pubTopics     map[string]string
-	subTopicsRvsd map[string]string // store SUB topics "reversed" to optimize lookup in messageHandler
+	config          *MqttProtocol
+	clientID        string
+	client          MQTT.Client
+	pubCh           chan AgentResponse
+	offlineBufferCh chan AgentResponse
+	subCh           chan<- DataRequest
+	pubTopics       map[string]string
+	subTopicsRvsd   map[string]string // store SUB topics "reversed" to optimize lookup in messageHandler
 }
 
 const defaultQoS = 1
@@ -66,12 +67,13 @@ func newMQTTConnector(conf *Config, dataReqCh chan<- DataRequest) *MQTTConnector
 
 	// Create and return connector
 	connector := &MQTTConnector{
-		config:        &config,
-		clientID:      fmt.Sprintf("%v-%v", conf.Id, time.Now().Unix()),
-		pubCh:         make(chan AgentResponse, 100), // buffer to compensate for pub latencies
-		subCh:         dataReqCh,
-		pubTopics:     pubTopics,
-		subTopicsRvsd: subTopicsRvsd,
+		config:          &config,
+		clientID:        fmt.Sprintf("%v-%v", conf.Id, time.Now().Unix()),
+		pubCh:           make(chan AgentResponse, 100), // buffer to compensate for pub latencies
+		offlineBufferCh: make(chan AgentResponse, config.OfflineBuffer),
+		subCh:           dataReqCh,
+		pubTopics:       pubTopics,
+		subTopicsRvsd:   subTopicsRvsd,
 	}
 
 	return connector
@@ -107,7 +109,16 @@ func (c *MQTTConnector) start() {
 func (c *MQTTConnector) publisher() {
 	for resp := range c.pubCh {
 		if !c.client.IsConnected() {
-			logger.Println("MQTTConnector.publisher() got data while not connected to the broker. **discarded**")
+			if c.config.OfflineBuffer == 0 {
+				logger.Println("MQTTConnector.publisher() got data while not connected to the broker. **discarded**")
+				continue
+			}
+			select {
+			case c.offlineBufferCh <- resp:
+				logger.Printf("MQTTConnector.publisher() got data while not connected to the broker. Keeping in buffer (%d/%d)", len(c.offlineBufferCh), c.config.OfflineBuffer)
+			default:
+				logger.Printf("MQTTConnector.publisher() got data while not connected to the broker. Buffer is full (%d/%d). **discarded**", len(c.offlineBufferCh), c.config.OfflineBuffer)
+			}
 			continue
 		}
 		if resp.IsError {
@@ -218,6 +229,8 @@ func (c *MQTTConnector) connect(backOff int) {
 }
 
 func (c *MQTTConnector) onConnected(client MQTT.Client) {
+	logger.Printf("MQTTPulbisher.onConnected() Connected.")
+
 	// subscribe if there is at least one resource with SUB in MQTT protocol is configured
 	if len(c.subTopicsRvsd) > 0 {
 		logger.Println("MQTTPulbisher.onConnected() will (re-)subscribe to all configured SUB topics")
@@ -231,10 +244,29 @@ func (c *MQTTConnector) onConnected(client MQTT.Client) {
 	} else {
 		logger.Println("MQTTPulbisher.onConnected() no resources with SUB configured")
 	}
+
+	// publish buffered messages to the broker
+	for resp := range c.offlineBufferCh {
+		if resp.IsError {
+			logger.Println("MQTTConnector.onConnected() data ERROR from agent manager:", string(resp.Payload))
+			continue
+		}
+		topic := c.pubTopics[resp.ResourceId]
+		c.client.Publish(topic, byte(defaultQoS), false, resp.Payload)
+		logger.Printf("MQTTConnector.onConnected() published buffered message to %s (%d/%d)", topic, len(c.offlineBufferCh)+1, c.config.OfflineBuffer)
+		if len(c.offlineBufferCh) == 0 {
+			break
+		}
+	}
+
 }
 
 func (c *MQTTConnector) onConnectionLost(client MQTT.Client, reason error) {
 	logger.Println("MQTTPulbisher.onConnectionLost() lost connection to the broker: ", reason.Error())
+
+	// Initialize a new client and re-connect
+	c.configureMqttConnection()
+	go c.connect(0)
 }
 
 func (c *MQTTConnector) configureMqttConnection() {
@@ -244,8 +276,8 @@ func (c *MQTTConnector) configureMqttConnection() {
 		SetCleanSession(true).
 		SetConnectionLostHandler(c.onConnectionLost).
 		SetOnConnectHandler(c.onConnected).
-		SetAutoReconnect(true).
-		SetMessageChannelDepth(c.config.OfflineBuffer)
+		SetMaxReconnectInterval(30 * time.Second).
+		SetAutoReconnect(false) // we take care of re-connect ourselves
 
 	// Username/password authentication
 	if c.config.Username != "" {
