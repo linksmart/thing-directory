@@ -1,185 +1,165 @@
 // Copyright 2014-2016 Fraunhofer Institute for Applied Information Technology FIT
 
-package catalog
+package resource
 
 import (
 	"fmt"
-	"os"
-	"os/signal"
-	"strings"
-	"syscall"
+	"sync"
 	"time"
 
-	"github.com/oleksandr/bonjour"
-	"strconv"
+	utils "linksmart.eu/lc/core/catalog"
+	"linksmart.eu/lc/sec/auth/obtainer"
 )
 
 const (
-	discoveryTimeoutSec = 30
-	minKeepaliveSec     = 5
-	GetParamPage        = "page"
-	GetParamPerPage     = "per_page"
+	keepaliveRetries = 5
 )
 
-// Discovers a catalog endpoint given the serviceType
-func DiscoverCatalogEndpoint(serviceType string) (endpoint string, err error) {
-	sysSig := make(chan os.Signal, 1)
-	signal.Notify(sysSig,
-		syscall.SIGHUP,
-		syscall.SIGINT,
-		syscall.SIGTERM,
-		syscall.SIGQUIT)
-
-	for {
-		// create resolver
-		resolver, err := bonjour.NewResolver(nil)
-		if err != nil {
-			logger.Println("Failed to initialize DNS-SD resolver:", err.Error())
-			break
-		}
-		// init the channel for results
-		results := make(chan *bonjour.ServiceEntry)
-
-		// send query and listen for answers
-		logger.Println("Browsing...")
-		err = resolver.Browse(serviceType, "", results)
-		if err != nil {
-			logger.Println("Unable to browse DNS-SD services: ", err)
-			break
-		}
-
-		// if not found - block with timeout
-		var foundService *bonjour.ServiceEntry
-		select {
-		case foundService = <-results:
-			logger.Printf("[DiscoverCatalogEndpoint] Discovered service: %v\n", foundService.ServiceInstanceName())
-		case <-time.After(time.Duration(discoveryTimeoutSec) * time.Second):
-			logger.Println("[DiscoverCatalogEndpoint] Timeout looking for a service")
-		case <-sysSig:
-			logger.Println("[DiscoverCatalogEndpoint] System interrupt signal received. Aborting the discovery")
-			return endpoint, fmt.Errorf("Aborted by system interrupt")
-		}
-
-		// check if something found
-		if foundService == nil {
-			logger.Printf("[DiscoverCatalogEndpoint] Could not discover a service %v withing the timeout. Starting from scratch...", serviceType)
-			// stop resolver
-			resolver.Exit <- true
-			// start the new iteration
-			continue
-		}
-
-		// stop the resolver and close the channel
-		resolver.Exit <- true
-		close(results)
-
-		uri := ""
-		for _, s := range foundService.Text {
-			if strings.HasPrefix(s, "uri=") {
-				tmp := strings.Split(s, "=")
-				if len(tmp) == 2 {
-					uri = tmp[1]
-					break
-				}
+// Registers device given a configured Catalog Client
+func RegisterDevice(client CatalogClient, d *Device) error {
+	err := client.Update(d.Id, d)
+	if err != nil {
+		switch err.(type) {
+		case *NotFoundError:
+			// If not in the catalog - add
+			_, err = client.Add(d)
+			if err != nil {
+				logger.Printf("RegisterDevice() Error adding registration: %v", err)
+				return err
 			}
+			logger.Printf("RegisterDevice() Added Device registration %v", d.Id)
+		default:
+			logger.Printf("RegisterDevice() Error updating registration: %v", err)
+			return err
 		}
-		endpoint = fmt.Sprintf("http://%s:%v%s", foundService.HostName, foundService.Port, uri)
-		break
-	}
-	return endpoint, err
-}
-
-// Returns a 'slice' of the given slice based on the requested 'page'
-func GetPageOfSlice(slice []string, page, perPage, maxPerPage int) ([]string, error) {
-	err := ValidatePagingParams(page, perPage, maxPerPage)
-	if err != nil {
-		return nil, err
-	}
-
-	keys := []string{}
-	if page == 1 {
-		// first page
-		if perPage > len(slice) {
-			keys = slice
-		} else {
-			keys = slice[:perPage]
-		}
-	} else if page == int(len(slice)/perPage)+1 {
-		// last page
-		keys = slice[perPage*(page-1):]
-
-	} else if page <= len(slice)/perPage && page*perPage <= len(slice) {
-		// slice
-		r := page * perPage
-		l := r - perPage
-		keys = slice[l:r]
-	}
-	return keys, nil
-}
-
-// Returns offset and limit representing a subset of the given slice total size
-//	 based on the requested 'page'
-func GetPagingAttr(total, page, perPage, maxPerPage int) (int, int, error) {
-	err := ValidatePagingParams(page, perPage, maxPerPage)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	if page == 1 {
-		// first page
-		if perPage > total {
-			return 0, total, nil
-		} else {
-			return 0, perPage, nil
-		}
-	} else if page == int(total/perPage)+1 {
-		// last page
-		return perPage * (page - 1), total - perPage*(page-1), nil
-	} else if page <= total/perPage && page*perPage <= total {
-		// another page
-		r := page * perPage
-		l := r - perPage
-		return l, r - l, nil
-	}
-	return 0, 0, nil
-}
-
-// Validates paging parameters
-func ValidatePagingParams(page, perPage, maxPerPage int) error {
-	if page < 1 {
-		return fmt.Errorf("%s parameter must be positive", GetParamPage)
-	}
-	if perPage < 1 {
-		return fmt.Errorf("%s parameter must be positive", GetParamPerPage)
-	}
-	if perPage > maxPerPage {
-		return fmt.Errorf("%s must less than or equal to %d", GetParamPerPage, maxPerPage)
+	} else {
+		logger.Printf("RegisterDevice() Updated Device registration %v\n", d.Id)
 	}
 	return nil
 }
 
-// Parses string paging parameters to integers
-func ParsePagingParams(page, perPage string, maxPerPage int) (int, int, error) {
-	var parsedPage, parsedPerPage int
+// Registers device in the remote catalog
+// endpoint: catalog endpoint. If empty - will be discovered using DNS-SD
+// d: device registration
+// sigCh: channel for shutdown signalisation from upstream
+func RegisterDeviceWithKeepalive(endpoint string, discover bool, d Device, sigCh <-chan bool, wg *sync.WaitGroup,
+	ticket *obtainer.Client) {
+	defer wg.Done()
 	var err error
-
-	if page == "" {
-		parsedPage = 1
-	} else {
-		parsedPage, err = strconv.Atoi(page)
+	if discover {
+		endpoint, err = utils.DiscoverCatalogEndpoint(DNSSDServiceType)
 		if err != nil {
-			return 0, 0, fmt.Errorf("Invalid value for parameter %s: %s", GetParamPage, page)
+			logger.Printf("RegisterDeviceWithKeepalive() ERROR: Failed to discover the endpoint: %v", err.Error())
+			return
 		}
 	}
 
-	if perPage == "" {
-		parsedPerPage = maxPerPage
-	} else {
-		parsedPerPage, err = strconv.Atoi(perPage)
-		if err != nil {
-			return 0, 0, fmt.Errorf("Invalid value for parameter %s: %s", GetParamPerPage, perPage)
-		}
+	// Configure client
+	client, err := NewRemoteCatalogClient(endpoint, ticket)
+	if err != nil {
+		logger.Printf("RegisterDeviceWithKeepalive() ERROR: Failed to create remote-catalog client: %v", err.Error())
+		return
 	}
 
-	return parsedPage, parsedPerPage, ValidatePagingParams(parsedPage, parsedPerPage, maxPerPage)
+	// Will not keepalive registration without a TTL
+	if d.Ttl == 0 {
+		logger.Println("RegisterDeviceWithKeepalive() WARNING: Registration has ttl <= 0. Will not start the keepalive routine")
+		RegisterDevice(client, &d)
+		return
+	}
+	logger.Printf("RegisterDeviceWithKeepalive() Will register and update registration periodically: %v/%v/%v", endpoint, TypeDevices, d.Id)
+
+	// Configure & start the keepalive routine
+	ksigCh := make(chan bool)
+	kerrCh := make(chan error)
+	go keepAlive(client, &d, ksigCh, kerrCh)
+
+	for {
+		select {
+		// catch an error from the keepAlive routine
+		case e := <-kerrCh:
+			logger.Println("RegisterDeviceWithKeepalive() ERROR:", e)
+			// Re-discover the endpoint if needed and start over
+			if discover {
+				endpoint, err = utils.DiscoverCatalogEndpoint(DNSSDServiceType)
+				if err != nil {
+					logger.Println("RegisterDeviceWithKeepalive() ERROR:", err.Error())
+					return
+				}
+			}
+			logger.Println("RegisterDeviceWithKeepalive() Will use the new endpoint:", endpoint)
+			client, err := NewRemoteCatalogClient(endpoint, ticket)
+			if err != nil {
+				logger.Printf("RegisterDeviceWithKeepalive() ERROR: Failed to create remote-catalog client: %v", err.Error())
+				return
+			}
+			go keepAlive(client, &d, ksigCh, kerrCh)
+
+		// catch a shutdown signal from the upstream
+		case <-sigCh:
+			logger.Printf("RegisterDeviceWithKeepalive(): Removing the registration %v/%v/%v...", endpoint, TypeDevices, d.Id)
+			// signal shutdown to the keepAlive routine & close channels
+			select {
+			case ksigCh <- true:
+				// delete entry in the remote catalog
+				client.Delete(d.Id)
+			case <-time.After(1 * time.Second):
+				logger.Printf("RegisterDeviceWithKeepalive(): timeout removing registration %v/%v/%v: catalog unreachable", endpoint, TypeDevices, d.Id)
+			}
+
+			close(ksigCh)
+			close(kerrCh)
+			return
+		}
+	}
+}
+
+// Keep a given registration alive
+// client: configured client for the remote catalog
+// s: registration to be kept alive
+// sigCh: channel for shutdown signalisation from upstream
+// errCh: channel for error signalisation to upstream
+func keepAlive(client CatalogClient, d *Device, sigCh <-chan bool, errCh chan<- error) {
+	dur := (time.Duration(d.Ttl) * time.Second) / 2
+	ticker := time.NewTicker(dur)
+	errTries := 0
+
+	// Register
+	RegisterDevice(client, d)
+
+	for {
+		select {
+		case <-ticker.C:
+			err := client.Update(d.Id, d)
+			if err != nil {
+				switch err.(type) {
+				case *NotFoundError:
+					// If not in the catalog - add
+					logger.Printf("keepAlive() ERROR: Registration %v not found in the remote catalog. TTL expired?", d.Id)
+					_, err = client.Add(d)
+					if err != nil {
+						logger.Printf("keepAlive() Error adding registration: %v", err)
+						errTries += 1
+					} else {
+						logger.Printf("keepAlive() Added Device registration %v", d.Id)
+						errTries = 0
+					}
+				default:
+					logger.Printf("keepAlive() Error updating registration: %v", err)
+					errTries += 1
+				}
+			} else {
+				logger.Printf("keepAlive() Updated Device registration %v", d.Id)
+				errTries = 0
+			}
+			if errTries >= keepaliveRetries {
+				errCh <- fmt.Errorf("Number of retries exceeded")
+				ticker.Stop()
+				return
+			}
+		case <-sigCh:
+			// logger.Println("keepAlive routine shutdown signalled by the upstream")
+			return
+		}
+	}
 }
