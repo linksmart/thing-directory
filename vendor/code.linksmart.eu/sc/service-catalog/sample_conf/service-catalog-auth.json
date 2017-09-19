@@ -1,0 +1,37 @@
+{
+  "description": "Standalone Service Catalog",
+  "dnssdEnabled": true,
+  "bindAddr": "0.0.0.0",
+  "bindPort": 8082,
+  "apiLocation": "/sc",
+  "staticDir": "./static",
+  "storage": {
+    "type": "memory"
+  },
+  "gc": {
+    "tunnelingService": "http://localhost:8082/NetworkManager"
+  },
+  "auth": {
+    "enabled": true,
+    "provider": "provider-name",
+    "providerURL": "https://provider-url",
+    "serviceID": "sampleSC",
+    "basicEnabled": false,
+    "authorization": {
+      "rules": [
+        {
+          "resources": ["/sc"],
+          "methods": ["GET","POST", "PUT", "DELETE"],
+          "users": ["admin"],
+          "groups": []
+        },
+        {
+          "resources": ["/sc"],
+          "methods": ["GET"],
+          "users": [],
+          "groups": ["fit"]
+        }
+      ]
+    }
+  }
+}

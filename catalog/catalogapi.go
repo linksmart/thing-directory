@@ -1,6 +1,6 @@
 // Copyright 2014-2016 Fraunhofer Institute for Applied Information Technology FIT
 
-package resource
+package catalog
 
 import (
 	"encoding/json"
@@ -9,7 +9,6 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"linksmart.eu/lc/core/catalog"
 )
 
 const (
@@ -255,8 +254,8 @@ func (a *ReadableCatalogAPI) List(w http.ResponseWriter, req *http.Request) {
 		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query:", err.Error())
 		return
 	}
-	page, perPage, err := catalog.ParsePagingParams(
-		req.Form.Get(catalog.GetParamPage), req.Form.Get(catalog.GetParamPerPage), MaxPerPage)
+	page, perPage, err := ParsePagingParams(
+		req.Form.Get(GetParamPage), req.Form.Get(GetParamPerPage), MaxPerPage)
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "Error parsing query parameters:", err.Error())
 		return
@@ -300,8 +299,8 @@ func (a *ReadableCatalogAPI) Filter(w http.ResponseWriter, req *http.Request) {
 		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query:", err.Error())
 		return
 	}
-	page, perPage, err := catalog.ParsePagingParams(
-		req.Form.Get(catalog.GetParamPage), req.Form.Get(catalog.GetParamPerPage), MaxPerPage)
+	page, perPage, err := ParsePagingParams(
+		req.Form.Get(GetParamPage), req.Form.Get(GetParamPerPage), MaxPerPage)
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "Error parsing query parameters:", err.Error())
 		return
@@ -373,8 +372,8 @@ func (a *ReadableCatalogAPI) ListResources(w http.ResponseWriter, req *http.Requ
 		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query:", err.Error())
 		return
 	}
-	page, perPage, err := catalog.ParsePagingParams(
-		req.Form.Get(catalog.GetParamPage), req.Form.Get(catalog.GetParamPerPage), MaxPerPage)
+	page, perPage, err := ParsePagingParams(
+		req.Form.Get(GetParamPage), req.Form.Get(GetParamPerPage), MaxPerPage)
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "Error parsing query parameters:", err.Error())
 		return
@@ -418,8 +417,8 @@ func (a *ReadableCatalogAPI) FilterResources(w http.ResponseWriter, req *http.Re
 		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query:", err.Error())
 		return
 	}
-	page, perPage, err := catalog.ParsePagingParams(
-		req.Form.Get(catalog.GetParamPage), req.Form.Get(catalog.GetParamPerPage), MaxPerPage)
+	page, perPage, err := ParsePagingParams(
+		req.Form.Get(GetParamPage), req.Form.Get(GetParamPerPage), MaxPerPage)
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "Error parsing query parameters:", err.Error())
 		return

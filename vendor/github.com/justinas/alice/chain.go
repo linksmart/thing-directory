@@ -21,10 +21,7 @@ type Chain struct {
 // New serves no other function,
 // constructors are only called upon a call to Then().
 func New(constructors ...Constructor) Chain {
-	c := Chain{}
-	c.constructors = append(c.constructors, constructors...)
-
-	return c
+	return Chain{append(([]Constructor)(nil), constructors...)}
 }
 
 // Then chains the middleware and returns the final http.Handler.
@@ -46,18 +43,15 @@ func New(constructors ...Constructor) Chain {
 //
 // Then() treats nil as http.DefaultServeMux.
 func (c Chain) Then(h http.Handler) http.Handler {
-	var final http.Handler
-	if h != nil {
-		final = h
-	} else {
-		final = http.DefaultServeMux
+	if h == nil {
+		h = http.DefaultServeMux
 	}
 
-	for i := len(c.constructors) - 1; i >= 0; i-- {
-		final = c.constructors[i](final)
+	for i := range c.constructors {
+		h = c.constructors[len(c.constructors)-1-i](h)
 	}
 
-	return final
+	return h
 }
 
 // ThenFunc works identically to Then, but takes
@@ -89,8 +83,7 @@ func (c Chain) Append(constructors ...Constructor) Chain {
 	copy(newCons, c.constructors)
 	copy(newCons[len(c.constructors):], constructors)
 
-	newChain := New(newCons...)
-	return newChain
+	return New(newCons...)
 }
 
 // Extend extends a chain by adding the specified chain

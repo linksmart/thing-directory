@@ -1,0 +1,493 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "version": "1.0.0",
+        "title": "LinkSmart Service Catalog API",
+        "description": "API documetnation of the LinkSmart® Service Catalog\n\nFor more information, visit the [Wiki](https://linksmart.eu/redmine/projects/linksmart-local-connect/wiki/Service_Catalog_API).\n"
+    },
+    "basePath": "/sc",
+    "produces": [
+        "application/ld+json"
+    ],
+    "tags": [
+        {
+            "name": "sc",
+            "description": "Service Catalog"
+        }
+    ],
+    "definitions": {
+        "WritableService": {
+            "title": "Service",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "meta": {
+                    "type": "object"
+                },
+                "representation": {
+                    "type": "object"
+                },
+                "protocols": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string"
+                            },
+                            "endpoint": {
+                                "type": "object"
+                            },
+                            "methods": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "content-types": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                },
+                "ttl": {
+                    "type": "integer"
+                }
+            }
+        },
+        "ReadableService": {
+            "title": "Service",
+            "type": "object",
+            "required": [
+                "protocols"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "@context": {
+                    "type": "string",
+                    "format": "url"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "meta": {
+                    "type": "object"
+                },
+                "representation": {
+                    "type": "object"
+                },
+                "protocols": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string"
+                            },
+                            "endpoint": {
+                                "type": "object"
+                            },
+                            "methods": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "content-types": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                },
+                "ttl": {
+                    "type": "integer"
+                },
+                "created": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "updated": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "expires": {
+                    "type": "string",
+                    "format": "date-time"
+                }
+            }
+        },
+        "APIIndex": {
+            "type": "object",
+            "properties": {
+                "@context": {
+                    "type": "string",
+                    "format": "url"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "api_version": {
+                    "type": "string"
+                },
+                "services": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ReadableService"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "per_page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "responses": {
+        "RespBadRequest": {
+            "description": "Bad Request",
+            "schema": {
+                "$ref": "#/definitions/ErrorResponse"
+            }
+        },
+        "RespUnauthorized": {
+            "description": "Unauthorized",
+            "schema": {
+                "$ref": "#/definitions/ErrorResponse"
+            }
+        },
+        "RespForbidden": {
+            "description": "Forbidden",
+            "schema": {
+                "$ref": "#/definitions/ErrorResponse"
+            }
+        },
+        "RespNotfound": {
+            "description": "Not Found",
+            "schema": {
+                "$ref": "#/definitions/ErrorResponse"
+            }
+        },
+        "RespConflict": {
+            "description": "Conflict",
+            "schema": {
+                "$ref": "#/definitions/ErrorResponse"
+            }
+        },
+        "RespInternalServerError": {
+            "description": "Internal Server Error",
+            "schema": {
+                "$ref": "#/definitions/ErrorResponse"
+            }
+        }
+    },
+    "parameters": {
+        "ParamPage": {
+            "name": "page",
+            "in": "query",
+            "description": "Page number in the pagination",
+            "required": false,
+            "type": "number",
+            "format": "integer"
+        },
+        "ParamPerPage": {
+            "name": "per_page",
+            "in": "query",
+            "description": "Number of entries per page",
+            "required": false,
+            "type": "number",
+            "format": "integer"
+        }
+    },
+    "paths": {
+        "/": {
+            "get": {
+                "tags": [
+                    "sc"
+                ],
+                "summary": "Retrieves API index.",
+                "parameters": [
+                    {
+                        "$ref": "#/parameters/ParamPage"
+                    },
+                    {
+                        "$ref": "#/parameters/ParamPerPage"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "schema": {
+                            "$ref": "#/definitions/APIIndex"
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/responses/RespUnauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/responses/RespForbidden"
+                    },
+                    "500": {
+                        "$ref": "#/responses/RespInternalServerError"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "sc"
+                ],
+                "summary": "Creates new `Service` object",
+                "parameters": [
+                    {
+                        "name": "service",
+                        "description": "Service to be created",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/WritableService"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created successfully",
+                        "headers": {
+                            "Location": {
+                                "description": "URL of the newly created Service",
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/responses/RespBadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/responses/RespUnauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/responses/RespForbidden"
+                    },
+                    "500": {
+                        "$ref": "#/responses/RespInternalServerError"
+                    }
+                }
+            }
+        },
+        "/{id}": {
+            "get": {
+                "tags": [
+                    "sc"
+                ],
+                "summary": "Retrieves a `Service` object",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID of the `Service`",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "schema": {
+                            "$ref": "#/definitions/ReadableService"
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/responses/RespBadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/responses/RespUnauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/responses/RespForbidden"
+                    },
+                    "404": {
+                        "$ref": "#/responses/RespNotfound"
+                    },
+                    "500": {
+                        "$ref": "#/responses/RespInternalServerError"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "sc"
+                ],
+                "summary": "Updates the existing `Service` or creates a new one (with the provided ID)",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID of the `Service`",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "service",
+                        "description": "Service to be created",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/WritableService"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Service updated successfully"
+                    },
+                    "201": {
+                        "description": "A new service is created"
+                    },
+                    "400": {
+                        "$ref": "#/responses/RespBadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/responses/RespUnauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/responses/RespForbidden"
+                    },
+                    "409": {
+                        "$ref": "#/responses/RespConflict"
+                    },
+                    "500": {
+                        "$ref": "#/responses/RespInternalServerError"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "sc"
+                ],
+                "summary": "Deletes the `Service`",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID of the `Service`",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response"
+                    },
+                    "401": {
+                        "$ref": "#/responses/RespUnauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/responses/RespForbidden"
+                    },
+                    "404": {
+                        "$ref": "#/responses/RespNotfound"
+                    },
+                    "500": {
+                        "$ref": "#/responses/RespInternalServerError"
+                    }
+                }
+            }
+        },
+        "/{path}/{op}/{value}": {
+            "get": {
+                "tags": [
+                    "sc"
+                ],
+                "summary": "Service filtering API",
+                "parameters": [
+                    {
+                        "name": "path",
+                        "in": "path",
+                        "description": "Dot-separated path in the registration JSON",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "op",
+                        "in": "path",
+                        "description": "One of (equals, prefix, suffix, contains) string comparison operations",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "value",
+                        "in": "path",
+                        "description": "The intended value/prefix/suffix/substring of the key identified by the path",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "$ref": "#/parameters/ParamPage"
+                    },
+                    {
+                        "$ref": "#/parameters/ParamPerPage"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Succcessful response",
+                        "schema": {
+                            "$ref": "#/definitions/APIIndex"
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/responses/RespUnauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/responses/RespForbidden"
+                    },
+                    "500": {
+                        "$ref": "#/responses/RespInternalServerError"
+                    }
+                }
+            }
+        }
+    }
+}

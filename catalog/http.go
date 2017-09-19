@@ -9,8 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"linksmart.eu/lc/sec/auth/obtainer"
 	"fmt"
+
+	"code.linksmart.eu/com/go-sec/auth/obtainer"
 )
 
 // Serves static and all /static/ctx files as ld+json

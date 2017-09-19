@@ -36,6 +36,7 @@ type routeTest struct {
 	scheme         string            // the expected scheme of the built URL
 	host           string            // the expected host of the built URL
 	path           string            // the expected path of the built URL
+	query          string            // the expected query string of the built URL
 	pathTemplate   string            // the expected path template of the route
 	hostTemplate   string            // the expected host template of the route
 	methods        []string          // the expected route methods
@@ -744,6 +745,7 @@ func TestQueries(t *testing.T) {
 			vars:        map[string]string{},
 			host:        "",
 			path:        "",
+			query:       "foo=bar&baz=ding",
 			shouldMatch: true,
 		},
 		{
@@ -753,6 +755,7 @@ func TestQueries(t *testing.T) {
 			vars:         map[string]string{},
 			host:         "",
 			path:         "",
+			query:        "foo=bar&baz=ding",
 			pathTemplate: `/api`,
 			hostTemplate: `www.example.com`,
 			shouldMatch:  true,
@@ -764,6 +767,7 @@ func TestQueries(t *testing.T) {
 			vars:         map[string]string{},
 			host:         "",
 			path:         "",
+			query:        "foo=bar&baz=ding",
 			pathTemplate: `/api`,
 			hostTemplate: `www.example.com`,
 			shouldMatch:  true,
@@ -784,6 +788,7 @@ func TestQueries(t *testing.T) {
 			vars:        map[string]string{"v1": "bar"},
 			host:        "",
 			path:        "",
+			query:       "foo=bar",
 			shouldMatch: true,
 		},
 		{
@@ -793,6 +798,7 @@ func TestQueries(t *testing.T) {
 			vars:        map[string]string{"v1": "bar", "v2": "ding"},
 			host:        "",
 			path:        "",
+			query:       "foo=bar&baz=ding",
 			shouldMatch: true,
 		},
 		{
@@ -802,6 +808,7 @@ func TestQueries(t *testing.T) {
 			vars:        map[string]string{"v1": "10"},
 			host:        "",
 			path:        "",
+			query:       "foo=10",
 			shouldMatch: true,
 		},
 		{
@@ -820,6 +827,7 @@ func TestQueries(t *testing.T) {
 			vars:        map[string]string{"v1": "1"},
 			host:        "",
 			path:        "",
+			query:       "foo=1",
 			shouldMatch: true,
 		},
 		{
@@ -829,6 +837,7 @@ func TestQueries(t *testing.T) {
 			vars:        map[string]string{"v1": "1"},
 			host:        "",
 			path:        "",
+			query:       "foo=1",
 			shouldMatch: true,
 		},
 		{
@@ -847,6 +856,7 @@ func TestQueries(t *testing.T) {
 			vars:        map[string]string{"v1": "1a"},
 			host:        "",
 			path:        "",
+			query:       "foo=1a",
 			shouldMatch: true,
 		},
 		{
@@ -865,6 +875,7 @@ func TestQueries(t *testing.T) {
 			vars:        map[string]string{"v-1": "bar"},
 			host:        "",
 			path:        "",
+			query:       "foo=bar",
 			shouldMatch: true,
 		},
 		{
@@ -874,6 +885,7 @@ func TestQueries(t *testing.T) {
 			vars:        map[string]string{"v-1": "bar", "v-2": "ding"},
 			host:        "",
 			path:        "",
+			query:       "foo=bar&baz=ding",
 			shouldMatch: true,
 		},
 		{
@@ -883,6 +895,7 @@ func TestQueries(t *testing.T) {
 			vars:        map[string]string{"v-1": "10"},
 			host:        "",
 			path:        "",
+			query:       "foo=10",
 			shouldMatch: true,
 		},
 		{
@@ -892,6 +905,7 @@ func TestQueries(t *testing.T) {
 			vars:        map[string]string{"v-1": "1a"},
 			host:        "",
 			path:        "",
+			query:       "foo=1a",
 			shouldMatch: true,
 		},
 		{
@@ -901,6 +915,7 @@ func TestQueries(t *testing.T) {
 			vars:        map[string]string{},
 			host:        "",
 			path:        "",
+			query:       "foo=",
 			shouldMatch: true,
 		},
 		{
@@ -919,6 +934,7 @@ func TestQueries(t *testing.T) {
 			vars:        map[string]string{},
 			host:        "",
 			path:        "",
+			query:       "foo=",
 			shouldMatch: true,
 		},
 		{
@@ -946,6 +962,7 @@ func TestQueries(t *testing.T) {
 			vars:        map[string]string{"foo": ""},
 			host:        "",
 			path:        "",
+			query:       "foo=",
 			shouldMatch: true,
 		},
 		{
@@ -956,6 +973,16 @@ func TestQueries(t *testing.T) {
 			host:        "",
 			path:        "",
 			shouldMatch: false,
+		},
+		{
+			title:       "Queries route with pattern, match, escaped value",
+			route:       new(Route).Queries("foo", "{v1}"),
+			request:     newRequest("GET", "http://localhost?foo=%25bar%26%20%2F%3D%3F"),
+			vars:        map[string]string{"v1": "%bar& /=?"},
+			host:        "",
+			path:        "",
+			query:       "foo=%25bar%26+%2F%3D%3F",
+			shouldMatch: true,
 		},
 	}
 
@@ -1186,6 +1213,28 @@ func TestSubRouter(t *testing.T) {
 			host:         "",
 			path:         "/baz",
 			pathTemplate: `/{category}`,
+			shouldMatch:  true,
+		},
+		{
+			title:        "Build with scheme on parent router",
+			route:        new(Route).Schemes("ftp").Host("google.com").Subrouter().Path("/"),
+			request:      newRequest("GET", "ftp://google.com/"),
+			scheme:       "ftp",
+			host:         "google.com",
+			path:         "/",
+			pathTemplate: `/`,
+			hostTemplate: `google.com`,
+			shouldMatch:  true,
+		},
+		{
+			title:        "Prefer scheme on child route when building URLs",
+			route:        new(Route).Schemes("https", "ftp").Host("google.com").Subrouter().Schemes("ftp").Path("/"),
+			request:      newRequest("GET", "ftp://google.com/"),
+			scheme:       "ftp",
+			host:         "google.com",
+			path:         "/",
+			pathTemplate: `/`,
+			hostTemplate: `google.com`,
 			shouldMatch:  true,
 		},
 	}
@@ -1537,6 +1586,7 @@ func testRoute(t *testing.T, test routeTest) {
 	route := test.route
 	vars := test.vars
 	shouldMatch := test.shouldMatch
+	query := test.query
 	shouldRedirect := test.shouldRedirect
 	uri := url.URL{
 		Scheme: test.scheme,
@@ -1603,6 +1653,13 @@ func testRoute(t *testing.T, test routeTest) {
 			}
 			if expected, got := uri.String(), u.String(); expected != got {
 				t.Errorf("(%v) URL not equal: expected %v, got %v -- %v", test.title, expected, got, getRouteTemplate(route))
+				return
+			}
+		}
+		if query != "" {
+			u, _ := route.URL(mapToPairs(match.Vars)...)
+			if query != u.RawQuery {
+				t.Errorf("(%v) URL query not equal: expected %v, got %v", test.title, query, u.RawQuery)
 				return
 			}
 		}
@@ -1813,4 +1870,43 @@ func newRequest(method, url string) *http.Request {
 		panic(err)
 	}
 	return req
+}
+
+func TestNoMatchMethodErrorHandler(t *testing.T) {
+	func1 := func(w http.ResponseWriter, r *http.Request) {}
+
+	r := NewRouter()
+	r.HandleFunc("/", func1).Methods("GET", "POST")
+
+	req, _ := http.NewRequest("PUT", "http://localhost/", nil)
+	match := new(RouteMatch)
+	matched := r.Match(req, match)
+
+	if matched {
+		t.Error("Should not have matched route for methods")
+	}
+
+	if match.MatchErr != ErrMethodMismatch {
+		t.Error("Should get ErrMethodMismatch error")
+	}
+
+	resp := NewRecorder()
+	r.ServeHTTP(resp, req)
+	if resp.Code != 405 {
+		t.Errorf("Expecting code %v", 405)
+	}
+
+	// Add matching route
+	r.HandleFunc("/", func1).Methods("PUT")
+
+	match = new(RouteMatch)
+	matched = r.Match(req, match)
+
+	if !matched {
+		t.Error("Should have matched route for methods")
+	}
+
+	if match.MatchErr != nil {
+		t.Error("Should not have any matching error. Found:", match.MatchErr)
+	}
 }

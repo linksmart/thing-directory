@@ -1,16 +1,21 @@
-# Negroni [![GoDoc](https://godoc.org/github.com/codegangsta/negroni?status.svg)](http://godoc.org/github.com/codegangsta/negroni) [![wercker status](https://app.wercker.com/status/13688a4a94b82d84a0b8d038c4965b61/s "wercker status")](https://app.wercker.com/project/bykey/13688a4a94b82d84a0b8d038c4965b61)
+# Negroni [![GoDoc](https://godoc.org/github.com/codegangsta/negroni?status.svg)](http://godoc.org/github.com/codegangsta/negroni) [![wercker status](https://app.wercker.com/status/13688a4a94b82d84a0b8d038c4965b61/s "wercker status")](https://app.wercker.com/project/bykey/13688a4a94b82d84a0b8d038c4965b61) [![codebeat](https://codebeat.co/badges/47d320b1-209e-45e8-bd99-9094bc5111e2)](https://codebeat.co/projects/github-com-codegangsta-negroni)
 
 Negroni is an idiomatic approach to web middleware in Go. It is tiny, non-intrusive, and encourages use of `net/http` Handlers.
 
-If you like the idea of [Martini](http://github.com/go-martini/martini), but you think it contains too much magic, then Negroni is a great fit.
+If you like the idea of [Martini](https://github.com/go-martini/martini), but you think it contains too much magic, then Negroni is a great fit.
 
 
 Language Translations:
 * [Português Brasileiro (pt_BR)](translations/README_pt_br.md)
+* [繁體中文 (zh_tw)](translations/README_zh_tw.md)
+* [简体中文 (zh_cn)](translations/README_zh_cn.md)
+* [German (de_DE)](translations/README_de_de.md)
 
 ## Getting Started
 
-After installing Go and setting up your [GOPATH](http://golang.org/doc/code.html#GOPATH), create your first `.go` file. We'll call it `server.go`.
+After installing Go and setting up your
+[GOPATH](http://golang.org/doc/code.html#GOPATH), create your first `.go` file.
+We'll call it `server.go`.
 
 ~~~ go
 package main
@@ -27,9 +32,10 @@ func main() {
     fmt.Fprintf(w, "Welcome to the home page!")
   })
 
-  n := negroni.Classic()
+  n := negroni.Classic() // Includes some default middlewares
   n.UseHandler(mux)
-  n.Run(":3000")
+
+	http.ListenAndServe(":3000", n)
 }
 ~~~
 
@@ -52,7 +58,7 @@ If you have a question or feature request, [go ask the mailing list](https://gro
 Negroni is **not** a framework. It is a library that is designed to work directly with net/http.
 
 ## Routing?
-Negroni is BYOR (Bring your own Router). The Go community already has a number of great http routers available, Negroni tries to play well with all of them by fully supporting `net/http`. For instance, integrating with [Gorilla Mux](http://github.com/gorilla/mux) looks like so:
+Negroni is BYOR (Bring your own Router). The Go community already has a number of great http routers available, Negroni tries to play well with all of them by fully supporting `net/http`. For instance, integrating with [Gorilla Mux](https://github.com/gorilla/mux) looks like so:
 
 ~~~ go
 router := mux.NewRouter()
@@ -64,14 +70,14 @@ n.Use(Middleware3)
 // router goes last
 n.UseHandler(router)
 
-n.Run(":3000")
+http.ListenAndServe(":3000", n)
 ~~~
 
 ## `negroni.Classic()`
 `negroni.Classic()` provides some default middleware that is useful for most applications:
 
 * `negroni.Recovery` - Panic Recovery Middleware.
-* `negroni.Logging` - Request/Response Logging Middleware.
+* `negroni.Logger` - Request/Response Logger Middleware.
 * `negroni.Static` - Static File serving under the "public" directory.
 
 This makes it really easy to get started with some useful features from Negroni.
@@ -112,16 +118,41 @@ mux := http.NewServeMux()
 
 n.UseHandler(mux)
 
-n.Run(":3000")
+http.ListenAndServe(":3000", n)
 ~~~
 
 ## `Run()`
-Negroni has a convenience function called `Run`. `Run` takes an addr string identical to [http.ListenAndServe](http://golang.org/pkg/net/http#ListenAndServe).
+Negroni has a convenience function called `Run`. `Run` takes an addr string
+identical to
+[http.ListenAndServe](http://golang.org/pkg/net/http#ListenAndServe).
 
 ~~~ go
 n := negroni.Classic()
-// ...
-log.Fatal(http.ListenAndServe(":8080", n))
+n.Run(":8080")
+~~~
+
+In general, you will want to use `net/http` methods and just pass `negroni` has
+a handler as this is more flexible.
+
+E.g.
+
+~~~ go
+  mux := http.NewServeMux()
+  mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+    fmt.Fprintf(w, "Welcome to the home page!")
+  })
+
+  n := negroni.Classic() // Includes some default middlewares
+  n.UseHandler(mux)
+
+	s := &http.Server{
+		Addr:           ":8080",
+		Handler:        n,
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		MaxHeaderBytes: 1 << 20,
+	}
+	log.Fatal(s.ListenAndServe())
 ~~~
 
 ## Route Specific Middleware
@@ -133,10 +164,26 @@ adminRoutes := mux.NewRouter()
 // add admin routes here
 
 // Create a new negroni for the admin middleware
-router.Handle("/admin", negroni.New(
+router.PathPrefix("/admin").Handler(negroni.New(
   Middleware1,
   Middleware2,
   negroni.Wrap(adminRoutes),
+))
+~~~
+
+If you are using [Gorilla Mux](http://github.com/gorilla/mux) here is an example using a subrouter.
+
+~~~go
+router := mux.NewRouter()
+subRouter := mux.NewRouter().PathPrefix("/subpath").Subrouter().StrictSlash(true)
+subRouter.HandleFunc("/", someSubpathHandler) // "/subpath/"
+subRouter.HandleFunc("/:id", someSubpathHandler) // "/subpath/:id"
+
+// "/subpath" is necessary to ensure the subRouter and main router linkup
+router.PathPrefix("/subpath").Handler(negroni.New(
+	Middleware1,
+	Middleware2,
+	negroni.Wrap(subRouter),
 ))
 ~~~
 
@@ -148,7 +195,7 @@ Here is a current list of Negroni compatible middlware. Feel free to put up a PR
 | Middleware | Author | Description |
 | -----------|--------|-------------|
 | [RestGate](https://github.com/pjebs/restgate) | [Prasanga Siripala](https://github.com/pjebs) | Secure authentication for REST API endpoints |
-| [Graceful](https://github.com/stretchr/graceful) | [Tyler Bunnell](https://github.com/tylerb) | Graceful HTTP Shutdown |
+| [Graceful](https://github.com/tylerb/graceful) | [Tyler Bunnell](https://github.com/tylerb) | Graceful HTTP Shutdown |
 | [secure](https://github.com/unrolled/secure) | [Cory Jacobsen](https://github.com/unrolled) | Middleware that implements a few quick security wins |
 | [JWT Middleware](https://github.com/auth0/go-jwt-middleware) | [Auth0](https://github.com/auth0) | Middleware checks for a JWT on the `Authorization` header on incoming requests and decodes it|
 | [binding](https://github.com/mholt/binding) | [Matt Holt](https://github.com/mholt) | Data binding from HTTP requests into structs |
@@ -164,6 +211,8 @@ Here is a current list of Negroni compatible middlware. Feel free to put up a PR
 | [xrequestid](https://github.com/pilu/xrequestid) | [Andrea Franz](https://github.com/pilu) | Middleware that assigns a random X-Request-Id header to each request |
 | [VanGoH](https://github.com/auroratechnologies/vangoh) | [Taylor Wrobel](https://github.com/twrobel3) | Configurable [AWS-Style](http://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAuthentication.html) HMAC authentication middleware |
 | [stats](https://github.com/thoas/stats) | [Florent Messa](https://github.com/thoas) | Store information about your web application (response time, etc.) |
+| [prometheus](https://github.com/zbindenren/negroni-prometheus) | [Rene Zbinden](https://github.com/zbindenren) | Easily create metrics endpoint for the [prometheus](http://prometheus.io) instrumentation tool |
+| [delay](https://github.com/jeffbmartinez/delay) | [Jeff Martinez](https://github.com/jeffbmartinez) | Add delays/latency to endpoints. Useful when testing effects of high latency |
 
 ## Examples
 [Alexander Rødseth](https://github.com/xyproto) created [mooseware](https://github.com/xyproto/mooseware), a skeleton for writing a Negroni middleware handler.
@@ -174,8 +223,8 @@ Here is a current list of Negroni compatible middlware. Feel free to put up a PR
 ## Essential Reading for Beginners of Go & Negroni
 
 * [Using a Context to pass information from middleware to end handler](http://elithrar.github.io/article/map-string-interface/)
-* [Understanding middleware](http://mattstauffer.co/blog/laravel-5.0-middleware-replacing-filters)
+* [Understanding middleware](https://mattstauffer.co/blog/laravel-5.0-middleware-filter-style)
 
 ## About
 
-Negroni is obsessively designed by none other than the [Code Gangsta](http://codegangsta.io/)
+Negroni is obsessively designed by none other than the [Code Gangsta](https://codegangsta.io/)

@@ -1,11 +1,12 @@
 // Copyright 2014-2016 Fraunhofer Institute for Applied Information Technology FIT
 
-package resource
+package catalog
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -15,8 +16,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
-	"io/ioutil"
-	utils "linksmart.eu/lc/core/catalog"
 )
 
 func setupRouter() (*mux.Router, func(), error) {
@@ -27,9 +26,9 @@ func setupRouter() (*mux.Router, func(), error) {
 			strings.Replace(os.TempDir(), "\\", "/", -1), uuid.New())
 	)
 	switch TestStorageType {
-	case utils.CatalogBackendMemory:
+	case CatalogBackendMemory:
 		storage = NewMemoryStorage()
-	case utils.CatalogBackendLevelDB:
+	case CatalogBackendLevelDB:
 		storage, err = NewLevelDBStorage(tempDir, nil)
 		if err != nil {
 			return nil, nil, err

@@ -1,14 +1,12 @@
 // Copyright 2014-2016 Fraunhofer Institute for Applied Information Technology FIT
 
-package resource
+package catalog
 
 import (
 	"fmt"
 	"sync"
 
 	avl "github.com/ancientlore/go-avltree"
-
-	"linksmart.eu/lc/core/catalog"
 )
 
 // In-memory storage
@@ -92,7 +90,7 @@ func (s *MemoryStorage) list(page int, perPage int) (Devices, int, error) {
 	defer s.RUnlock()
 
 	total := s.devices.Len()
-	offset, limit, err := catalog.GetPagingAttr(total, page, perPage, MaxPerPage)
+	offset, limit, err := GetPagingAttr(total, page, perPage, MaxPerPage)
 	if err != nil {
 		return nil, 0, &BadRequestError{fmt.Sprintf("Unable to paginate: %s", err)}
 	}

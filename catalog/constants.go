@@ -1,6 +1,6 @@
 // Copyright 2014-2016 Fraunhofer Institute for Applied Information Technology FIT
 
-package resource
+package catalog
 
 const (
 	DNSSDServiceType          = "_linksmart-rc._tcp"
@@ -11,5 +11,8 @@ const (
 	ApiResourceCollectionType = "Resources"
 	ApiDeviceType             = "Device"
 	ApiResourceType           = "Resource"
-	loggerPrefix              = "[rc] "
+	CatalogBackendMemory      = "memory"
+	CatalogBackendLevelDB     = "leveldb"
+	StaticLocation            = "/static"
+	loggerPrefix              = "[catalog] "
 )

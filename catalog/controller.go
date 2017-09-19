@@ -1,6 +1,6 @@
 // Copyright 2014-2016 Fraunhofer Institute for Applied Information Technology FIT
 
-package resource
+package catalog
 
 import (
 	"fmt"
@@ -10,7 +10,6 @@ import (
 	"time"
 
 	avl "github.com/ancientlore/go-avltree"
-	"linksmart.eu/lc/core/catalog"
 )
 
 type Controller struct {
@@ -224,7 +223,7 @@ func (c *Controller) filter(path, op, value string, page, perPage int) ([]Simple
 
 		simplified := slice.simplify()
 		for i := range simplified {
-			matched, err := catalog.MatchObject(simplified[i], strings.Split(path, "."), op, value)
+			matched, err := MatchObject(simplified[i], strings.Split(path, "."), op, value)
 			if err != nil {
 				return nil, 0, err
 			}
@@ -238,7 +237,7 @@ func (c *Controller) filter(path, op, value string, page, perPage int) ([]Simple
 		}
 	}
 	// Pagination
-	offset, limit, err := catalog.GetPagingAttr(len(matches), page, perPage, MaxPerPage)
+	offset, limit, err := GetPagingAttr(len(matches), page, perPage, MaxPerPage)
 	if err != nil {
 		return nil, 0, &BadRequestError{fmt.Sprintf("Unable to paginate: %s", err)}
 	}
@@ -328,7 +327,7 @@ func (c *Controller) listResources(page, perPage int) ([]Resource, int, error) {
 		deviceIDs[i] = x.(Map).value.(string)
 	}
 	// Pagination
-	offset, limit, err := catalog.GetPagingAttr(total, page, perPage, MaxPerPage)
+	offset, limit, err := GetPagingAttr(total, page, perPage, MaxPerPage)
 	if err != nil {
 		return nil, 0, &BadRequestError{fmt.Sprintf("Unable to paginate: %s", err)}
 	}
@@ -389,7 +388,7 @@ func (c *Controller) filterResources(path, op, value string, page, perPage int) 
 		for i := range d.Resources {
 			if d.Resources[i].Id == resourceID {
 
-				matched, err := catalog.MatchObject(d.Resources[i], strings.Split(path, "."), op, value)
+				matched, err := MatchObject(d.Resources[i], strings.Split(path, "."), op, value)
 				if err != nil {
 					return nil, 0, err
 				}
@@ -400,7 +399,7 @@ func (c *Controller) filterResources(path, op, value string, page, perPage int) 
 		}
 	}
 	// Pagination
-	offset, limit, err := catalog.GetPagingAttr(len(matches), page, perPage, MaxPerPage)
+	offset, limit, err := GetPagingAttr(len(matches), page, perPage, MaxPerPage)
 	if err != nil {
 		return nil, 0, &BadRequestError{fmt.Sprintf("Unable to paginate: %s", err)}
 	}

@@ -1,6 +1,6 @@
 // Copyright 2014-2016 Fraunhofer Institute for Applied Information Technology FIT
 
-package resource
+package catalog
 
 import (
 	"bytes"
@@ -8,10 +8,9 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-
-	"linksmart.eu/lc/core/catalog"
-	"linksmart.eu/lc/sec/auth/obtainer"
 	"strings"
+
+	"code.linksmart.eu/com/go-sec/auth/obtainer"
 )
 
 type RemoteCatalogClient struct {
@@ -34,7 +33,7 @@ func NewRemoteCatalogClient(serverEndpoint string, ticket *obtainer.Client) (Cat
 
 // Retrieves a device
 func (c *RemoteCatalogClient) Get(id string) (*SimpleDevice, error) {
-	res, err := catalog.HTTPRequest("GET",
+	res, err := HTTPRequest("GET",
 		fmt.Sprintf("%v/%v/%v", c.serverEndpoint, TypeDevices, id),
 		nil,
 		nil,
@@ -81,7 +80,7 @@ func (c *RemoteCatalogClient) Add(d *Device) (string, error) {
 	)
 
 	if id == "" { // Let the system generate an id
-		res, err = catalog.HTTPRequest("POST",
+		res, err = HTTPRequest("POST",
 			fmt.Sprintf("%v/%v/", c.serverEndpoint, TypeDevices),
 			map[string][]string{"Content-Type": []string{"application/ld+json"}},
 			bytes.NewReader(b),
@@ -95,7 +94,7 @@ func (c *RemoteCatalogClient) Add(d *Device) (string, error) {
 	} else { // User-defined id
 
 		// Check if id is unique
-		resGet, err := catalog.HTTPRequest("GET",
+		resGet, err := HTTPRequest("GET",
 			fmt.Sprintf("%v/%v/%v", c.serverEndpoint, TypeDevices, id),
 			nil,
 			nil,
@@ -122,7 +121,7 @@ func (c *RemoteCatalogClient) Add(d *Device) (string, error) {
 		}
 
 		// Now add
-		res, err = catalog.HTTPRequest("PUT",
+		res, err = HTTPRequest("PUT",
 			fmt.Sprintf("%v/%v/%v", c.serverEndpoint, TypeDevices, id),
 			map[string][]string{"Content-Type": []string{"application/ld+json"}},
 			bytes.NewReader(b),
@@ -159,7 +158,7 @@ func (c *RemoteCatalogClient) Add(d *Device) (string, error) {
 // Updates a device
 func (c *RemoteCatalogClient) Update(id string, d *Device) error {
 	// Check if id is found
-	resGet, err := catalog.HTTPRequest("GET",
+	resGet, err := HTTPRequest("GET",
 		fmt.Sprintf("%v/%v/%v", c.serverEndpoint, TypeDevices, id),
 		nil,
 		nil,
@@ -184,7 +183,7 @@ func (c *RemoteCatalogClient) Update(id string, d *Device) error {
 	}
 
 	b, _ := json.Marshal(d)
-	res, err := catalog.HTTPRequest("PUT",
+	res, err := HTTPRequest("PUT",
 		fmt.Sprintf("%v/%v/%v", c.serverEndpoint, TypeDevices, id),
 		map[string][]string{"Content-Type": []string{"application/ld+json"}},
 		bytes.NewReader(b),
@@ -213,7 +212,7 @@ func (c *RemoteCatalogClient) Update(id string, d *Device) error {
 
 // Deletes a device
 func (c *RemoteCatalogClient) Delete(id string) error {
-	res, err := catalog.HTTPRequest("DELETE",
+	res, err := HTTPRequest("DELETE",
 		fmt.Sprintf("%v/%v/%v", c.serverEndpoint, TypeDevices, id),
 		nil,
 		bytes.NewReader([]byte{}),
@@ -242,9 +241,9 @@ func (c *RemoteCatalogClient) Delete(id string) error {
 
 // Retrieves a page from the device collection
 func (c *RemoteCatalogClient) List(page int, perPage int) ([]SimpleDevice, int, error) {
-	res, err := catalog.HTTPRequest("GET",
+	res, err := HTTPRequest("GET",
 		fmt.Sprintf("%v/%v?%v=%v&%v=%v", c.serverEndpoint, TypeDevices,
-			catalog.GetParamPage, page, catalog.GetParamPerPage, perPage),
+			GetParamPage, page, GetParamPerPage, perPage),
 		nil,
 		nil,
 		c.ticket,
@@ -279,10 +278,10 @@ func (c *RemoteCatalogClient) List(page int, perPage int) ([]SimpleDevice, int, 
 
 // Filters devices
 func (c *RemoteCatalogClient) Filter(path, op, value string, page, perPage int) ([]SimpleDevice, int, error) {
-	res, err := catalog.HTTPRequest("GET",
+	res, err := HTTPRequest("GET",
 		fmt.Sprintf("%v/%v/%v/%v/%v?%v=%v&%v=%v",
 			c.serverEndpoint, TypeDevices, path, op, value,
-			catalog.GetParamPage, page, catalog.GetParamPerPage, perPage),
+			GetParamPage, page, GetParamPerPage, perPage),
 		nil,
 		nil,
 		c.ticket,
@@ -317,7 +316,7 @@ func (c *RemoteCatalogClient) Filter(path, op, value string, page, perPage int) 
 
 // Retrieves a resource
 func (c *RemoteCatalogClient) GetResource(id string) (*Resource, error) {
-	res, err := catalog.HTTPRequest("GET",
+	res, err := HTTPRequest("GET",
 		fmt.Sprintf("%v/%v/%v", c.serverEndpoint, TypeResources, id),
 		nil,
 		nil,
@@ -353,10 +352,10 @@ func (c *RemoteCatalogClient) GetResource(id string) (*Resource, error) {
 
 // Retrieves a page from the resource collection
 func (c *RemoteCatalogClient) ListResources(page int, perPage int) ([]Resource, int, error) {
-	res, err := catalog.HTTPRequest("GET",
+	res, err := HTTPRequest("GET",
 		fmt.Sprintf("%v/%v?%v=%v&%v=%v",
 			c.serverEndpoint, TypeResources,
-			catalog.GetParamPage, page, catalog.GetParamPerPage, perPage),
+			GetParamPage, page, GetParamPerPage, perPage),
 		nil,
 		nil,
 		c.ticket,
@@ -391,10 +390,10 @@ func (c *RemoteCatalogClient) ListResources(page int, perPage int) ([]Resource, 
 
 // Filter resources
 func (c *RemoteCatalogClient) FilterResources(path, op, value string, page, perPage int) ([]Resource, int, error) {
-	res, err := catalog.HTTPRequest("GET",
+	res, err := HTTPRequest("GET",
 		fmt.Sprintf("%v/%v/%v/%v/%v?%v=%v&%v=%v",
 			c.serverEndpoint, TypeResources, path, op, value,
-			catalog.GetParamPage, page, catalog.GetParamPerPage, perPage),
+			GetParamPage, page, GetParamPerPage, perPage),
 		nil,
 		nil,
 		c.ticket,
@@ -436,5 +435,5 @@ func ErrorMsg(res *http.Response) string {
 	if err != nil {
 		return res.Status
 	}
-	return fmt.Sprintf("(%d) %s",res.StatusCode ,e.Message)
+	return fmt.Sprintf("(%d) %s", res.StatusCode, e.Message)
 }

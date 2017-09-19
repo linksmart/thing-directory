@@ -1,12 +1,10 @@
 // Copyright 2014-2016 Fraunhofer Institute for Applied Information Technology FIT
 
-package resource
+package catalog
 
 import (
 	"os"
 	"testing"
-
-	utils "linksmart.eu/lc/core/catalog"
 )
 
 const (
@@ -16,8 +14,8 @@ const (
 
 var (
 	TestSupportedBackends = map[string]bool{
-		utils.CatalogBackendMemory:  true,
-		utils.CatalogBackendLevelDB: true,
+		CatalogBackendMemory:  true,
+		CatalogBackendLevelDB: true,
 	}
 	TestStorageType string
 )

@@ -1,0 +1,12 @@
+{
+  "description": "Standalone Service Catalog",
+  "dnssdEnabled": true,
+  "bindAddr": "0.0.0.0",
+  "bindPort": 8082,
+  "apiLocation": "/",
+  "staticDir": "./static",
+  "storage": {
+    "type": "leveldb",
+    "dsn": "/data"
+  }
+}

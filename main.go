@@ -14,20 +14,16 @@ import (
 	"syscall"
 	"time"
 
+	_ "code.linksmart.eu/com/go-sec/auth/keycloak/obtainer"
+	_ "code.linksmart.eu/com/go-sec/auth/keycloak/validator"
+	"code.linksmart.eu/com/go-sec/auth/obtainer"
+	"code.linksmart.eu/com/go-sec/auth/validator"
+	catalog "code.linksmart.eu/rc/resource-catalog/catalog"
+	sc "code.linksmart.eu/sc/service-catalog/service"
 	"github.com/codegangsta/negroni"
 	"github.com/gorilla/context"
 	"github.com/justinas/alice"
 	"github.com/oleksandr/bonjour"
-	utils "linksmart.eu/lc/core/catalog"
-	catalog "linksmart.eu/lc/core/catalog/resource"
-	sc "linksmart.eu/lc/core/catalog/service"
-
-	_ "linksmart.eu/lc/sec/auth/cas/obtainer"
-	_ "linksmart.eu/lc/sec/auth/cas/validator"
-	_ "linksmart.eu/lc/sec/auth/keycloak/obtainer"
-	_ "linksmart.eu/lc/sec/auth/keycloak/validator"
-	"linksmart.eu/lc/sec/auth/obtainer"
-	"linksmart.eu/lc/sec/auth/validator"
 )
 
 var (
@@ -147,7 +143,7 @@ func main() {
 		negroni.NewLogger(),
 		&negroni.Static{
 			Dir:       http.Dir(config.StaticDir),
-			Prefix:    utils.StaticLocation,
+			Prefix:    catalog.StaticLocation,
 			IndexFile: "index.html",
 		},
 	)
@@ -167,9 +163,9 @@ func setupRouter(config *Config) (*router, func() error, error) {
 		err     error
 	)
 	switch config.Storage.Type {
-	case utils.CatalogBackendMemory:
+	case catalog.CatalogBackendMemory:
 		storage = catalog.NewMemoryStorage()
-	case utils.CatalogBackendLevelDB:
+	case catalog.CatalogBackendLevelDB:
 		storage, err = catalog.NewLevelDBStorage(config.Storage.DSN, nil)
 		if err != nil {
 			return nil, nil, fmt.Errorf("Failed to start LevelDB storage: %v", err.Error())
@@ -188,7 +184,7 @@ func setupRouter(config *Config) (*router, func() error, error) {
 	api := catalog.NewWritableCatalogAPI(
 		controller,
 		config.ApiLocation,
-		utils.StaticLocation,
+		catalog.StaticLocation,
 		config.Description,
 	)
 
