@@ -1,4 +1,4 @@
-# LinkSmart Service Catalog
+# LinkSmart Resource Catalog
 
 ## Compile from source
 ```
