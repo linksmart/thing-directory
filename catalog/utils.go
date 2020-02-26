@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"code.linksmart.eu/com/go-sec/auth/obtainer"
-	"code.linksmart.eu/sc/service-catalog/discovery"
+	"github.com/linksmart/go-sec/auth/obtainer"
+	"github.com/linksmart/service-catalog/discovery"
 )
 
 const (

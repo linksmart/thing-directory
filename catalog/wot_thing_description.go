@@ -1,7 +1,10 @@
-package thing_description
+package catalog
 
 import (
+	"fmt"
+	"strings"
 	"time"
+
 	"github.com/xeipuuv/gojsonschema"
 )
 

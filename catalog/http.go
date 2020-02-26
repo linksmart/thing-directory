@@ -4,14 +4,13 @@ package catalog
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"path/filepath"
 	"strings"
 
-	"fmt"
-
-	"code.linksmart.eu/com/go-sec/auth/obtainer"
+	"github.com/linksmart/go-sec/auth/obtainer"
 )
 
 // Serves static and all /static/ctx files as ld+json

@@ -8,8 +8,8 @@ import (
 	"net/url"
 	"strings"
 
-	catalog "code.linksmart.eu/rc/resource-catalog/catalog"
-	sc "code.linksmart.eu/sc/service-catalog/service"
+	catalog "github.com/linksmart/resource-catalog/catalog"
+	sc "github.com/linksmart/service-catalog/service"
 )
 
 const (

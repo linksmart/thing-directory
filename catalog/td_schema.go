@@ -1,4 +1,4 @@
-package thing_description
+package catalog
 
 //Schema for the
 const WoTSchema = `
