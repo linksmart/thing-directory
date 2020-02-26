@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/url"
-	"strings"
 
 	"github.com/linksmart/go-sec/authz"
 	utils "github.com/linksmart/resource-catalog/catalog"
@@ -20,8 +19,6 @@ type Config struct {
 	BindAddr       string           `json:"bindAddr"`
 	BindPort       int              `json:"bindPort"`
 	DnssdEnabled   bool             `json:"dnssdEnabled"`
-	StaticDir      string           `json:"staticDir"`
-	ApiLocation    string           `json:"apiLocation"`
 	Storage        StorageConfig    `json:"storage"`
 	ServiceCatalog []ServiceCatalog `json:"serviceCatalog"`
 	Auth           ValidatorConf    `json:"auth"`
@@ -60,12 +57,6 @@ func (c *Config) Validate() error {
 	if !supportedBackends[c.Storage.Type] {
 		err = fmt.Errorf("Unsupported storage backend")
 	}
-	if c.StaticDir == "" {
-		err = fmt.Errorf("staticDir must be defined")
-	}
-	if strings.HasSuffix(c.StaticDir, "/") {
-		err = fmt.Errorf("staticDir must not have a trailing slash")
-	}
 	for _, cat := range c.ServiceCatalog {
 		if cat.Endpoint == "" && cat.Discover == false {
 			err = fmt.Errorf("All ServiceCatalog entries must have either endpoint or a discovery flag defined")
@@ -103,10 +94,6 @@ func loadConfig(path string) (*Config, error) {
 	err = json.Unmarshal(file, c)
 	if err != nil {
 		return nil, err
-	}
-
-	if strings.HasSuffix(c.ApiLocation, "/") {
-		c.ApiLocation = strings.TrimSuffix(c.ApiLocation, "/")
 	}
 
 	if err = c.Validate(); err != nil {

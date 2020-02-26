@@ -1,27 +1,26 @@
-package catalog
+package wot
 
 import (
-	"fmt"
-	"strings"
 	"time"
-
-	"github.com/xeipuuv/gojsonschema"
 )
 
 /*
  This file has go models for Web Of Things (WoT) Things Description following : https://www.w3.org/TR/2019/CR-wot-thing-description-20191106/ (W3C Candidate Recommendation 6 November 2019)
 */
 
-// A Datastream describes a stored stream of data
-type ThingsDescription struct {
+type any interface{}
+
+// ThingDescription is the structured data describing a Thing
+type ThingDescription struct {
+
 	// JSON-LD keyword to define short-hand names called terms that are used throughout a TD document.
-	Context interface{} `json:"@context"`
+	Context any `json:"@context"`
 
 	// Internal structure to store the context (slice with single element if @Context is just a string
-	//ContextSlice []interface{}
+	//ContextSlice []any
 
 	// JSON-LD keyword to label the object with semantic tags (or types).
-	Type interface{} `json:"@type,omitempty"`
+	Type any `json:"@type,omitempty"`
 
 	// Internal structure to store the context (slice with single element if @Context is just a string
 	TypeSlice []string
@@ -76,7 +75,7 @@ type ThingsDescription struct {
 	Forms []Form `json:"forms,omitempty"`
 
 	// Set of security definition names, chosen from those defined in securityDefinitions. These must all be satisfied for access to resources
-	Security interface{} `json:"security"`
+	Security any `json:"security"`
 
 	// Internal structure to store the Security (slice with single element if Security is just a string)
 	SecuritySlice []string
@@ -89,7 +88,7 @@ type ThingsDescription struct {
 There are many types of potential affordances, but W3C WoT defines three types of Interaction Affordances: Properties, Actions, and Events.*/
 type InteractionAffordance struct {
 	// JSON-LD keyword to label the object with semantic tags (or types).
-	Type interface{} `json:"@type,omitempty"`
+	Type any `json:"@type,omitempty"`
 
 	// Provides a human-readable title (e.g., display a text for UI representation) based on a default language.
 	Title string `json:"title,omitempty"`
@@ -178,7 +177,7 @@ type Form struct {
 		b. When a Form instance is within an EventAffordance instance, the value assigned to op MUST be either subscribeevent, unsubscribeevent, or both terms within an Array.
 		c. When a Form instance is within a PropertyAffordance instance, the value assigned to op MUST be one of readproperty, writeproperty, observeproperty, unobserveproperty or an Array containing a combination of these terms.
 	*/
-	Op interface{} `json:"op"`
+	Op any `json:"op"`
 
 	// Internal structure to store the Op (slice with single element if Op is just a string)
 	OpSlice []string
@@ -198,10 +197,10 @@ type Form struct {
 	SubProtocol string `json:"subprotocol,omitempty"`
 
 	// Set of security definition names, chosen from those defined in securityDefinitions. These must all be satisfied for access to resources.
-	Security interface{} `json:"security, omitempty"`
+	Security any `json:"security, omitempty"`
 
 	// Set of authorization scope identifiers provided as an array. These are provided in tokens returned by an authorization server and associated with forms in order to identify what resources a client may access and how. The values associated with a form should be chosen from those defined in an OAuth2SecurityScheme active on that form.
-	Scopes interface{} `json:"scopes, omitempty"`
+	Scopes any `json:"scopes, omitempty"`
 
 	// This optional term can be used if, e.g., the output communication metadata differ from input metadata (e.g., output contentType differ from the input contentType). The response name contains metadata that is only valid for the response messages.
 	Response ExpectedResponse `json:"response, omitempty"`
@@ -226,7 +225,7 @@ type Link struct {
 
 type SecurityScheme struct {
 	// JSON-LD keyword to label the object with semantic tags (or types).
-	Type interface{} `json:"@type,omitempty"`
+	Type any `json:"@type,omitempty"`
 
 	// Internal structure to store the Type (slice with single element if Type is just a string)
 	TypeSlice []string
@@ -256,13 +255,13 @@ type SecurityScheme struct {
 
 type DataSchema struct {
 	// TJSON-LD keyword to label the object with semantic tags (or types)
-	Type interface{} `json:"@type,omitempty"`
+	Type any `json:"@type,omitempty"`
 
 	// Internal structure to store the Type (slice with single element if Type is just a string)
 	TypeSlice []string
 
 	// Const corresponds to the JSON schema field "const".
-	Const interface{} `json:"const,omitempty"`
+	Const any `json:"const,omitempty"`
 
 	// Provides multi-language human-readable titles (e.g., display a text for UI representation in different languages).
 	Description string `json:"description,omitempty"`
@@ -271,7 +270,7 @@ type DataSchema struct {
 	Descriptions string `json:"descriptions,omitempty"`
 
 	// Restricted set of values provided as an array.
-	Enum []interface{} `json:"enum,omitempty"`
+	Enum []any `json:"enum,omitempty"`
 
 	// Allows validation based on a format pattern such as "date-time", "email", "uri", etc. (Also see below.)
 	Format string `json:"format,omitempty"`
@@ -309,7 +308,7 @@ type DataSchema struct {
 
 type ArraySchema struct {
 	// Used to define the characteristics of an array.
-	Items interface{} `json:"items,omitempty"`
+	Items any `json:"items,omitempty"`
 
 	// Defines the maximum number of items that have to be in the array.
 	MaxItems *int `json:"maxItems,omitempty"`
@@ -321,10 +320,10 @@ type ArraySchema struct {
 //Specifies both float and double
 type NumberSchema struct {
 	// Specifies a maximum numeric value. Only applicable for associated number or integer types.
-	Maximum *interface{} `json:"maximum,omitempty"`
+	Maximum *any `json:"maximum,omitempty"`
 
 	// Specifies a minimum numeric value. Only applicable for associated number or integer types.
-	Minimum *interface{} `json:"minimum,omitempty"`
+	Minimum *any `json:"minimum,omitempty"`
 }
 
 type ObjectSchema struct {
@@ -335,7 +334,7 @@ type ObjectSchema struct {
 	Required []string `json:"required,omitempty"`
 }
 
-type AnyURI string
+type AnyURI = string
 
 /*
 Communication metadata describing the expected response message.
@@ -474,7 +473,7 @@ type OAuth2SecurityScheme struct {
 	Refresh AnyURI `json:"refresh,omitempty"`
 
 	//Set of authorization scope identifiers provided as an array. These are provided in tokens returned by an authorization server and associated with forms in order to identify what resources a client may access and how. The values associated with a form should be chosen from those defined in an OAuth2SecurityScheme active on that form.
-	Scopes interface{} `json:"scopes,omitempty"`
+	Scopes any `json:"scopes,omitempty"`
 
 	//internal structure to store the Scopes (slice with single element if Scopes is just a string).
 	ScopeSlice []string
@@ -488,7 +487,7 @@ type ThingsDescriptionList struct {
 	// URL of the DataStreamList API
 	URL string `json:"url"`
 	// Entries is an array of Data Sources
-	Streams []ThingsDescription `json:"things"`
+	Streams []ThingDescription `json:"things"`
 	// Page is the current page in Entries pagination
 	Page int `json:"page"`
 	// MaxEntries is the results per page in Entries pagination
@@ -497,7 +496,7 @@ type ThingsDescriptionList struct {
 	Total int `json:"total"`
 }
 
-var enumValues_DataSchemaType = []interface{}{
+var enumValues_DataSchemaType = []any{
 	"boolean",
 	"integer",
 	"number",
@@ -505,23 +504,4 @@ var enumValues_DataSchemaType = []interface{}{
 	"object",
 	"array",
 	"null",
-}
-
-func validateAgainstWoTSchema(value string) error {
-	schemaLoader := gojsonschema.NewStringLoader(WoTSchema)
-	jsonLoader := gojsonschema.NewStringLoader(value)
-	result, err := gojsonschema.Validate(schemaLoader, jsonLoader)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	if !result.Valid() {
-		var errorStr strings.Builder
-		errorStr.WriteString("The JSON is not valid. see errors :\n")
-		for _, desc := range result.Errors() {
-			errorStr.WriteString(desc.String() + "\n")
-		}
-		return fmt.Errorf("%s", errorStr.String())
-	}
-	return nil
 }

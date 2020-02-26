@@ -18,7 +18,7 @@ type LevelDBStorage struct {
 	wg sync.WaitGroup
 }
 
-func NewLevelDBStorage(dsn string, opts *opt.Options) (CatalogStorage, error) {
+func NewLevelDBStorage(dsn string, opts *opt.Options) (Storage, error) {
 	url, err := url.Parse(dsn)
 	if err != nil {
 		return nil, err
@@ -34,21 +34,21 @@ func NewLevelDBStorage(dsn string, opts *opt.Options) (CatalogStorage, error) {
 }
 
 // CRUD
-func (s *LevelDBStorage) add(d *Device) error {
+func (s *LevelDBStorage) add(td *ThingDescription) error {
 
-	bytes, err := json.Marshal(d)
+	bytes, err := json.Marshal(td)
 	if err != nil {
 		return err
 	}
 
-	_, err = s.db.Get([]byte(d.Id), nil)
+	_, err = s.db.Get([]byte(td.ID), nil)
 	if err == nil {
 		return &ConflictError{"Device id is not unique."}
 	} else if err != leveldb.ErrNotFound {
 		return err
 	}
 
-	err = s.db.Put([]byte(d.Id), bytes, nil)
+	err = s.db.Put([]byte(td.ID), bytes, nil)
 	if err != nil {
 		return err
 	}
@@ -56,7 +56,7 @@ func (s *LevelDBStorage) add(d *Device) error {
 	return nil
 }
 
-func (s *LevelDBStorage) get(id string) (*Device, error) {
+func (s *LevelDBStorage) get(id string) (*ThingDescription, error) {
 
 	bytes, err := s.db.Get([]byte(id), nil)
 	if err == leveldb.ErrNotFound {
@@ -65,18 +65,18 @@ func (s *LevelDBStorage) get(id string) (*Device, error) {
 		return nil, err
 	}
 
-	var d Device
-	err = json.Unmarshal(bytes, &d)
+	var td ThingDescription
+	err = json.Unmarshal(bytes, &td)
 	if err != nil {
 		return nil, err
 	}
 
-	return &d, nil
+	return &td, nil
 }
 
-func (s *LevelDBStorage) update(id string, d *Device) error {
+func (s *LevelDBStorage) update(id string, td *ThingDescription) error {
 
-	bytes, err := json.Marshal(d)
+	bytes, err := json.Marshal(td)
 	if err != nil {
 		return err
 	}
@@ -102,7 +102,7 @@ func (s *LevelDBStorage) delete(id string) error {
 	return nil
 }
 
-func (s *LevelDBStorage) list(page int, perPage int) (Devices, int, error) {
+func (s *LevelDBStorage) list(page int, perPage int) ([]ThingDescription, int, error) {
 
 	total, err := s.total()
 	if err != nil {
@@ -115,19 +115,19 @@ func (s *LevelDBStorage) list(page int, perPage int) (Devices, int, error) {
 
 	// TODO: is there a better way to do this?
 	// github.com/syndtr/goleveldb/leveldb/iterator
-	devices := make([]Device, limit)
+	devices := make([]ThingDescription, limit)
 	s.wg.Add(1)
 	iter := s.db.NewIterator(nil, nil)
 	i := 0
 	for iter.Next() {
-		var d Device
-		err = json.Unmarshal(iter.Value(), &d)
+		var td ThingDescription
+		err = json.Unmarshal(iter.Value(), &td)
 		if err != nil {
 			return nil, 0, err
 		}
 
 		if i >= offset && i < offset+limit {
-			devices[i-offset] = d
+			devices[i-offset] = td
 		} else if i >= offset+limit {
 			break
 		}
@@ -157,6 +157,36 @@ func (s *LevelDBStorage) total() (int, error) {
 		return 0, err
 	}
 	return c, nil
+}
+
+func (s *LevelDBStorage) iterator() <-chan *ThingDescription {
+	serviceIter := make(chan *ThingDescription)
+
+	go func() {
+		defer close(serviceIter)
+
+		s.wg.Add(1)
+		defer s.wg.Done()
+		iter := s.db.NewIterator(nil, nil)
+		defer iter.Release()
+
+		for iter.Next() {
+			var td ThingDescription
+			err := json.Unmarshal(iter.Value(), &td)
+			if err != nil {
+				logger.Printf("LevelDB Error: %s", err)
+				return
+			}
+			serviceIter <- &td
+		}
+
+		err := iter.Error()
+		if err != nil {
+			logger.Printf("LevelDB Error: %s", err)
+		}
+	}()
+
+	return serviceIter
 }
 
 func (s *LevelDBStorage) Close() error {
