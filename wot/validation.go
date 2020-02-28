@@ -7,9 +7,19 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
-func ValidateAgainstWoTSchema(td *ThingDescription) error {
+var schema *gojsonschema.Schema
 
-	result, err := gojsonschema.Validate(gojsonschema.NewStringLoader(WoTSchema), gojsonschema.NewGoLoader(td))
+func ValidateAgainstWoTSchema(td *ThingDescription) error {
+	if schema == nil {
+		// load schema into memory on first validation call
+		var err error
+		schema, err = gojsonschema.NewSchema(gojsonschema.NewStringLoader(jsonSchema))
+		if err != nil {
+			return fmt.Errorf("error loading WoT Schema: %s", err)
+		}
+	}
+
+	result, err := schema.Validate(gojsonschema.NewGoLoader(td))
 	if err != nil {
 		return err
 	}

@@ -16,14 +16,8 @@ type ThingDescription struct {
 	// JSON-LD keyword to define short-hand names called terms that are used throughout a TD document.
 	Context any `json:"@context"`
 
-	// Internal structure to store the context (slice with single element if @Context is just a string
-	//ContextSlice []any
-
 	// JSON-LD keyword to label the object with semantic tags (or types).
 	Type any `json:"@type,omitempty"`
-
-	// Internal structure to store the context (slice with single element if @Context is just a string
-	TypeSlice []string
 
 	// Identifier of the Thing in form of a URI [RFC3986] (e.g., stable URI, temporary and mutable URI, URI with local IP address, URN, etc.).
 	ID AnyURI `json:"id,omitempty"`
@@ -41,7 +35,7 @@ type ThingDescription struct {
 	Descriptions map[string]string `json:"descriptions,omitempty"`
 
 	// Provides version information.
-	Version VersionInfo `json:"version"`
+	Version *VersionInfo `json:"version,omitempty"`
 
 	// Provides information when the TD instance was created.
 	Created time.Time `json:"created,omitempty"`
@@ -76,9 +70,6 @@ type ThingDescription struct {
 
 	// Set of security definition names, chosen from those defined in securityDefinitions. These must all be satisfied for access to resources
 	Security any `json:"security"`
-
-	// Internal structure to store the Security (slice with single element if Security is just a string)
-	SecuritySlice []string
 
 	// Set of named security configurations (definitions only). Not actually applied unless names are used in a security name-value pair.
 	SecurityDefinitions map[string]SecurityScheme `json:"securityDefinitions"`
@@ -157,7 +148,7 @@ type EventAffordance struct {
 	Data DataSchema `json:"data,omitempty"`
 
 	// Defines any data that needs to be passed to cancel a subscription, e.g., a specific message to remove a Webhook.
-	Cancellation DataSchema `json:"optional, omitempty"`
+	Cancellation DataSchema `json:"optional,omitempty"`
 }
 
 /*
@@ -179,9 +170,6 @@ type Form struct {
 	*/
 	Op any `json:"op"`
 
-	// Internal structure to store the Op (slice with single element if Op is just a string)
-	OpSlice []string
-
 	// Target IRI of a link or submission target of a form.
 	Href AnyURI `json:"href"`
 
@@ -190,20 +178,20 @@ type Form struct {
 
 	// Content coding values indicate an encoding transformation that has been or can be applied to a representation. Content codings are primarily used to allow a representation to be compressed or otherwise usefully transformed without losing the identity of its underlying media type and without loss of information. Examples of content coding include "gzip", "deflate", etc. .
 	// Possible values for the contentCoding property can be found, e.g., in thttps://www.iana.org/assignments/http-parameters/http-parameters.xhtml#content-coding
-	ContentCoding string `json:"contentCoding, omitempty"`
+	ContentCoding string `json:"contentCoding,omitempty"`
 
 	// Indicates the exact mechanism by which an interaction will be accomplished for a given protocol when there are multiple options.
 	// For example, for HTTP and Events, it indicates which of several available mechanisms should be used for asynchronous notifications such as long polling (longpoll), WebSub [websub] (websub), Server-Sent Events [eventsource] (sse). Please note that there is no restriction on the subprotocol selection and other mechanisms can also be announced by this subprotocol term.
 	SubProtocol string `json:"subprotocol,omitempty"`
 
 	// Set of security definition names, chosen from those defined in securityDefinitions. These must all be satisfied for access to resources.
-	Security any `json:"security, omitempty"`
+	Security any `json:"security,omitempty"`
 
 	// Set of authorization scope identifiers provided as an array. These are provided in tokens returned by an authorization server and associated with forms in order to identify what resources a client may access and how. The values associated with a form should be chosen from those defined in an OAuth2SecurityScheme active on that form.
-	Scopes any `json:"scopes, omitempty"`
+	Scopes any `json:"scopes,omitempty"`
 
 	// This optional term can be used if, e.g., the output communication metadata differ from input metadata (e.g., output contentType differ from the input contentType). The response name contains metadata that is only valid for the response messages.
-	Response ExpectedResponse `json:"response, omitempty"`
+	Response *ExpectedResponse `json:"response,omitempty"`
 }
 
 /*
@@ -226,9 +214,6 @@ type Link struct {
 type SecurityScheme struct {
 	// JSON-LD keyword to label the object with semantic tags (or types).
 	Type any `json:"@type,omitempty"`
-
-	// Internal structure to store the Type (slice with single element if Type is just a string)
-	TypeSlice []string
 
 	// Identification of the security mechanism being configured. e.g. nosec, basic, cert, digest, bearer, pop, psk, public, oauth2, or apike
 	Scheme string `json:"scheme"`
@@ -256,9 +241,6 @@ type SecurityScheme struct {
 type DataSchema struct {
 	// TJSON-LD keyword to label the object with semantic tags (or types)
 	Type any `json:"@type,omitempty"`
-
-	// Internal structure to store the Type (slice with single element if Type is just a string)
-	TypeSlice []string
 
 	// Const corresponds to the JSON schema field "const".
 	Const any `json:"const,omitempty"`
@@ -340,7 +322,7 @@ type AnyURI = string
 Communication metadata describing the expected response message.
 */
 type ExpectedResponse struct {
-	ContentType string `json:"contentType:omitempty"`
+	ContentType string `json:"contentType,omitempty"`
 }
 
 /*
@@ -474,9 +456,6 @@ type OAuth2SecurityScheme struct {
 
 	//Set of authorization scope identifiers provided as an array. These are provided in tokens returned by an authorization server and associated with forms in order to identify what resources a client may access and how. The values associated with a form should be chosen from those defined in an OAuth2SecurityScheme active on that form.
 	Scopes any `json:"scopes,omitempty"`
-
-	//internal structure to store the Scopes (slice with single element if Scopes is just a string).
-	ScopeSlice []string
 
 	//Authorization flow.
 	Flow string `json:"flow"`
