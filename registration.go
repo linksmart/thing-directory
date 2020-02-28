@@ -3,62 +3,56 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/url"
-	"strings"
 
-	catalog "github.com/linksmart/resource-catalog/catalog"
-	sc "github.com/linksmart/service-catalog/service"
+	"github.com/linksmart/go-sec/auth/obtainer"
+	"github.com/linksmart/resource-catalog/catalog"
+	sc "github.com/linksmart/service-catalog/v3/catalog"
+	"github.com/linksmart/service-catalog/v3/client"
 )
 
-const (
-	registrationTemplate = `
-	{
-	  "meta": {
-	    "serviceType": "",
-	    "apiVersion": ""
-	  },
-	  "protocols": [
-	    {
-	      "type": "REST",
-	      "endpoint": {
-	        "url": ""
-	      },
-	      "methods": [
-	        "GET",
-	        "POST"
-	      ],
-	      "content-types": [
-	        "application/ld+json"
-	      ]
-	    }
-	  ],
-	  "representation": {
-	    "application/ld+json": {}
-	  }
+func registerInServiceCatalog(conf *Config) (func() error, error) {
+
+	cat := conf.ServiceCatalog
+
+	service := sc.Service{
+		ID:          conf.ServiceID,
+		Type:        "_linksmart-rc._tcp",
+		Description: "LinkSmart Resource Catalog",
+		APIs: []sc.API{{
+			ID:    "things",
+			Title: "Things API",
+			//Description: "API description",
+			Protocol: "HTTP",
+			URL:      conf.PublicEndpoint,
+			Spec: sc.Spec{
+				MediaType: "application/vnd.oai.swagger+json;version=2.0",
+				URL:       "https://raw.githubusercontent.com/linksmart/resource-catalog/master/apidoc/rc-api-swagger.json",
+				//Schema:    map[string]interface{}{},
+			},
+			Meta: map[string]interface{}{
+				"apiVersion": catalog.ApiVersion,
+			},
+		}},
+		Doc: "https://docs.linksmart.eu/display/RC",
+		//Meta: map[string]interface{}{},
+		TTL: uint32(conf.ServiceCatalog.Ttl),
 	}
-	`
-	defaultTtl = 120
-)
 
-func registrationFromConfig(conf *Config) (*sc.Service, error) {
-	c := &sc.ServiceConfig{}
+	var ticket *obtainer.Client
+	var err error
+	if cat.Auth != nil {
+		// Setup ticket client
+		ticket, err = obtainer.NewClient(cat.Auth.Provider, cat.Auth.ProviderURL, cat.Auth.Username, cat.Auth.Password, cat.Auth.ServiceID)
+		if err != nil {
+			return nil, fmt.Errorf("error creating auth client: %s", err)
+		}
+	}
 
-	json.Unmarshal([]byte(registrationTemplate), c)
-	c.Name = catalog.ApiName
-	publicURL, _ := url.Parse(conf.PublicEndpoint)
-	c.Host = strings.Split(publicURL.Host, ":")[0]
-	c.Description = conf.Description
-	c.Ttl = defaultTtl
+	stopRegistrator, _, err := client.RegisterServiceAndKeepalive(cat.Endpoint, service, ticket)
+	if err != nil {
+		return nil, fmt.Errorf("error registering service: %s", err)
+	}
 
-	// meta
-	c.Meta["serviceType"] = catalog.DNSSDServiceType
-	c.Meta["apiVersion"] = catalog.ApiVersion
-
-	// protocols
-	// port from the bind port, address from the public address
-	c.Protocols[0].Endpoint["url"] = fmt.Sprintf("%v%v", conf.PublicEndpoint, conf.ApiLocation)
-
-	return c.GetService()
+	return stopRegistrator, nil
 }

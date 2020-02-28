@@ -14,14 +14,15 @@ import (
 )
 
 type Config struct {
-	Description    string           `json:"description"`
-	PublicEndpoint string           `json:"publicEndpoint"`
-	BindAddr       string           `json:"bindAddr"`
-	BindPort       int              `json:"bindPort"`
-	DnssdEnabled   bool             `json:"dnssdEnabled"`
-	Storage        StorageConfig    `json:"storage"`
-	ServiceCatalog []ServiceCatalog `json:"serviceCatalog"`
-	Auth           ValidatorConf    `json:"auth"`
+	ServiceID      string          `json:"serviceID"`
+	Description    string          `json:"description"`
+	PublicEndpoint string          `json:"publicEndpoint"`
+	BindAddr       string          `json:"bindAddr"`
+	BindPort       int             `json:"bindPort"`
+	DnssdEnabled   bool            `json:"dnssdEnabled"`
+	Storage        StorageConfig   `json:"storage"`
+	ServiceCatalog *ServiceCatalog `json:"serviceCatalog"`
+	Auth           ValidatorConf   `json:"auth"`
 }
 
 type ServiceCatalog struct {
@@ -57,19 +58,18 @@ func (c *Config) Validate() error {
 	if !supportedBackends[c.Storage.Type] {
 		err = fmt.Errorf("Unsupported storage backend")
 	}
-	for _, cat := range c.ServiceCatalog {
-		if cat.Endpoint == "" && cat.Discover == false {
-			err = fmt.Errorf("All ServiceCatalog entries must have either endpoint or a discovery flag defined")
-		}
-		if cat.Ttl <= 0 {
-			err = fmt.Errorf("All ServiceCatalog entries must have TTL >= 0")
-		}
-		if cat.Auth != nil {
-			// Validate ticket obtainer config
-			err = cat.Auth.Validate()
-			if err != nil {
-				return err
-			}
+
+	if c.ServiceCatalog.Endpoint == "" && c.ServiceCatalog.Discover == false {
+		err = fmt.Errorf("All ServiceCatalog entries must have either endpoint or a discovery flag defined")
+	}
+	if c.ServiceCatalog.Ttl <= 0 {
+		err = fmt.Errorf("All ServiceCatalog entries must have TTL >= 0")
+	}
+	if c.ServiceCatalog.Auth != nil {
+		// Validate ticket obtainer config
+		err = c.ServiceCatalog.Auth.Validate()
+		if err != nil {
+			return err
 		}
 	}
 

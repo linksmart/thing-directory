@@ -5,25 +5,22 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"mime"
-	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
-	"sync"
-	"syscall"
 	"time"
 
-	_ "github.com/linksmart/go-sec/auth/keycloak/obtainer"
-	_ "github.com/linksmart/go-sec/auth/keycloak/validator"
-	"github.com/linksmart/go-sec/auth/obtainer"
-	"github.com/linksmart/go-sec/auth/validator"
-	catalog "github.com/linksmart/resource-catalog/catalog"
-	sc "github.com/linksmart/service-catalog/catalog"
 	"github.com/codegangsta/negroni"
 	"github.com/gorilla/context"
 	"github.com/justinas/alice"
+	_ "github.com/linksmart/go-sec/auth/keycloak/obtainer"
+	_ "github.com/linksmart/go-sec/auth/keycloak/validator"
+	"github.com/linksmart/go-sec/auth/validator"
+	"github.com/linksmart/resource-catalog/catalog"
 	"github.com/oleksandr/bonjour"
+	uuid "github.com/satori/go.uuid"
 )
 
 var (
@@ -36,6 +33,10 @@ func main() {
 	config, err := loadConfig(*confPath)
 	if err != nil {
 		logger.Fatalf("Error reading config file %v: %v", *confPath, err)
+	}
+	if config.ServiceID == "" {
+		config.ServiceID = uuid.NewV4().String()
+		log.Printf("Service ID not set. Generated new UUID: %s", config.ServiceID)
 	}
 
 	router, shutdownAPI, err := setupRouter(config)
@@ -50,7 +51,7 @@ func main() {
 			catalog.DNSSDServiceType,
 			"",
 			config.BindPort,
-			[]string{fmt.Sprintf("uri=%s", config.ApiLocation)},
+			[]string{"uri=/"},
 			nil)
 		if err != nil {
 			logger.Printf("Failed to register DNS-SD service: %s", err.Error())
@@ -59,78 +60,15 @@ func main() {
 		}
 	}
 
-	// Register in the configured Service Catalogs
-	regChannels := make([]chan bool, 0, len(config.ServiceCatalog))
-	var wg sync.WaitGroup
-	if len(config.ServiceCatalog) > 0 {
-		logger.Println("Will now register in the configured Service Catalogs")
-		service, err := registrationFromConfig(config)
+	// Register in the LinkSmart Service Catalog
+	if config.ServiceCatalog != nil {
+		unregisterService, err := registerInServiceCatalog(config)
 		if err != nil {
-			logger.Printf("Unable to parse Service registration: %v\n", err.Error())
-			return
+			log.Fatalf("Error registering service: %s", err)
 		}
-
-		for _, cat := range config.ServiceCatalog {
-			// Set TTL
-			service.Ttl = cat.Ttl
-			sigCh := make(chan bool)
-			wg.Add(1)
-			if cat.Auth == nil {
-				go sc.RegisterServiceWithKeepalive(cat.Endpoint, cat.Discover, *service, sigCh, &wg, nil)
-			} else {
-				// Setup ticket client
-				ticket, err := obtainer.NewClient(cat.Auth.Provider, cat.Auth.ProviderURL, cat.Auth.Username, cat.Auth.Password, cat.Auth.ServiceID)
-				if err != nil {
-					logger.Println(err.Error())
-					continue
-				}
-				// Register with a ticket obtainer client
-				go sc.RegisterServiceWithKeepalive(cat.Endpoint, cat.Discover, *service, sigCh, &wg, ticket)
-			}
-			regChannels = append(regChannels, sigCh)
-		}
-
+		// Unregister from the Service Catalog
+		defer unregisterService()
 	}
-
-	// Setup signal catcher for the server's proper shutdown
-	c := make(chan os.Signal, 1)
-	signal.Notify(c,
-		syscall.SIGHUP,
-		syscall.SIGINT,
-		syscall.SIGTERM,
-		syscall.SIGQUIT)
-	go func() {
-		for _ = range c {
-			// sig is a ^C, handle it
-
-			//TODO: put here the last will logic
-
-			// Stop bonjour registration
-			if bonjourS != nil {
-				bonjourS.Shutdown()
-				time.Sleep(1e9)
-			}
-
-			// Unregister in the service catalog(s)
-			for _, sigCh := range regChannels {
-				// Notify if the routine hasn't returned already
-				select {
-				case sigCh <- true:
-				default:
-				}
-			}
-			wg.Wait()
-
-			// Shutdown catalog API
-			err := shutdownAPI()
-			if err != nil {
-				logger.Println(err.Error())
-			}
-
-			logger.Println("Stopped")
-			os.Exit(0)
-		}
-	}()
 
 	err = mime.AddExtensionType(".jsonld", "application/ld+json")
 	if err != nil {
@@ -141,30 +79,43 @@ func main() {
 	n := negroni.New(
 		negroni.NewRecovery(),
 		negroni.NewLogger(),
-		&negroni.Static{
-			Dir:       http.Dir(config.StaticDir),
-			Prefix:    catalog.StaticLocation,
-			IndexFile: "index.html",
-		},
 	)
 	// Mount router
 	n.UseHandler(router)
 
 	// Start listener
 	endpoint := fmt.Sprintf("%s:%s", config.BindAddr, strconv.Itoa(config.BindPort))
-	logger.Printf("Starting standalone Resource Catalog at %v%v", endpoint, config.ApiLocation)
-	n.Run(endpoint)
+	logger.Printf("Starting standalone Resource Catalog at %v", endpoint)
+	go n.Run(endpoint)
+
+	// Ctrl+C / Kill handling
+	handler := make(chan os.Signal, 1)
+	signal.Notify(handler, os.Interrupt, os.Kill)
+	<-handler
+	logger.Println("Shutting down...")
+
+	// Stop bonjour registration
+	if bonjourS != nil {
+		bonjourS.Shutdown()
+		time.Sleep(1e9)
+	}
+
+	// Shutdown catalog API
+	err = shutdownAPI()
+	if err != nil {
+		logger.Println(err)
+	}
+
+	logger.Println("Stopped")
 }
 
 func setupRouter(config *Config) (*router, func() error, error) {
 	// Setup API storage
 	var (
-		storage catalog.CatalogStorage
+		storage catalog.Storage
 		err     error
 	)
 	switch config.Storage.Type {
-	case catalog.CatalogBackendMemory:
-		storage = catalog.NewMemoryStorage()
 	case catalog.CatalogBackendLevelDB:
 		storage, err = catalog.NewLevelDBStorage(config.Storage.DSN, nil)
 		if err != nil {
@@ -174,17 +125,15 @@ func setupRouter(config *Config) (*router, func() error, error) {
 		return nil, nil, fmt.Errorf("Could not create catalog API storage. Unsupported type: %v", config.Storage.Type)
 	}
 
-	controller, err := catalog.NewController(storage, config.ApiLocation)
+	controller, err := catalog.NewController(storage)
 	if err != nil {
 		storage.Close()
 		return nil, nil, fmt.Errorf("Failed to start the controller: %v", err.Error())
 	}
 
 	// Create catalog API object
-	api := catalog.NewWritableCatalogAPI(
+	api := catalog.NewHTTPAPI(
 		controller,
-		config.ApiLocation,
-		catalog.StaticLocation,
 		config.Description,
 	)
 
@@ -210,21 +159,12 @@ func setupRouter(config *Config) (*router, func() error, error) {
 
 	// Configure http api router
 	r := newRouter()
-	// Index
-	r.get(config.ApiLocation, commonHandlers.ThenFunc(api.Index))
-	// Devices
-	r.post(config.ApiLocation+"/devices", commonHandlers.ThenFunc(api.Post))
-	r.get(config.ApiLocation+"/devices/{id}", commonHandlers.ThenFunc(api.Get))
-	r.put(config.ApiLocation+"/devices/{id}", commonHandlers.ThenFunc(api.Put))
-	r.delete(config.ApiLocation+"/devices/{id}", commonHandlers.ThenFunc(api.Delete))
-	r.get(config.ApiLocation+"/devices", commonHandlers.ThenFunc(api.List))
-	r.get(config.ApiLocation+"/devices/{path}/{op}/{value:.*}", commonHandlers.ThenFunc(api.Filter))
-	// Resources
-	r.get(config.ApiLocation+"/resources", commonHandlers.ThenFunc(api.ListResources))
-	// Accept an id with zero or one slash: [^/]+/?[^/]*
-	// -> [^/]+ one or more of anything but slashes /? optional slash [^/]* zero or more of anything but slashes
-	r.get(config.ApiLocation+"/resources/{id:[^/]+/?[^/]*}", commonHandlers.ThenFunc(api.GetResource))
-	r.get(config.ApiLocation+"/resources/{path}/{op}/{value:.*}", commonHandlers.ThenFunc(api.FilterResources))
+	r.post("/", commonHandlers.ThenFunc(api.Post))
+	r.get("/{id:.+}", commonHandlers.ThenFunc(api.Get))
+	r.put("/{id:.+}", commonHandlers.ThenFunc(api.Put))
+	r.delete("/{id:.+}", commonHandlers.ThenFunc(api.Delete))
+	r.get("/", commonHandlers.ThenFunc(api.List))
+	r.get("/filter/{path}/{op}/{value:.*}", commonHandlers.ThenFunc(api.Filter))
 
 	return r, controller.Stop, nil
 }
