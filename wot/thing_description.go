@@ -225,7 +225,7 @@ type SecurityScheme struct {
 	Descriptions map[string]string `json:"descriptions,omitempty"`
 
 	// URI of the proxy server this security configuration provides access to. If not given, the corresponding security configuration is for the endpoint.
-	Proxy AnyURI `json:"proxy"`
+	Proxy AnyURI `json:"proxy,omitempty"`
 
 	*BasicSecurityScheme
 	*DigestSecurityScheme

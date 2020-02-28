@@ -11,7 +11,7 @@ import (
 )
 
 type ThingsCollection struct {
-	Context string             `json:"@context,omitempty"`
+	Context string             `json:"@context"`
 	Things  []ThingDescription `json:"things"`
 	ID      string             `json:"id"`
 	Page    int                `json:"page"`
@@ -21,16 +21,14 @@ type ThingsCollection struct {
 
 // Read-only catalog api
 type HTTPAPI struct {
-	controller  CatalogController
-	ctxPath     string
-	description string
+	controller CatalogController
+	id         string
 }
 
-func NewHTTPAPI(controller CatalogController, description string) *HTTPAPI {
+func NewHTTPAPI(controller CatalogController, serviceID string) *HTTPAPI {
 	return &HTTPAPI{
 		controller: controller,
-		// TODO ctxPath:     staticLocation + CtxPath,
-		description: description,
+		id:         serviceID,
 	}
 }
 
@@ -50,7 +48,7 @@ func (a *HTTPAPI) Post(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if td.ID != "" {
-		ErrorResponse(w, http.StatusBadRequest, "Creating a device with defined ID is not possible using a POST request.")
+		ErrorResponse(w, http.StatusBadRequest, "Registering with defined ID is not possible using a POST request.")
 		return
 	}
 
@@ -58,10 +56,10 @@ func (a *HTTPAPI) Post(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		switch err.(type) {
 		case *ConflictError:
-			ErrorResponse(w, http.StatusConflict, "Error creating the registration:", err.Error())
+			ErrorResponse(w, http.StatusConflict, "Error creating the resource:", err.Error())
 			return
 		case *BadRequestError:
-			ErrorResponse(w, http.StatusBadRequest, "Invalid device registration:", err.Error())
+			ErrorResponse(w, http.StatusBadRequest, "Invalid registration:", err.Error())
 			return
 		default:
 			ErrorResponse(w, http.StatusInternalServerError, "Error creating the registration:", err.Error())
@@ -85,7 +83,7 @@ func (a *HTTPAPI) Get(w http.ResponseWriter, req *http.Request) {
 			ErrorResponse(w, http.StatusNotFound, err.Error())
 			return
 		default:
-			ErrorResponse(w, http.StatusInternalServerError, "Error retrieving the device:", err.Error())
+			ErrorResponse(w, http.StatusInternalServerError, "Error retrieving the registration:", err.Error())
 			return
 		}
 	}
@@ -126,21 +124,27 @@ func (a *HTTPAPI) Put(w http.ResponseWriter, req *http.Request) {
 			td.ID = params["id"]
 			_, err := a.controller.add(td)
 			if err != nil {
-				ErrorResponse(w, http.StatusInternalServerError, "Error creating the registration:", err.Error())
-				return
+				switch err.(type) {
+				case *ConflictError:
+					ErrorResponse(w, http.StatusConflict, "Error creating the registration:", err.Error())
+					return
+				case *BadRequestError:
+					ErrorResponse(w, http.StatusBadRequest, "Invalid registration:", err.Error())
+					return
+				default:
+					ErrorResponse(w, http.StatusInternalServerError, "Error creating the registration:", err.Error())
+					return
+				}
 			}
 			w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
 			w.Header().Set("Location", td.ID)
 			w.WriteHeader(http.StatusCreated)
 			return
-		case *ConflictError:
-			ErrorResponse(w, http.StatusConflict, "Error updating the device:", err.Error())
-			return
 		case *BadRequestError:
-			ErrorResponse(w, http.StatusBadRequest, "Invalid device registration:", err.Error())
+			ErrorResponse(w, http.StatusBadRequest, "Invalid registration:", err.Error())
 			return
 		default:
-			ErrorResponse(w, http.StatusInternalServerError, "Error updating the device:", err.Error())
+			ErrorResponse(w, http.StatusInternalServerError, "Error updating the registration:", err.Error())
 			return
 		}
 	}
@@ -160,7 +164,7 @@ func (a *HTTPAPI) Delete(w http.ResponseWriter, req *http.Request) {
 			ErrorResponse(w, http.StatusNotFound, err.Error())
 			return
 		default:
-			ErrorResponse(w, http.StatusInternalServerError, "Error deleting the device:", err.Error())
+			ErrorResponse(w, http.StatusInternalServerError, "Error deleting the registration:", err.Error())
 			return
 		}
 	}
@@ -190,8 +194,8 @@ func (a *HTTPAPI) List(w http.ResponseWriter, req *http.Request) {
 	}
 
 	coll := &ThingsCollection{
-		Context: a.ctxPath,
-		// TODO ID:      "",
+		Context: ContextURL,
+		ID:      a.id,
 		Things:  tds,
 		Page:    page,
 		PerPage: perPage,
@@ -234,8 +238,8 @@ func (a *HTTPAPI) Filter(w http.ResponseWriter, req *http.Request) {
 	}
 
 	coll := &ThingsCollection{
-		Context: a.ctxPath,
-		// TODO ID:      a.apiLocation,
+		Context: ContextURL,
+		ID:      a.id,
 		Things:  tds,
 		Page:    page,
 		PerPage: perPage,

@@ -38,7 +38,7 @@ type StorageConfig struct {
 }
 
 var supportedBackends = map[string]bool{
-	utils.CatalogBackendMemory:  true,
+	utils.CatalogBackendMemory:  false,
 	utils.CatalogBackendLevelDB: true,
 }
 

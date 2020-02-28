@@ -18,7 +18,8 @@ func registerInServiceCatalog(conf *Config) (func() error, error) {
 	service := sc.Service{
 		ID:          conf.ServiceID,
 		Type:        "_linksmart-rc._tcp",
-		Description: "LinkSmart Resource Catalog",
+		Title:       "LinkSmart Resource Catalog",
+		Description: conf.Description,
 		APIs: []sc.API{{
 			ID:    "things",
 			Title: "Things API",

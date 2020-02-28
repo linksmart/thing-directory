@@ -134,7 +134,7 @@ func setupRouter(config *Config) (*router, func() error, error) {
 	// Create catalog API object
 	api := catalog.NewHTTPAPI(
 		controller,
-		config.Description,
+		config.ServiceID,
 	)
 
 	commonHandlers := alice.New(

@@ -10,6 +10,8 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+var controllerExpiryCleanupInterval = 60 * time.Second // to be modified in unit tests
+
 type Controller struct {
 	storage Storage
 }
@@ -54,6 +56,9 @@ func (c *Controller) update(id string, td ThingDescription) error {
 	if err := td.validate(); err != nil {
 		return &BadRequestError{err.Error()}
 	}
+
+	td.ID = id
+	td.Modified = time.Now().UTC()
 
 	err := c.storage.update(id, &td)
 	if err != nil {
@@ -119,13 +124,15 @@ func (c *Controller) total() (int, error) {
 }
 
 func (c *Controller) cleanExpired() {
-	for t := range time.Tick(5 * time.Second) {
+	for t := range time.Tick(controllerExpiryCleanupInterval) {
 		var expiredServices []*ThingDescription
 
 		for td := range c.storage.iterator() {
-			// remove if expiry is overdue by half-TTL
-			if t.After(td.Modified.Add(time.Duration(td.TTL+td.TTL/2) * time.Second)) {
-				expiredServices = append(expiredServices, td)
+			if td.TTL != 0 {
+				// remove if expiry is overdue by half-TTL
+				if t.After(td.Modified.Add(time.Duration(td.TTL+td.TTL/2) * time.Second)) {
+					expiredServices = append(expiredServices, td)
+				}
 			}
 		}
 
