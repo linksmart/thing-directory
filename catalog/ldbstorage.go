@@ -41,11 +41,12 @@ func (s *LevelDBStorage) add(td *ThingDescription) error {
 		return err
 	}
 
-	_, err = s.db.Get([]byte(td.ID), nil)
-	if err == nil {
-		return &ConflictError{"Device id is not unique."}
-	} else if err != leveldb.ErrNotFound {
+	found, err := s.db.Has([]byte(td.ID), nil)
+	if err != nil {
 		return err
+	}
+	if found {
+		return &ConflictError{fmt.Sprintf("%s is not unique", td.ID)}
 	}
 
 	err = s.db.Put([]byte(td.ID), bytes, nil)
@@ -60,7 +61,7 @@ func (s *LevelDBStorage) get(id string) (*ThingDescription, error) {
 
 	bytes, err := s.db.Get([]byte(id), nil)
 	if err == leveldb.ErrNotFound {
-		return nil, &NotFoundError{fmt.Sprintf("Device with id %s is not found", id)}
+		return nil, &NotFoundError{fmt.Sprintf("%s is not found", id)}
 	} else if err != nil {
 		return nil, err
 	}
@@ -80,10 +81,17 @@ func (s *LevelDBStorage) update(id string, td *ThingDescription) error {
 	if err != nil {
 		return err
 	}
+
+	found, err := s.db.Has([]byte(id), nil)
+	if err != nil {
+		return err
+	}
+	if !found {
+		return &NotFoundError{fmt.Sprintf("%s is not found", id)}
+	}
+
 	err = s.db.Put([]byte(id), bytes, nil)
-	if err == leveldb.ErrNotFound {
-		return &NotFoundError{fmt.Sprintf("Device with id %s is not found", id)}
-	} else if err != nil {
+	if err != nil {
 		return err
 	}
 
@@ -94,7 +102,7 @@ func (s *LevelDBStorage) delete(id string) error {
 
 	err := s.db.Delete([]byte(id), nil)
 	if err == leveldb.ErrNotFound {
-		return &NotFoundError{fmt.Sprintf("Device with id %s is not found", id)}
+		return &NotFoundError{fmt.Sprintf("%s is not found", id)}
 	} else if err != nil {
 		return err
 	}
