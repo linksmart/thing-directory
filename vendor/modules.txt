@@ -1,4 +1,4 @@
-# github.com/ancientlore/go-avltree v0.0.0-20180928192319-da83409fdfb7
+# github.com/ancientlore/go-avltree v1.0.1
 github.com/ancientlore/go-avltree
 # github.com/codegangsta/negroni v0.2.0
 github.com/codegangsta/negroni
@@ -15,7 +15,7 @@ github.com/farshidtz/mqtt-match
 github.com/golang/snappy
 # github.com/gorilla/context v1.1.1
 github.com/gorilla/context
-# github.com/gorilla/mux v1.5.0
+# github.com/gorilla/mux v1.7.3
 github.com/gorilla/mux
 # github.com/justinas/alice v0.0.0-20160512134231-052b8b6c18ed
 github.com/justinas/alice
@@ -25,12 +25,11 @@ github.com/linksmart/go-sec/auth/keycloak/validator
 github.com/linksmart/go-sec/auth/obtainer
 github.com/linksmart/go-sec/auth/validator
 github.com/linksmart/go-sec/authz
-# github.com/linksmart/service-catalog v2.3.4+incompatible
-github.com/linksmart/service-catalog/discovery
-# github.com/linksmart/service-catalog/v2 v2.4.1
-github.com/linksmart/service-catalog/v2/catalog
-github.com/linksmart/service-catalog/v2/utils
-# github.com/miekg/dns v0.0.0-20170818131442-e4205768578d
+# github.com/linksmart/service-catalog/v3 v3.0.0-beta.1
+github.com/linksmart/service-catalog/v3/catalog
+github.com/linksmart/service-catalog/v3/client
+github.com/linksmart/service-catalog/v3/utils
+# github.com/miekg/dns v1.1.27
 github.com/miekg/dns
 # github.com/oleksandr/bonjour v0.0.0-20160508152359-5dcf00d8b228
 github.com/oleksandr/bonjour
@@ -57,7 +56,10 @@ github.com/xeipuuv/gojsonpointer
 github.com/xeipuuv/gojsonreference
 # github.com/xeipuuv/gojsonschema v1.2.0
 github.com/xeipuuv/gojsonschema
-# golang.org/x/net v0.0.0-20180906233101-161cd47e91fd
+# golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
+golang.org/x/crypto/ed25519
+golang.org/x/crypto/ed25519/internal/edwards25519
+# golang.org/x/net v0.0.0-20190923162816-aa69164e4478
 golang.org/x/net/bpf
 golang.org/x/net/internal/iana
 golang.org/x/net/internal/socket
@@ -66,3 +68,6 @@ golang.org/x/net/ipv4
 golang.org/x/net/ipv6
 golang.org/x/net/proxy
 golang.org/x/net/websocket
+# golang.org/x/sys v0.0.0-20191120155948-bd437916bb0e
+golang.org/x/sys/unix
+golang.org/x/sys/windows

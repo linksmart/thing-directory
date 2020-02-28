@@ -1,0 +1,18 @@
+LinkSmart Service Catalog
+Copyright 2014 Fraunhofer Institute for Applied Information Technology
+
+This product includes software developed at Fraunhofer Institute for Applied Information Technology (https://fit.fraunhofer.de).
+
+LinkSmart Service Catalog is a fork of LinkSmart LocalConnect (https://github.com/linksmart/lslc-core) developed at Fraunhofer FIT under Apache 2.0 License.
+
+LinkSmart Service Catalog includes the following dependencies developed by the corresponding developers and organisations:
+
+* https://eclipse.org/paho/clients/golang/ by the Eclipse Foundation (Eclipse Public License v1.0)
+* https://github.com/ancientlore/go-avltree by Michael Lore (MIT License)
+* https://github.com/urfave/negroni by Jeremy Saenz (MIT License)
+* http://www.gorillatoolkit.org/ by Rodrigo Moraes (BSD License)
+* https://github.com/justinas/alice by Justinas Stankevicius (MIT License)
+* https://github.com/kylewolfe/simplexml by Kyle Wolfe (MIT License)
+* https://github.com/oleksandr/bonjour by Oleksandr Lobunets (MIT License)
+* https://github.com/syndtr/goleveldb by Suryandaru Triandana (MIT License)
+* https://github.com/dgrijalva/jwt-go by Dave Grijalva (MIT License)
