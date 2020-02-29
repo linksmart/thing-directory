@@ -10,7 +10,7 @@ import (
 	"net/url"
 
 	"github.com/linksmart/go-sec/authz"
-	utils "github.com/linksmart/resource-catalog/catalog"
+	"github.com/linksmart/resource-catalog/catalog"
 )
 
 type Config struct {
@@ -38,8 +38,8 @@ type StorageConfig struct {
 }
 
 var supportedBackends = map[string]bool{
-	utils.CatalogBackendMemory:  false,
-	utils.CatalogBackendLevelDB: true,
+	catalog.BackendMemory:  false,
+	catalog.BackendLevelDB: true,
 }
 
 func (c *Config) Validate() error {
@@ -59,17 +59,19 @@ func (c *Config) Validate() error {
 		err = fmt.Errorf("Unsupported storage backend")
 	}
 
-	if c.ServiceCatalog.Endpoint == "" && c.ServiceCatalog.Discover == false {
-		err = fmt.Errorf("All ServiceCatalog entries must have either endpoint or a discovery flag defined")
-	}
-	if c.ServiceCatalog.Ttl <= 0 {
-		err = fmt.Errorf("All ServiceCatalog entries must have TTL >= 0")
-	}
-	if c.ServiceCatalog.Auth != nil {
-		// Validate ticket obtainer config
-		err = c.ServiceCatalog.Auth.Validate()
-		if err != nil {
-			return err
+	if c.ServiceCatalog != nil {
+		if c.ServiceCatalog.Endpoint == "" && c.ServiceCatalog.Discover == false {
+			err = fmt.Errorf("All ServiceCatalog entries must have either endpoint or a discovery flag defined")
+		}
+		if c.ServiceCatalog.Ttl <= 0 {
+			err = fmt.Errorf("All ServiceCatalog entries must have TTL >= 0")
+		}
+		if c.ServiceCatalog.Auth != nil {
+			// Validate ticket obtainer config
+			err = c.ServiceCatalog.Auth.Validate()
+			if err != nil {
+				return err
+			}
 		}
 	}
 

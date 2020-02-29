@@ -198,7 +198,11 @@ func (s *LevelDBStorage) iterator() <-chan *ThingDescription {
 	return serviceIter
 }
 
-func (s *LevelDBStorage) Close() error {
+func (s *LevelDBStorage) Close() {
 	s.wg.Wait()
-	return s.db.Close()
+	err := s.db.Close()
+	if err != nil {
+		log.Printf("Error closing storage: %s", err)
+	}
+	log.Println("Closed leveldb.")
 }

@@ -149,8 +149,8 @@ func (c *Controller) cleanExpired() {
 }
 
 // Stop the controller
-func (c *Controller) Stop() error {
-	return c.storage.Close()
+func (c *Controller) Stop() {
+	//log.Println("Stopped the controller.")
 }
 
 // Generate a unique URN

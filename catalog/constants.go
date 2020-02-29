@@ -3,11 +3,11 @@
 package catalog
 
 const (
-	ContextURL            = "TBA"
-	DNSSDServiceType      = "_linksmart-rc._tcp"
-	MaxPerPage            = 100
-	ApiVersion            = "1.0.0"
-	CatalogBackendMemory  = "memory"
-	CatalogBackendLevelDB = "leveldb"
-	loggerPrefix          = "[catalog] "
+	ContextURL       = "TBA"
+	DNSSDServiceType = "_linksmart-rc._tcp"
+	MaxPerPage       = 100
+	ApiVersion       = "1.0.0"
+	BackendMemory    = "memory"
+	BackendLevelDB   = "leveldb"
+	loggerPrefix     = "[catalog] "
 )

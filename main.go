@@ -6,10 +6,10 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"mime"
+	"net"
+	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
 	"time"
 
 	"github.com/codegangsta/negroni"
@@ -28,65 +28,85 @@ var (
 )
 
 func main() {
+	defer log.Println("Stopped.")
 	flag.Parse()
 
 	config, err := loadConfig(*confPath)
 	if err != nil {
-		log.Fatalf("Error reading config file %v: %v", *confPath, err)
+		panic("Error reading config file:" + err.Error())
 	}
 	if config.ServiceID == "" {
 		config.ServiceID = uuid.NewV4().String()
 		log.Printf("Service ID not set. Generated new UUID: %s", config.ServiceID)
 	}
 
-	router, shutdownAPI, err := setupRouter(config)
-	if err != nil {
-		log.Fatal(err.Error())
+	// Setup API storage
+	var storage catalog.Storage
+	switch config.Storage.Type {
+	case catalog.BackendLevelDB:
+		storage, err = catalog.NewLevelDBStorage(config.Storage.DSN, nil)
+		if err != nil {
+			panic("Failed to start LevelDB storage:" + err.Error())
+		}
+		defer storage.Close()
+	default:
+		panic("Could not create catalog API storage. Unsupported type:" + config.Storage.Type)
 	}
+
+	controller, err := catalog.NewController(storage)
+	if err != nil {
+		panic("Failed to start the controller:" + err.Error())
+	}
+	defer controller.Stop()
+
+	// Create catalog API object
+	api := catalog.NewHTTPAPI(
+		controller,
+		config.ServiceID,
+	)
+
+	nRouter, err := setupHTTPRouter(config, api)
+	if err != nil {
+		panic(err)
+	}
+	// Start listener
+	addr := fmt.Sprintf("%s:%d", config.BindAddr, config.BindPort)
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		panic(err)
+	}
+	log.Printf("HTTP server listening on %v", addr)
+	go func() { log.Fatalln(http.Serve(listener, nRouter)) }()
 
 	// Announce service using DNS-SD
 	var bonjourS *bonjour.Server
 	if config.DnssdEnabled {
-		bonjourS, err = bonjour.Register(config.Description,
-			catalog.DNSSDServiceType,
-			"",
-			config.BindPort,
-			[]string{"uri=/"},
-			nil)
-		if err != nil {
-			log.Printf("Failed to register DNS-SD service: %s", err.Error())
-		} else {
+		go func() {
+			bonjourS, err = bonjour.Register(config.Description,
+				catalog.DNSSDServiceType,
+				"",
+				config.BindPort,
+				[]string{"uri=/"},
+				nil)
+			if err != nil {
+				log.Printf("Failed to register DNS-SD service: %s", err.Error())
+				return
+			}
 			log.Println("Registered service via DNS-SD using type", catalog.DNSSDServiceType)
-		}
+		}()
 	}
 
 	// Register in the LinkSmart Service Catalog
 	if config.ServiceCatalog != nil {
 		unregisterService, err := registerInServiceCatalog(config)
 		if err != nil {
-			log.Fatalf("Error registering service: %s", err)
+			panic("Error registering service:" + err.Error())
 		}
 		// Unregister from the Service Catalog
 		defer unregisterService()
 	}
 
-	err = mime.AddExtensionType(".jsonld", "application/ld+json")
-	if err != nil {
-		log.Println("ERROR: ", err.Error())
-	}
-
-	// Configure the middleware
-	n := negroni.New(
-		negroni.NewRecovery(),
-		negroni.NewLogger(),
-	)
-	// Mount router
-	n.UseHandler(router)
-
-	// Start listener
-	endpoint := fmt.Sprintf("%s:%s", config.BindAddr, strconv.Itoa(config.BindPort))
-	log.Printf("Starting standalone Resource Catalog at %v", endpoint)
-	go n.Run(endpoint)
+	log.Println("Ready!")
 
 	// Ctrl+C / Kill handling
 	handler := make(chan os.Signal, 1)
@@ -100,42 +120,9 @@ func main() {
 		time.Sleep(1e9)
 	}
 
-	// Shutdown catalog API
-	err = shutdownAPI()
-	if err != nil {
-		log.Println(err)
-	}
-
-	log.Println("Stopped")
 }
 
-func setupRouter(config *Config) (*router, func() error, error) {
-	// Setup API storage
-	var (
-		storage catalog.Storage
-		err     error
-	)
-	switch config.Storage.Type {
-	case catalog.CatalogBackendLevelDB:
-		storage, err = catalog.NewLevelDBStorage(config.Storage.DSN, nil)
-		if err != nil {
-			return nil, nil, fmt.Errorf("Failed to start LevelDB storage: %v", err.Error())
-		}
-	default:
-		return nil, nil, fmt.Errorf("Could not create catalog API storage. Unsupported type: %v", config.Storage.Type)
-	}
-
-	controller, err := catalog.NewController(storage)
-	if err != nil {
-		storage.Close()
-		return nil, nil, fmt.Errorf("Failed to start the controller: %v", err.Error())
-	}
-
-	// Create catalog API object
-	api := catalog.NewHTTPAPI(
-		controller,
-		config.ServiceID,
-	)
+func setupHTTPRouter(config *Config, api *catalog.HTTPAPI) (*negroni.Negroni, error) {
 
 	commonHandlers := alice.New(
 		context.ClearHandler,
@@ -151,7 +138,7 @@ func setupRouter(config *Config) (*router, func() error, error) {
 			config.Auth.BasicEnabled,
 			config.Auth.Authz)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		commonHandlers = commonHandlers.Append(v.Handler)
@@ -166,5 +153,13 @@ func setupRouter(config *Config) (*router, func() error, error) {
 	r.get("/", commonHandlers.ThenFunc(api.List))
 	r.get("/filter/{path}/{op}/{value:.*}", commonHandlers.ThenFunc(api.Filter))
 
-	return r, controller.Stop, nil
+	// Configure the middleware
+	n := negroni.New(
+		negroni.NewRecovery(),
+		negroni.NewLogger(),
+	)
+	// Mount router
+	n.UseHandler(r)
+
+	return n, nil
 }

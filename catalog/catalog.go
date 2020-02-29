@@ -26,7 +26,7 @@ type CatalogController interface {
 	total() (int, error)
 	cleanExpired()
 
-	Stop() error
+	Stop()
 }
 
 // Storage interface
@@ -38,5 +38,5 @@ type Storage interface {
 	list(page, perPage int) ([]ThingDescription, int, error)
 	total() (int, error)
 	iterator() <-chan *ThingDescription
-	Close() error
+	Close()
 }
