@@ -66,12 +66,12 @@ func HTTPDoAuth(req *http.Request, ticket *obtainer.Client) (*http.Response, err
 
 	if res.StatusCode == http.StatusUnauthorized {
 		// Get a new ticket and retry again
-		logger.Println("HTTPDoAuth() Invalid authentication ticket.")
+		log.Println("HTTPDoAuth() Invalid authentication ticket.")
 		bearer, err = ticket.Renew()
 		if err != nil {
 			return nil, err
 		}
-		logger.Println("HTTPDoAuth() Ticket was renewed.")
+		log.Println("HTTPDoAuth() Ticket was renewed.")
 
 		// Reset the header and try again
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", bearer))

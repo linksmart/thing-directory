@@ -4,6 +4,7 @@ package catalog
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -137,10 +138,10 @@ func (c *Controller) cleanExpired() {
 		}
 
 		for i := range expiredServices {
-			logger.Printf("cleanExpired() Removing expired registration: %s", expiredServices[i].ID)
+			log.Printf("cleanExpired() Removing expired registration: %s", expiredServices[i].ID)
 			err := c.storage.delete(expiredServices[i].ID)
 			if err != nil {
-				logger.Printf("cleanExpired() Error removing expired registration: %s: %s", expiredServices[i].ID, err)
+				log.Printf("cleanExpired() Error removing expired registration: %s: %s", expiredServices[i].ID, err)
 				continue
 			}
 		}

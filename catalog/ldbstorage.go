@@ -5,6 +5,7 @@ package catalog
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/url"
 	"sync"
 
@@ -182,7 +183,7 @@ func (s *LevelDBStorage) iterator() <-chan *ThingDescription {
 			var td ThingDescription
 			err := json.Unmarshal(iter.Value(), &td)
 			if err != nil {
-				logger.Printf("LevelDB Error: %s", err)
+				log.Printf("LevelDB Error: %s", err)
 				return
 			}
 			serviceIter <- &td
@@ -190,7 +191,7 @@ func (s *LevelDBStorage) iterator() <-chan *ThingDescription {
 
 		err := iter.Error()
 		if err != nil {
-			logger.Printf("LevelDB Error: %s", err)
+			log.Printf("LevelDB Error: %s", err)
 		}
 	}()
 

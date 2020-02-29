@@ -4,6 +4,7 @@ package catalog
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -39,7 +40,7 @@ func ErrorResponse(w http.ResponseWriter, code int, msgs ...string) {
 		msg,
 	}
 	if code >= 500 {
-		logger.Println("ERROR:", msg)
+		log.Println("ERROR:", msg)
 	}
 	b, _ := json.Marshal(e)
 	w.Header().Set("Content-Type", "application/json;version="+ApiVersion)

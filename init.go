@@ -5,16 +5,28 @@ package main
 import (
 	"log"
 	"os"
-	"strconv"
 )
 
-var logger *log.Logger
+const (
+	EnvVerbose        = "VERBOSE"          // print extra information e.g. line number)
+	EnvDisableLogTime = "DISABLE_LOG_TIME" // disable timestamp in logs
+)
 
 func init() {
-	logger = log.New(os.Stdout, "[main] ", 0)
+	log.SetOutput(os.Stdout)
+	log.SetFlags(0)
 
-	v, err := strconv.Atoi(os.Getenv("DEBUG"))
-	if err == nil && v == 1 {
-		logger.SetFlags(log.Ltime | log.Lshortfile)
+	logFlags := log.LstdFlags
+	if evalEnv(EnvDisableLogTime) {
+		logFlags = 0
 	}
+	if evalEnv(EnvVerbose) {
+		logFlags = logFlags | log.Lshortfile
+	}
+	log.SetFlags(logFlags)
+}
+
+// evalEnv returns the boolean value of the env variable with the given key
+func evalEnv(key string) bool {
+	return os.Getenv(key) == "1" || os.Getenv(key) == "true" || os.Getenv(key) == "TRUE"
 }

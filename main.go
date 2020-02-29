@@ -32,7 +32,7 @@ func main() {
 
 	config, err := loadConfig(*confPath)
 	if err != nil {
-		logger.Fatalf("Error reading config file %v: %v", *confPath, err)
+		log.Fatalf("Error reading config file %v: %v", *confPath, err)
 	}
 	if config.ServiceID == "" {
 		config.ServiceID = uuid.NewV4().String()
@@ -41,7 +41,7 @@ func main() {
 
 	router, shutdownAPI, err := setupRouter(config)
 	if err != nil {
-		logger.Fatal(err.Error())
+		log.Fatal(err.Error())
 	}
 
 	// Announce service using DNS-SD
@@ -54,9 +54,9 @@ func main() {
 			[]string{"uri=/"},
 			nil)
 		if err != nil {
-			logger.Printf("Failed to register DNS-SD service: %s", err.Error())
+			log.Printf("Failed to register DNS-SD service: %s", err.Error())
 		} else {
-			logger.Println("Registered service via DNS-SD using type", catalog.DNSSDServiceType)
+			log.Println("Registered service via DNS-SD using type", catalog.DNSSDServiceType)
 		}
 	}
 
@@ -72,7 +72,7 @@ func main() {
 
 	err = mime.AddExtensionType(".jsonld", "application/ld+json")
 	if err != nil {
-		logger.Println("ERROR: ", err.Error())
+		log.Println("ERROR: ", err.Error())
 	}
 
 	// Configure the middleware
@@ -85,14 +85,14 @@ func main() {
 
 	// Start listener
 	endpoint := fmt.Sprintf("%s:%s", config.BindAddr, strconv.Itoa(config.BindPort))
-	logger.Printf("Starting standalone Resource Catalog at %v", endpoint)
+	log.Printf("Starting standalone Resource Catalog at %v", endpoint)
 	go n.Run(endpoint)
 
 	// Ctrl+C / Kill handling
 	handler := make(chan os.Signal, 1)
 	signal.Notify(handler, os.Interrupt, os.Kill)
 	<-handler
-	logger.Println("Shutting down...")
+	log.Println("Shutting down...")
 
 	// Stop bonjour registration
 	if bonjourS != nil {
@@ -103,10 +103,10 @@ func main() {
 	// Shutdown catalog API
 	err = shutdownAPI()
 	if err != nil {
-		logger.Println(err)
+		log.Println(err)
 	}
 
-	logger.Println("Stopped")
+	log.Println("Stopped")
 }
 
 func setupRouter(config *Config) (*router, func() error, error) {
