@@ -1,13 +1,13 @@
-LinkSmart® LocalConnect
-Copyright 2014-2016 Fraunhofer Institute for Applied Information Technology FIT
+LinkSmart Thing Directory
+Copyright 2020 Fraunhofer-Gesellschaft
 
-This product includes software developed at
-Fraunhofer Institute for Applied Information Technology FIT (http://fit.fraunhofer.de/).
+The software has been developed at the Fraunhofer Institute for Applied Information Technology (https://fit.fraunhofer.de),
+a division of Fraunhofer Gesellschaft e. V.
 
-LinkSmart® LocalConnect is an independent fork of the Patchwork Toolkit 
-(https://github.com/patchwork-toolkit/patchwork) developed at Fraunhofer FIT under MIT License.
+LinkSmart Thing Directory is a fork of LinkSmart Resource Catalog (https://github.com/linksmart/resource-catalog)
+developed at Fraunhofer FIT under Apache 2.0 License.
 
-LinkSmart® LocalConnect includes the following dependencies developed by 
+It includes the following dependencies developed by
 the corresponding developers and organisations:
 
 * https://eclipse.org/paho/clients/golang/ by the Eclipse Foundation (Eclipse Public License v1.0)
