@@ -9,5 +9,4 @@ const (
 	ApiVersion       = "1.0.0"
 	BackendMemory    = "memory"
 	BackendLevelDB   = "leveldb"
-	loggerPrefix     = "[catalog] "
 )

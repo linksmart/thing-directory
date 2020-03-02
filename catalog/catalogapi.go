@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/linksmart/service-catalog/v3/utils"
 )
 
 type ThingsCollection struct {
@@ -180,8 +181,8 @@ func (a *HTTPAPI) List(w http.ResponseWriter, req *http.Request) {
 		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query:", err.Error())
 		return
 	}
-	page, perPage, err := ParsePagingParams(
-		req.Form.Get(GetParamPage), req.Form.Get(GetParamPerPage), MaxPerPage)
+	page, perPage, err := utils.ParsePagingParams(
+		req.Form.Get(utils.GetParamPage), req.Form.Get(utils.GetParamPerPage), MaxPerPage)
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "Error parsing query parameters:", err.Error())
 		return
@@ -224,8 +225,8 @@ func (a *HTTPAPI) Filter(w http.ResponseWriter, req *http.Request) {
 		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query:", err.Error())
 		return
 	}
-	page, perPage, err := ParsePagingParams(
-		req.Form.Get(GetParamPage), req.Form.Get(GetParamPerPage), MaxPerPage)
+	page, perPage, err := utils.ParsePagingParams(
+		req.Form.Get(utils.GetParamPage), req.Form.Get(utils.GetParamPerPage), MaxPerPage)
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "Error parsing query parameters:", err.Error())
 		return

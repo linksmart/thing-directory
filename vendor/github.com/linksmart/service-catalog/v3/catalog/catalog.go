@@ -98,8 +98,10 @@ func (s Service) validate() error {
 			return fmt.Errorf("invalid API spec url: %s", API.Spec.URL)
 		}
 
-		if _, _, err := mime.ParseMediaType(API.Spec.MediaType); err != nil {
-			return fmt.Errorf("invalid API Spec mediaType: %s: %s", API.Spec.MediaType, err)
+		if API.Spec.MediaType != "" {
+			if _, _, err := mime.ParseMediaType(API.Spec.MediaType); err != nil {
+				return fmt.Errorf("invalid API Spec mediaType: %s: %s", API.Spec.MediaType, err)
+			}
 		}
 	}
 

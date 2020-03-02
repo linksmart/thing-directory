@@ -86,7 +86,7 @@ func main() {
 				catalog.DNSSDServiceType,
 				"",
 				config.BindPort,
-				[]string{"uri=/"},
+				[]string{"uri=/td"},
 				nil)
 			if err != nil {
 				log.Printf("Failed to register DNS-SD service: %s", err.Error())
@@ -146,17 +146,25 @@ func setupHTTPRouter(config *Config, api *catalog.HTTPAPI) (*negroni.Negroni, er
 
 	// Configure http api router
 	r := newRouter()
-	r.post("/", commonHandlers.ThenFunc(api.Post))
-	r.get("/{id:.+}", commonHandlers.ThenFunc(api.Get))
-	r.put("/{id:.+}", commonHandlers.ThenFunc(api.Put))
-	r.delete("/{id:.+}", commonHandlers.ThenFunc(api.Delete))
-	r.get("/", commonHandlers.ThenFunc(api.List))
-	r.get("/filter/{path}/{op}/{value:.*}", commonHandlers.ThenFunc(api.Filter))
+	r.post("/td/", commonHandlers.ThenFunc(api.Post))
+	r.get("/td/{id:.+}", commonHandlers.ThenFunc(api.Get))
+	r.put("/td/{id:.+}", commonHandlers.ThenFunc(api.Put))
+	r.delete("/td/{id:.+}", commonHandlers.ThenFunc(api.Delete))
+	r.get("/td", commonHandlers.ThenFunc(api.List))
+	r.get("/td/filter/{path}/{op}/{value:.*}", commonHandlers.ThenFunc(api.Filter))
+
+	logger := negroni.NewLogger()
+	logFlags := log.LstdFlags
+	if evalEnv(EnvDisableLogTime) {
+		logFlags = 0
+	}
+	logger.SetFlags(logFlags)
+	logger.SetPrefix("")
 
 	// Configure the middleware
 	n := negroni.New(
 		negroni.NewRecovery(),
-		negroni.NewLogger(),
+		logger,
 	)
 	// Mount router
 	n.UseHandler(r)

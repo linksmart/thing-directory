@@ -40,7 +40,6 @@ func recursiveMatch(data interface{}, path []string) interface{} {
 			}
 		}
 	default:
-		//TODO->logger.Println("Unknown type for", data)
 		logger.Println("Unknown type for", data)
 	}
 
@@ -51,7 +50,7 @@ func MatchObject(object interface{}, path []string, op string, value string) (bo
 	var m interface{}
 	b, err := json.Marshal(object)
 	if err != nil {
-		return false, errors.New("Unable to parse object into JSON")
+		return false, errors.New("unable to parse object into JSON")
 	}
 	json.Unmarshal(b, &m)
 
@@ -61,8 +60,9 @@ func MatchObject(object interface{}, path []string, op string, value string) (bo
 		return false, nil
 	}
 
-	// convert everything to string
-	var stringValue string = fmt.Sprint(v)
+	// convert everything to lower-case string
+	stringValue := strings.ToLower(fmt.Sprint(v))
+	value = strings.ToLower(value)
 
 	switch op {
 	case FOpEquals:
@@ -90,5 +90,6 @@ func MatchObject(object interface{}, path []string, op string, value string) (bo
 			return false, nil
 		}
 	}
-	return false, errors.New("Unknown filter operation")
+	return false, fmt.Errorf("unknown filter operation: %s. Should be either of %v", op,
+		strings.Join([]string{FOpEquals, FOpPrefix, FOpSuffix, FOpContains}, ", "))
 }

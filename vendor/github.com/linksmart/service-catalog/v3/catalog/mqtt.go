@@ -151,24 +151,17 @@ func (m *MQTTManager) registerAsService(client *MQTTClient) {
 	service := Service{
 		ID:          client.BrokerID,
 		Type:        mqttServiceType,
-		Title:       "This broker is registered as used by service catalog",
-		Description: "This broker is registered as used by service catalog",
+		Title:       "Configured broker",
+		Description: "This broker is registered and used by service catalog according to the server configuration file",
 		Meta: map[string]interface{}{
 			"registrator": m.scID,
 		},
 		APIs: []API{
 			{
-				ID:          client.BrokerID + "-api",
-				Title:       "SC primary broker's API",
-				Description: "SC primary broker's API",
-				Protocol:    APITypeMQTT,
-				URL:         client.BrokerURI,
-				Spec: Spec{
-					MediaType: "",
-					URL:       "",
-					Schema:    map[string]interface{}{},
-				},
-				Meta: map[string]interface{}{},
+				ID:       client.BrokerID + "-api",
+				Title:    "Primary broker' API",
+				Protocol: APITypeMQTT,
+				URL:      client.BrokerURI,
 			},
 		},
 		TTL: uint32(mqttServiceTTL / time.Second),

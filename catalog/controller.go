@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/linksmart/service-catalog/v3/utils"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -98,7 +99,7 @@ func (c *Controller) filter(path, op, value string, page, perPage int) ([]ThingD
 		}
 
 		for i := range slice {
-			matched, err := MatchObject(slice[i], strings.Split(path, "."), op, value)
+			matched, err := utils.MatchObject(slice[i], strings.Split(path, "."), op, value)
 			if err != nil {
 				return nil, 0, err
 			}
@@ -112,7 +113,7 @@ func (c *Controller) filter(path, op, value string, page, perPage int) ([]ThingD
 		}
 	}
 	// Pagination
-	offset, limit, err := GetPagingAttr(len(matches), page, perPage, MaxPerPage)
+	offset, limit, err := utils.GetPagingAttr(len(matches), page, perPage, MaxPerPage)
 	if err != nil {
 		return nil, 0, &BadRequestError{fmt.Sprintf("Unable to paginate: %s", err)}
 	}

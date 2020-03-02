@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"sync"
 
+	"github.com/linksmart/service-catalog/v3/utils"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 )
@@ -117,7 +118,7 @@ func (s *LevelDBStorage) list(page int, perPage int) ([]ThingDescription, int, e
 	if err != nil {
 		return nil, 0, err
 	}
-	offset, limit, err := GetPagingAttr(total, page, perPage, MaxPerPage)
+	offset, limit, err := utils.GetPagingAttr(total, page, perPage, MaxPerPage)
 	if err != nil {
 		return nil, 0, &BadRequestError{fmt.Sprintf("Unable to paginate: %s", err)}
 	}
