@@ -10,9 +10,10 @@ env:
     - BUILDNUM=$TRAVIS_BUILD_NUMBER
 
 install: true # skips default installation step
+script: true # skip tests for now
 
 before_deploy:
-  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+  - echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USERNAME" --password-stdin
 
 deploy:
   # push latest docker image
