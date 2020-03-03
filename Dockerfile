@@ -1,29 +1,35 @@
-FROM golang
-MAINTAINER Alexandr Krylovskiy "alexandr.krylovskiy@fit.fraunhofer.de"
-ENV REFRESHED_AT 2016-01-06
+FROM golang:1.14-alpine as builder
 
-# update system
-RUN apt-get update
-RUN apt-get install -y wget git
+COPY . /home
 
-# install the fraunhofer certificate
-RUN wget http://cdp1.pca.dfn.de/fraunhofer-ca/pub/cacert/cacert.pem -O /usr/local/share/ca-certificates/fhg.crt
-RUN update-ca-certificates
+WORKDIR /home
+ENV CGO_ENABLED=0
 
-# install go tools
-RUN go get github.com/constabulary/gb/...
+ARG version
+ARG buildnum
+RUN go build -v -ldflags "-X main.Version=$version -X main.BuildNumber=$buildnum"
 
-# setup local connect home
-RUN mkdir /opt/lslc
-ENV LSLC_HOME /opt/lslc
-WORKDIR ${LSLC_HOME}
+###########
+FROM alpine
 
-# copy code & build
-COPY . ${LSLC_HOME}
-RUN gb build all
+RUN apk --no-cache add ca-certificates
 
-VOLUME conf
-VOLUME data
+ARG version
+ARG buildnum
+LABEL NAME="LinkSmart Thing Directory"
+LABEL VERSION=${version}
+LABEL BUILD=${buildnum}
 
+WORKDIR /home
+COPY --from=builder /home/thing-directory .
+COPY sample_conf/* /conf/
+
+ENV SC_DNSSDENABLED=false
+ENV SC_STORAGE_TYPE=leveldb
+ENV SC_STORAGE_DSN=/data
+
+VOLUME /conf /data
 EXPOSE 8081
-EXPOSE 8082
+
+ENTRYPOINT ["./thing-directory"]
+CMD ["-conf", "/conf/thing-directory.json"]
