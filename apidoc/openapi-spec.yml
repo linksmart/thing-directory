@@ -1,0 +1,372 @@
+openapi: 3.0.0
+info:
+  version: "1.0.0-beta.1"
+  title: LinkSmart Thing Directory
+  description: >
+    API documetnation of the [LinkSmart Thing Directory](https://github.com/linksmart/thing-directory), an implementation of the [Web of Things (WoT)](https://www.w3.org/WoT/) Thing Directory.
+
+  license:
+    name: Apache 2.0
+    url: https://github.com/linksmart/thing-directory/blob/master/LICENSE
+tags:
+  - name: td
+    description: Thing Directory
+paths:
+
+  /td:
+    get:
+      tags:
+        - td
+      summary: Retrieves paginated list of Thing Descriptions
+      parameters:
+        - $ref: '#/components/parameters/ParamPage'
+        - $ref: '#/components/parameters/ParamPerPage'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/ThingDescriptionPage'
+              examples:
+                ThingDescriptionList:
+                  $ref: '#/components/examples/ThingDescriptionList'
+        '401':
+          $ref: '#/components/responses/RespUnauthorized'
+        '403':
+          $ref: '#/components/responses/RespForbidden'
+        '500':
+          $ref: '#/components/responses/RespInternalServerError'
+  /td/:
+    post:
+      tags:
+        - td
+      summary: Creates new Thing Description
+      responses:
+        '201':
+          description: Created successfully
+          headers:
+            Location:
+              description: Path to the newly created Thing Description
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/RespBadRequest'
+        '401':
+          $ref: '#/components/responses/RespUnauthorized'
+        '403':
+          $ref: '#/components/responses/RespForbidden'
+        '500':
+          $ref: '#/components/responses/RespInternalServerError'
+      requestBody:
+        content:
+          application/ld+json:
+            schema:
+              type: object
+            examples:
+              ThingDescription:
+                $ref: '#/components/examples/ThingDescription'
+
+        description: Thing Description to be created
+        required: true
+  '/td/{id}':
+    get:
+      tags:
+        - td
+      summary: Retrieves a Thing Description object
+      parameters:
+        - name: id
+          in: path
+          description: ID of the Thing Description
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/ld+json:
+              schema:
+                type: object
+              examples:
+                response:
+                  $ref: '#/components/examples/ThingDescription'
+        '400':
+          $ref: '#/components/responses/RespBadRequest'
+        '401':
+          $ref: '#/components/responses/RespUnauthorized'
+        '403':
+          $ref: '#/components/responses/RespForbidden'
+        '404':
+          $ref: '#/components/responses/RespNotfound'
+        '500':
+          $ref: '#/components/responses/RespInternalServerError'
+    put:
+      tags:
+        - td
+      summary: Updates an existing Thing Description or creates a new one with the provided ID
+      parameters:
+        - name: id
+          in: path
+          description: ID of the Thing Description
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Thing Description updated successfully
+        '201':
+          description: A new Thing Description is created
+        '400':
+          $ref: '#/components/responses/RespBadRequest'
+        '401':
+          $ref: '#/components/responses/RespUnauthorized'
+        '403':
+          $ref: '#/components/responses/RespForbidden'
+        '409':
+          $ref: '#/components/responses/RespConflict'
+        '500':
+          $ref: '#/components/responses/RespInternalServerError'
+      requestBody:
+        content:
+          application/ld+json:
+            schema:
+              type: object
+            examples:
+              ThingDescription:
+                $ref: '#/components/examples/ThingDescription'
+        description: The Thing Description object
+        required: true
+    delete:
+      tags:
+        - td
+      summary: Deletes the Thing Description
+      parameters:
+        - name: id
+          in: path
+          description: ID of the Thing Description
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+        '401':
+          $ref: '#/components/responses/RespUnauthorized'
+        '403':
+          $ref: '#/components/responses/RespForbidden'
+        '404':
+          $ref: '#/components/responses/RespNotfound'
+        '500':
+          $ref: '#/components/responses/RespInternalServerError'
+  '/td/filter/{path}/{op}/{value}':
+    get:
+      tags:
+        - td
+      summary: Filtering API
+      parameters:
+        - name: path
+          in: path
+          description: Dot-separated path in the registration JSON
+          required: true
+          schema:
+            type: string
+        - name: op
+          in: path
+          description: String comparison operator
+          required: true
+          schema:
+            type: string
+            enum:
+              - equals
+              - prefix
+              - suffix
+              - contains
+        - name: value
+          in: path
+          description: The value to be searched
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/ParamPage'
+        - $ref: '#/components/parameters/ParamPerPage'
+      responses:
+        '200':
+          description: Succcessful response
+          content:
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/ThingDescriptionPage'
+              examples:
+                ThingDescriptionList:
+                  $ref: '#/components/examples/ThingDescriptionList'
+        '401':
+          $ref: '#/components/responses/RespUnauthorized'
+        '403':
+          $ref: '#/components/responses/RespForbidden'
+        '500':
+          $ref: '#/components/responses/RespInternalServerError'
+
+components:
+  parameters:
+    ParamPage:
+      name: page
+      in: query
+      description: Page number in the pagination
+      required: false
+      schema:
+        type: number
+        format: integer
+    ParamPerPage:
+      name: per_page
+      in: query
+      description: Number of entries per page
+      required: false
+      schema:
+        type: number
+        format: integer
+  responses:
+    RespBadRequest:
+      description: Bad Request
+      content:
+        application/ld+json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    RespUnauthorized:
+      description: Unauthorized
+      content:
+        application/ld+json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    RespForbidden:
+      description: Forbidden
+      content:
+        application/ld+json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    RespNotfound:
+      description: Not Found
+      content:
+        application/ld+json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    RespConflict:
+      description: Conflict
+      content:
+        application/ld+json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    RespInternalServerError:
+      description: Internal Server Error
+      content:
+        application/ld+json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+    ThingDescription:
+      description: WoT Thing Description
+      type: object
+    ThingDescriptionPage:
+      type: object
+      properties:
+        '@context':
+          format: url
+        things:
+          type: array
+          items:
+            $ref: '#/components/schemas/ThingDescription'
+        page:
+          type: integer
+        perPage:
+          type: integer
+        total:
+          type: integer
+  examples:
+    ThingDescription:
+      summary: Example Thing Description
+      value:
+        {
+          "@context": "https://www.w3.org/2019/wot/td/v1",
+          "id": "urn:uuid:32c0dc26-4183-4dda-8f77-8955e52066df",
+          "title": "MyTemperatureSensor",
+          "created": "2020-02-28T17:22:25.879568Z",
+          "modified": "2020-02-28T17:22:25.879568Z",
+          "properties": {
+            "status": {
+              "forms": [
+              {
+                "op": [
+                  "readproperty",
+                  "writeproperty"
+                ],
+                "href": "https://gw1.iot/status",
+                "contentType": "application/senml+json",
+                "security": [
+                  "basic_sc"
+                ]
+              }
+              ],
+              "type": "number"
+            }
+          },
+          "security": [
+            "basic_sc"
+          ],
+          "securityDefinitions": {
+            "basic_sc": {
+              "scheme": "basic"
+            }
+          }
+        }
+    ThingDescriptionList:
+      summary: Example Paginated Thing Descriptions
+      value:
+        {
+          "@context":"TBA",
+          "id":"151f00ab-0696-4814-921c-5b3ed3d6c240",
+          "thingDescriptions":[
+          {
+            "@context":"https://www.w3.org/2019/wot/td/v1",
+            "id":"urn:uuid:32c0dc26-4183-4dda-8f77-8955e52066df",
+            "title":"MyTemperatureSensor",
+            "created":"2020-02-28T17:22:25.879568Z",
+            "modified":"2020-02-28T17:22:25.879568Z",
+            "properties":{
+              "status":{
+                "forms":[
+                {
+                  "op":[
+                    "readproperty",
+                    "writeproperty"
+                  ],
+                  "href":"https://gw1.iot/status",
+                  "contentType":"application/senml+json",
+                  "security":[
+                    "basic_sc"
+                  ]
+                }
+                ],
+                "type":"number"
+              }
+            },
+            "security":[
+              "basic_sc"
+            ],
+            "securityDefinitions":{
+              "basic_sc":{
+                "scheme":"basic"
+              }
+            }
+          }
+          ],
+          "page":1,
+          "perPage":100,
+          "total":1
+        }
