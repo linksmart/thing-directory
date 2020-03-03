@@ -11,12 +11,20 @@ import (
 	"github.com/linksmart/service-catalog/v3/utils"
 )
 
-type ThingsCollection struct {
+const (
+	ContextURL      = ""
+	MaxPerPage      = 100
+	ApiVersion      = "1.0.0"
+	GetParamPage    = "page"
+	GetParamPerPage = "perPage"
+)
+
+type ThingDescriptionPage struct {
 	Context string             `json:"@context"`
-	Things  []ThingDescription `json:"things"`
 	ID      string             `json:"id"`
+	Items   []ThingDescription `json:"items"`
 	Page    int                `json:"page"`
-	PerPage int                `json:"per_page"`
+	PerPage int                `json:"perPage"`
 	Total   int                `json:"total"`
 }
 
@@ -182,22 +190,22 @@ func (a *HTTPAPI) List(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	page, perPage, err := utils.ParsePagingParams(
-		req.Form.Get(utils.GetParamPage), req.Form.Get(utils.GetParamPerPage), MaxPerPage)
+		req.Form.Get(GetParamPage), req.Form.Get(GetParamPerPage), MaxPerPage)
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "Error parsing query parameters:", err.Error())
 		return
 	}
 
-	tds, total, err := a.controller.list(page, perPage)
+	items, total, err := a.controller.list(page, perPage)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	coll := &ThingsCollection{
+	coll := &ThingDescriptionPage{
 		Context: ContextURL,
 		ID:      a.id,
-		Things:  tds,
+		Items:   items,
 		Page:    page,
 		PerPage: perPage,
 		Total:   total,
@@ -226,22 +234,22 @@ func (a *HTTPAPI) Filter(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	page, perPage, err := utils.ParsePagingParams(
-		req.Form.Get(utils.GetParamPage), req.Form.Get(utils.GetParamPerPage), MaxPerPage)
+		req.Form.Get(GetParamPage), req.Form.Get(GetParamPerPage), MaxPerPage)
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "Error parsing query parameters:", err.Error())
 		return
 	}
 
-	tds, total, err := a.controller.filter(path, op, value, page, perPage)
+	items, total, err := a.controller.filter(path, op, value, page, perPage)
 	if err != nil {
 		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	coll := &ThingsCollection{
+	coll := &ThingDescriptionPage{
 		Context: ContextURL,
 		ID:      a.id,
-		Things:  tds,
+		Items:   items,
 		Page:    page,
 		PerPage: perPage,
 		Total:   total,

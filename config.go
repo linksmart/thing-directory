@@ -10,7 +10,12 @@ import (
 	"net/url"
 
 	"github.com/linksmart/go-sec/authz"
-	"github.com/linksmart/resource-catalog/catalog"
+)
+
+const (
+	DNSSDServiceType = "_linksmart-rc._tcp"
+	BackendMemory    = "memory"
+	BackendLevelDB   = "leveldb"
 )
 
 type Config struct {
@@ -38,8 +43,8 @@ type StorageConfig struct {
 }
 
 var supportedBackends = map[string]bool{
-	catalog.BackendMemory:  false,
-	catalog.BackendLevelDB: true,
+	BackendMemory:  false,
+	BackendLevelDB: true,
 }
 
 func (c *Config) Validate() error {

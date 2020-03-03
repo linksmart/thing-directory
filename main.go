@@ -43,7 +43,7 @@ func main() {
 	// Setup API storage
 	var storage catalog.Storage
 	switch config.Storage.Type {
-	case catalog.BackendLevelDB:
+	case BackendLevelDB:
 		storage, err = catalog.NewLevelDBStorage(config.Storage.DSN, nil)
 		if err != nil {
 			panic("Failed to start LevelDB storage:" + err.Error())
@@ -83,7 +83,7 @@ func main() {
 	if config.DnssdEnabled {
 		go func() {
 			bonjourS, err = bonjour.Register(config.Description,
-				catalog.DNSSDServiceType,
+				DNSSDServiceType,
 				"",
 				config.BindPort,
 				[]string{"uri=/td"},
@@ -92,7 +92,7 @@ func main() {
 				log.Printf("Failed to register DNS-SD service: %s", err.Error())
 				return
 			}
-			log.Println("Registered service via DNS-SD using type", catalog.DNSSDServiceType)
+			log.Println("Registered service via DNS-SD using type", DNSSDServiceType)
 		}()
 	}
 

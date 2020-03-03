@@ -22,7 +22,7 @@ func registerInServiceCatalog(conf *Config) (func() error, error) {
 		Description: conf.Description,
 		APIs: []sc.API{{
 			ID:    "things",
-			Title: "Things API",
+			Title: "Thing Directory API",
 			//Description: "API description",
 			Protocol: "HTTP",
 			URL:      conf.PublicEndpoint,
