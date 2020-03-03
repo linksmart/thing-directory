@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/linksmart/go-sec/auth/obtainer"
-	"github.com/linksmart/resource-catalog/catalog"
+	"github.com/linksmart/thing-directory/catalog"
 	sc "github.com/linksmart/service-catalog/v3/catalog"
 	"github.com/linksmart/service-catalog/v3/client"
 )

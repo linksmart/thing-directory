@@ -1,6 +1,6 @@
-module github.com/linksmart/resource-catalog
+module github.com/linksmart/thing-directory
 
-go 1.13
+go 1.14
 
 require (
 	github.com/codegangsta/negroni v0.2.0

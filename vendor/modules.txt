@@ -1,6 +1,7 @@
 # github.com/ancientlore/go-avltree v1.0.1
 github.com/ancientlore/go-avltree
 # github.com/codegangsta/negroni v0.2.0
+## explicit
 github.com/codegangsta/negroni
 # github.com/dgrijalva/jwt-go v3.0.0+incompatible
 github.com/dgrijalva/jwt-go
@@ -14,30 +15,43 @@ github.com/farshidtz/mqtt-match
 # github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db
 github.com/golang/snappy
 # github.com/gorilla/context v1.1.1
+## explicit
 github.com/gorilla/context
 # github.com/gorilla/mux v1.7.3
+## explicit
 github.com/gorilla/mux
 # github.com/justinas/alice v0.0.0-20160512134231-052b8b6c18ed
+## explicit
 github.com/justinas/alice
 # github.com/linksmart/go-sec v1.0.1
+## explicit
 github.com/linksmart/go-sec/auth/keycloak/obtainer
 github.com/linksmart/go-sec/auth/keycloak/validator
 github.com/linksmart/go-sec/auth/obtainer
 github.com/linksmart/go-sec/auth/validator
 github.com/linksmart/go-sec/authz
 # github.com/linksmart/service-catalog/v3 v3.0.0-beta.1.0.20200302143206-92739dd2a511
+## explicit
 github.com/linksmart/service-catalog/v3/catalog
 github.com/linksmart/service-catalog/v3/client
 github.com/linksmart/service-catalog/v3/utils
 # github.com/miekg/dns v1.1.27
 github.com/miekg/dns
 # github.com/oleksandr/bonjour v0.0.0-20160508152359-5dcf00d8b228
+## explicit
 github.com/oleksandr/bonjour
+# github.com/onsi/ginkgo v1.12.0
+## explicit
+# github.com/onsi/gomega v1.9.0
+## explicit
 # github.com/pborman/uuid v0.0.0-20170612153648-e790cca94e6c
+## explicit
 github.com/pborman/uuid
 # github.com/satori/go.uuid v1.2.0
+## explicit
 github.com/satori/go.uuid
 # github.com/syndtr/goleveldb v1.0.0
+## explicit
 github.com/syndtr/goleveldb/leveldb
 github.com/syndtr/goleveldb/leveldb/cache
 github.com/syndtr/goleveldb/leveldb/comparer
@@ -55,6 +69,7 @@ github.com/xeipuuv/gojsonpointer
 # github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415
 github.com/xeipuuv/gojsonreference
 # github.com/xeipuuv/gojsonschema v1.2.0
+## explicit
 github.com/xeipuuv/gojsonschema
 # golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
 golang.org/x/crypto/ed25519

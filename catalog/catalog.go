@@ -3,7 +3,7 @@
 package catalog
 
 import (
-	"github.com/linksmart/resource-catalog/wot"
+	"github.com/linksmart/thing-directory/wot"
 )
 
 type ThingDescription struct {

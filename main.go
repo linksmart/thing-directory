@@ -18,13 +18,13 @@ import (
 	_ "github.com/linksmart/go-sec/auth/keycloak/obtainer"
 	_ "github.com/linksmart/go-sec/auth/keycloak/validator"
 	"github.com/linksmart/go-sec/auth/validator"
-	"github.com/linksmart/resource-catalog/catalog"
+	"github.com/linksmart/thing-directory/catalog"
 	"github.com/oleksandr/bonjour"
 	uuid "github.com/satori/go.uuid"
 )
 
 var (
-	confPath = flag.String("conf", "conf/resource-catalog.json", "Resource catalog configuration file path")
+	confPath = flag.String("conf", "conf/thing-directory.json", "Configuration file path")
 )
 
 func main() {
