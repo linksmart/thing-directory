@@ -146,12 +146,14 @@ func setupHTTPRouter(config *Config, api *catalog.HTTPAPI) (*negroni.Negroni, er
 
 	// Configure http api router
 	r := newRouter()
-	r.post("/td/", commonHandlers.ThenFunc(api.Post))
+
+	r.get("/td", commonHandlers.ThenFunc(api.List))
+	r.get("/td/filter/{path}/{op}/{value:.*}", commonHandlers.ThenFunc(api.Filter))
+
+	r.post("/td", commonHandlers.ThenFunc(api.Post))
 	r.get("/td/{id:.+}", commonHandlers.ThenFunc(api.Get))
 	r.put("/td/{id:.+}", commonHandlers.ThenFunc(api.Put))
 	r.delete("/td/{id:.+}", commonHandlers.ThenFunc(api.Delete))
-	r.get("/td", commonHandlers.ThenFunc(api.List))
-	r.get("/td/filter/{path}/{op}/{value:.*}", commonHandlers.ThenFunc(api.Filter))
 
 	logger := negroni.NewLogger()
 	logFlags := log.LstdFlags
