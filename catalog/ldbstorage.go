@@ -36,22 +36,25 @@ func NewLevelDBStorage(dsn string, opts *opt.Options) (Storage, error) {
 }
 
 // CRUD
-func (s *LevelDBStorage) add(td *ThingDescription) error {
+func (s *LevelDBStorage) add(id string, td ThingDescription) error {
+	if id == "" {
+		return fmt.Errorf("ID is not set")
+	}
 
 	bytes, err := json.Marshal(td)
 	if err != nil {
 		return err
 	}
 
-	found, err := s.db.Has([]byte(td.ID), nil)
+	found, err := s.db.Has([]byte(id), nil)
 	if err != nil {
 		return err
 	}
 	if found {
-		return &ConflictError{fmt.Sprintf("%s is not unique", td.ID)}
+		return &ConflictError{id + " is not unique"}
 	}
 
-	err = s.db.Put([]byte(td.ID), bytes, nil)
+	err = s.db.Put([]byte(id), bytes, nil)
 	if err != nil {
 		return err
 	}
@@ -59,11 +62,11 @@ func (s *LevelDBStorage) add(td *ThingDescription) error {
 	return nil
 }
 
-func (s *LevelDBStorage) get(id string) (*ThingDescription, error) {
+func (s *LevelDBStorage) get(id string) (ThingDescription, error) {
 
 	bytes, err := s.db.Get([]byte(id), nil)
 	if err == leveldb.ErrNotFound {
-		return nil, &NotFoundError{fmt.Sprintf("%s is not found", id)}
+		return nil, &NotFoundError{id + " is not found"}
 	} else if err != nil {
 		return nil, err
 	}
@@ -74,10 +77,10 @@ func (s *LevelDBStorage) get(id string) (*ThingDescription, error) {
 		return nil, err
 	}
 
-	return &td, nil
+	return td, nil
 }
 
-func (s *LevelDBStorage) update(id string, td *ThingDescription) error {
+func (s *LevelDBStorage) update(id string, td ThingDescription) error {
 
 	bytes, err := json.Marshal(td)
 	if err != nil {
@@ -89,7 +92,7 @@ func (s *LevelDBStorage) update(id string, td *ThingDescription) error {
 		return err
 	}
 	if !found {
-		return &NotFoundError{fmt.Sprintf("%s is not found", id)}
+		return &NotFoundError{id + " is not found"}
 	}
 
 	err = s.db.Put([]byte(id), bytes, nil)
@@ -101,11 +104,16 @@ func (s *LevelDBStorage) update(id string, td *ThingDescription) error {
 }
 
 func (s *LevelDBStorage) delete(id string) error {
+	found, err := s.db.Has([]byte(id), nil)
+	if err != nil {
+		return err
+	}
+	if !found {
+		return &NotFoundError{id + " is not found"}
+	}
 
-	err := s.db.Delete([]byte(id), nil)
-	if err == leveldb.ErrNotFound {
-		return &NotFoundError{fmt.Sprintf("%s is not found", id)}
-	} else if err != nil {
+	err = s.db.Delete([]byte(id), nil)
+	if err != nil {
 		return err
 	}
 
@@ -169,8 +177,8 @@ func (s *LevelDBStorage) total() (int, error) {
 	return c, nil
 }
 
-func (s *LevelDBStorage) iterator() <-chan *ThingDescription {
-	serviceIter := make(chan *ThingDescription)
+func (s *LevelDBStorage) iterator() <-chan ThingDescription {
+	serviceIter := make(chan ThingDescription)
 
 	go func() {
 		defer close(serviceIter)
@@ -187,7 +195,7 @@ func (s *LevelDBStorage) iterator() <-chan *ThingDescription {
 				log.Printf("LevelDB Error: %s", err)
 				return
 			}
-			serviceIter <- &td
+			serviceIter <- td
 		}
 
 		err := iter.Error()

@@ -9,7 +9,7 @@ import (
 
 var schema *gojsonschema.Schema
 
-func ValidateAgainstWoTSchema(td *ThingDescription) error {
+func ValidateAgainstWoTSchema(td *map[string]interface{}) error {
 	if schema == nil {
 		// load schema into memory on first validation call
 		var err error

@@ -3,22 +3,34 @@
 package catalog
 
 import (
+	"fmt"
+
 	"github.com/linksmart/thing-directory/wot"
 )
 
-type ThingDescription struct {
-	wot.ThingDescription
-	TTL uint `json:"ttl,omitempty"`
-}
+type ThingDescription = map[string]interface{}
 
-func (td *ThingDescription) validate() error {
-	return wot.ValidateAgainstWoTSchema(&td.ThingDescription)
+const (
+	// TD keys
+	_id       = "id"
+	_created  = "created"
+	_modified = "modified"
+	_ttl      = "ttl"
+)
+
+func validateThingDescription(td map[string]interface{}) error {
+	_, ok := td[_ttl].(float64)
+	if !ok {
+		return fmt.Errorf("ttl is not float64")
+	}
+
+	return wot.ValidateAgainstWoTSchema(&td)
 }
 
 // Controller interface
 type CatalogController interface {
 	add(d ThingDescription) (string, error)
-	get(id string) (*ThingDescription, error)
+	get(id string) (ThingDescription, error)
 	update(id string, d ThingDescription) error
 	delete(id string) error
 	list(page, perPage int) ([]ThingDescription, int, error)
@@ -31,12 +43,12 @@ type CatalogController interface {
 
 // Storage interface
 type Storage interface {
-	add(td *ThingDescription) error
-	update(id string, td *ThingDescription) error
+	add(id string, td ThingDescription) error
+	update(id string, td ThingDescription) error
 	delete(id string) error
-	get(id string) (*ThingDescription, error)
+	get(id string) (ThingDescription, error)
 	list(page, perPage int) ([]ThingDescription, int, error)
 	total() (int, error)
-	iterator() <-chan *ThingDescription
+	iterator() <-chan ThingDescription
 	Close()
 }

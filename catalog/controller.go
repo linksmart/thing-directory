@@ -5,6 +5,7 @@ package catalog
 import (
 	"fmt"
 	"log"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -12,7 +13,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-var controllerExpiryCleanupInterval = 60 * time.Second // to be modified in unit tests
+var controllerExpiryCleanupInterval = 10 * time.Second // to be modified in unit tests
 
 type Controller struct {
 	storage Storage
@@ -29,40 +30,46 @@ func NewController(storage Storage) (CatalogController, error) {
 }
 
 func (c *Controller) add(td ThingDescription) (string, error) {
-	if err := td.validate(); err != nil {
+	id, ok := td[_id].(string)
+	if !ok || id == "" {
+		// System generated id
+		id = c.newURN()
+	}
+	if err := validateThingDescription(td); err != nil {
 		return "", &BadRequestError{err.Error()}
 	}
 
-	// TODO add rc context
+	td[_id] = id
+	td[_created] = time.Now().UTC()
+	td[_modified] = td[_created]
 
-	if td.ID == "" {
-		// System generated id
-		td.ID = c.newURN()
-	}
-	td.Created = time.Now().UTC()
-	td.Modified = td.Created
-
-	err := c.storage.add(&td)
+	err := c.storage.add(id, td)
 	if err != nil {
 		return "", err
 	}
 
-	return td.ID, nil
+	return id, nil
 }
 
-func (c *Controller) get(id string) (*ThingDescription, error) {
+func (c *Controller) get(id string) (ThingDescription, error) {
 	return c.storage.get(id)
 }
 
 func (c *Controller) update(id string, td ThingDescription) error {
-	if err := td.validate(); err != nil {
+	td[_id] = id
+	if err := validateThingDescription(td); err != nil {
 		return &BadRequestError{err.Error()}
 	}
 
-	td.ID = id
-	td.Modified = time.Now().UTC()
+	oldTD, err := c.storage.get(id)
+	if err != nil {
+		return err
+	}
 
-	err := c.storage.update(id, &td)
+	td[_created] = oldTD[_created]
+	td[_modified] = time.Now().UTC()
+
+	err = c.storage.update(id, td)
 	if err != nil {
 		return err
 	}
@@ -126,23 +133,39 @@ func (c *Controller) total() (int, error) {
 }
 
 func (c *Controller) cleanExpired() {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("panic: %v\n%s\n", r, debug.Stack())
+			go c.cleanExpired()
+		}
+	}()
+
 	for t := range time.Tick(controllerExpiryCleanupInterval) {
-		var expiredServices []*ThingDescription
+		var expiredServices []ThingDescription
 
 		for td := range c.storage.iterator() {
-			if td.TTL != 0 {
-				// remove if expiry is overdue by half-TTL
-				if t.After(td.Modified.Add(time.Duration(td.TTL+td.TTL/2) * time.Second)) {
-					expiredServices = append(expiredServices, td)
+			if td[_ttl] != nil {
+				ttl := td[_ttl].(float64)
+				if ttl != 0 {
+					// remove if expiry is overdue by half-TTL
+					modified, err := time.Parse(time.RFC3339, td[_modified].(string))
+					if err != nil {
+						log.Printf("cleanExpired() error: %s", err)
+						continue
+					}
+					if t.After(modified.Add(time.Duration(1.5*ttl) * time.Second)) {
+						expiredServices = append(expiredServices, td)
+					}
 				}
 			}
 		}
 
 		for i := range expiredServices {
-			log.Printf("cleanExpired() Removing expired registration: %s", expiredServices[i].ID)
-			err := c.storage.delete(expiredServices[i].ID)
+			id := expiredServices[i][_id].(string)
+			log.Printf("cleanExpired() Removing expired registration: %s", id)
+			err := c.storage.delete(id)
 			if err != nil {
-				log.Printf("cleanExpired() Error removing expired registration: %s: %s", expiredServices[i].ID, err)
+				log.Printf("cleanExpired() Error removing expired registration: %s: %s", id, err)
 				continue
 			}
 		}

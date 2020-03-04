@@ -56,9 +56,12 @@ func (a *HTTPAPI) Post(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if td.ID != "" {
-		ErrorResponse(w, http.StatusBadRequest, "Registering with defined ID is not possible using a POST request.")
-		return
+	if td[_id] != nil {
+		id, ok := td[_id].(string)
+		if !ok || id != "" {
+			ErrorResponse(w, http.StatusBadRequest, "Registering with defined ID is not possible using a POST request.")
+			return
+		}
 	}
 
 	id, err := a.controller.add(td)
@@ -77,7 +80,7 @@ func (a *HTTPAPI) Post(w http.ResponseWriter, req *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
-	w.Header().Set("Location", id)
+	w.Header().Add("Location", id)
 	w.WriteHeader(http.StatusCreated)
 }
 
@@ -130,8 +133,8 @@ func (a *HTTPAPI) Put(w http.ResponseWriter, req *http.Request) {
 		switch err.(type) {
 		case *NotFoundError:
 			// Create a new device with the given id
-			td.ID = params["id"]
-			_, err := a.controller.add(td)
+			td[_id] = params["id"]
+			id, err := a.controller.add(td)
 			if err != nil {
 				switch err.(type) {
 				case *ConflictError:
@@ -146,7 +149,7 @@ func (a *HTTPAPI) Put(w http.ResponseWriter, req *http.Request) {
 				}
 			}
 			w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
-			w.Header().Set("Location", td.ID)
+			w.Header().Set("Location", id)
 			w.WriteHeader(http.StatusCreated)
 			return
 		case *BadRequestError:
@@ -178,7 +181,6 @@ func (a *HTTPAPI) Delete(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
 	w.WriteHeader(http.StatusOK)
 }
 
