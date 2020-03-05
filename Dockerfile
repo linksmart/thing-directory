@@ -22,7 +22,8 @@ LABEL BUILD=${buildnum}
 
 WORKDIR /home
 COPY --from=builder /home/thing-directory .
-COPY sample_conf/* /conf/
+COPY sample_conf/thing-directory.json /conf/
+COPY wot/wot_td_schema.json /conf/
 
 ENV SC_DNSSDENABLED=false
 ENV SC_STORAGE_TYPE=leveldb
@@ -32,4 +33,4 @@ VOLUME /conf /data
 EXPOSE 8081
 
 ENTRYPOINT ["./thing-directory"]
-CMD ["-conf", "/conf/thing-directory.json"]
+CMD ["--conf", "/conf/thing-directory.json", "--schema", "/conf/wot_td_schema.json"]

@@ -19,12 +19,14 @@ import (
 	_ "github.com/linksmart/go-sec/auth/keycloak/validator"
 	"github.com/linksmart/go-sec/auth/validator"
 	"github.com/linksmart/thing-directory/catalog"
+	"github.com/linksmart/thing-directory/wot"
 	"github.com/oleksandr/bonjour"
 	uuid "github.com/satori/go.uuid"
 )
 
 var (
-	confPath = flag.String("conf", "conf/thing-directory.json", "Configuration file path")
+	confPath   = flag.String("conf", "conf/thing-directory.json", "Configuration file path")
+	schemaPath = flag.String("schema", "conf/wot_td_schema.json", "WoT Thing Description schema file path")
 )
 
 func main() {
@@ -35,9 +37,16 @@ func main() {
 	if err != nil {
 		panic("Error reading config file:" + err.Error())
 	}
+	log.Printf("Loaded config file: " + *confPath)
 	if config.ServiceID == "" {
 		config.ServiceID = uuid.NewV4().String()
 		log.Printf("Service ID not set. Generated new UUID: %s", config.ServiceID)
+	}
+	log.Print("Loaded schema file: " + *schemaPath)
+
+	err = wot.LoadSchema(*schemaPath)
+	if err != nil {
+		panic("error loading WoT Thing Description schema: " + err.Error())
 	}
 
 	// Setup API storage

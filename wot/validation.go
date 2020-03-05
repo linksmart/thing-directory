@@ -2,6 +2,7 @@ package wot
 
 import (
 	"fmt"
+	"io/ioutil"
 	"strings"
 
 	"github.com/xeipuuv/gojsonschema"
@@ -9,14 +10,24 @@ import (
 
 var schema *gojsonschema.Schema
 
-func ValidateAgainstWoTSchema(td *map[string]interface{}) error {
+// LoadSchema loads the schema into the package
+func LoadSchema(path string) error {
+	file, err := ioutil.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("error reading file: %s", err)
+	}
+
+	schema, err = gojsonschema.NewSchema(gojsonschema.NewBytesLoader(file))
+	if err != nil {
+		return fmt.Errorf("error loading schema: %s", err)
+	}
+	return nil
+}
+
+// ValidateMap validates the input against the loaded WoT Thing Description schema
+func ValidateMap(td *map[string]interface{}) error {
 	if schema == nil {
-		// load schema into memory on first validation call
-		var err error
-		schema, err = gojsonschema.NewSchema(gojsonschema.NewStringLoader(jsonSchema))
-		if err != nil {
-			return fmt.Errorf("error loading WoT Schema: %s", err)
-		}
+		return fmt.Errorf("WoT Thing Description schema is not loaded")
 	}
 
 	result, err := schema.Validate(gojsonschema.NewGoLoader(td))

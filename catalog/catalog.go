@@ -24,7 +24,7 @@ func validateThingDescription(td map[string]interface{}) error {
 		return fmt.Errorf("ttl is not float64")
 	}
 
-	return wot.ValidateAgainstWoTSchema(&td)
+	return wot.ValidateMap(&td)
 }
 
 // Controller interface
