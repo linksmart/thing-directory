@@ -51,3 +51,9 @@ func (r *router) options(path string, handler http.Handler) {
 	r.Methods("OPTIONS").Path(path).Handler(handler)
 	r.Methods("OPTIONS").Path(fmt.Sprintf("%s/", path)).Handler(handler)
 }
+
+func indexHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+	fmt.Fprintf(w, "<p>Thing Directory - Welcome!</p>"+
+		"<p><a href='https://github.com/linksmart/thing-directory'>https://github.com/linksmart/thing-directory</a></p>")
+}

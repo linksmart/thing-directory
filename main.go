@@ -69,10 +69,7 @@ func main() {
 	defer controller.Stop()
 
 	// Create catalog API object
-	api := catalog.NewHTTPAPI(
-		controller,
-		config.ServiceID,
-	)
+	api := catalog.NewHTTPAPI(controller)
 
 	nRouter, err := setupHTTPRouter(config, api)
 	if err != nil {
@@ -155,6 +152,7 @@ func setupHTTPRouter(config *Config, api *catalog.HTTPAPI) (*negroni.Negroni, er
 
 	// Configure http api router
 	r := newRouter()
+	r.get("/", commonHandlers.ThenFunc(indexHandler))
 
 	r.get("/td", commonHandlers.ThenFunc(api.List))
 	r.get("/td/filter/{path}/{op}/{value:.*}", commonHandlers.ThenFunc(api.Filter))

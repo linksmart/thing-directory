@@ -21,7 +21,6 @@ const (
 
 type ThingDescriptionPage struct {
 	Context string             `json:"@context"`
-	ID      string             `json:"id"`
 	Items   []ThingDescription `json:"items"`
 	Page    int                `json:"page"`
 	PerPage int                `json:"perPage"`
@@ -31,13 +30,11 @@ type ThingDescriptionPage struct {
 // Read-only catalog api
 type HTTPAPI struct {
 	controller CatalogController
-	id         string
 }
 
-func NewHTTPAPI(controller CatalogController, serviceID string) *HTTPAPI {
+func NewHTTPAPI(controller CatalogController) *HTTPAPI {
 	return &HTTPAPI{
 		controller: controller,
-		id:         serviceID,
 	}
 }
 
@@ -206,7 +203,6 @@ func (a *HTTPAPI) List(w http.ResponseWriter, req *http.Request) {
 
 	coll := &ThingDescriptionPage{
 		Context: ContextURL,
-		ID:      a.id,
 		Items:   items,
 		Page:    page,
 		PerPage: perPage,
@@ -250,7 +246,6 @@ func (a *HTTPAPI) Filter(w http.ResponseWriter, req *http.Request) {
 
 	coll := &ThingDescriptionPage{
 		Context: ContextURL,
-		ID:      a.id,
 		Items:   items,
 		Page:    page,
 		PerPage: perPage,
