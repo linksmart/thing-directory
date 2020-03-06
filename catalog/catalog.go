@@ -19,9 +19,11 @@ const (
 )
 
 func validateThingDescription(td map[string]interface{}) error {
-	_, ok := td[_ttl].(float64)
-	if !ok {
-		return fmt.Errorf("ttl is not float64")
+	if td[_ttl] != nil {
+		_, ok := td[_ttl].(float64)
+		if !ok {
+			return fmt.Errorf("ttl is %T instead of float64", td[_ttl])
+		}
 	}
 
 	return wot.ValidateMap(&td)
