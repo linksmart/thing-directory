@@ -1,7 +1,13 @@
 github.com/ancientlore/go-avltree v1.0.1 h1:4XsGK6rkg1rjCTZoQbc09It5tmgMGCcFSYCVRwV99KU=
 github.com/ancientlore/go-avltree v1.0.1/go.mod h1:nfJ32Li6TWi3iVi9M3XF19FNqdfTlmoI87CPVgtgqoc=
+github.com/bhmj/jsonslice v0.0.0-20191224143743-ee6d2730b10a h1:YFfKzXujgoTr4Z3yP2bpKomgahMOCWBlaijaNmPzS+A=
+github.com/bhmj/jsonslice v0.0.0-20191224143743-ee6d2730b10a/go.mod h1:blvNODZOz8uOvDJzGiXzoi8QlzcAhA57sMnKx1D18/k=
 github.com/codegangsta/negroni v0.2.0 h1:MqNkcR831ZSHwZmP9IdlZWGMxc1T8briBhBW649DkXs=
 github.com/codegangsta/negroni v0.2.0/go.mod h1:v0y3T5G7Y1UlFfyxFn/QLRU4a2EuNau2iZY63YTKWo0=
+github.com/codegangsta/negroni v0.3.0 h1:ByBtJaE0u71x6Ebli7lm95c8oCkrmF88+s5qB2o6j8I=
+github.com/codegangsta/negroni v0.3.0/go.mod h1:v0y3T5G7Y1UlFfyxFn/QLRU4a2EuNau2iZY63YTKWo0=
+github.com/codegangsta/negroni v1.0.0 h1:+aYywywx4bnKXWvoWtRfJ91vC59NbEhEY03sZjQhbVY=
+github.com/codegangsta/negroni v1.0.0/go.mod h1:v0y3T5G7Y1UlFfyxFn/QLRU4a2EuNau2iZY63YTKWo0=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dgrijalva/jwt-go v3.0.0+incompatible h1:nfVqwkkhaRUethVJaQf5TUFdFr3YUF4lJBTf/F2XwVI=

@@ -3,7 +3,8 @@ module github.com/linksmart/thing-directory
 go 1.14
 
 require (
-	github.com/codegangsta/negroni v0.2.0
+	github.com/bhmj/jsonslice v0.0.0-20191224143743-ee6d2730b10a
+	github.com/codegangsta/negroni v1.0.0
 	github.com/gorilla/context v1.1.1
 	github.com/gorilla/mux v1.7.3
 	github.com/justinas/alice v0.0.0-20160512134231-052b8b6c18ed

@@ -168,8 +168,8 @@ func setupHTTPRouter(config *Config, api *catalog.HTTPAPI) (*negroni.Negroni, er
 	if evalEnv(EnvDisableLogTime) {
 		logFlags = 0
 	}
-	logger.SetFlags(logFlags)
-	logger.SetPrefix("")
+	logger.ALogger = log.New(os.Stdout, "", logFlags)
+	logger.SetFormat("{{.Method}} {{.Request.URL}} {{.Status}} {{.Duration}}")
 
 	// Configure the middleware
 	n := negroni.New(
