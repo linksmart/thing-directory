@@ -11,6 +11,7 @@ require (
 	github.com/linksmart/go-sec v1.0.1
 	github.com/linksmart/service-catalog/v3 v3.0.0-beta.1.0.20200302143206-92739dd2a511
 	github.com/oleksandr/bonjour v0.0.0-20160508152359-5dcf00d8b228
+	github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852 // indirect
 	github.com/onsi/ginkgo v1.12.0 // indirect
 	github.com/onsi/gomega v1.9.0 // indirect
 	github.com/pborman/uuid v0.0.0-20170612153648-e790cca94e6c
