@@ -13,7 +13,7 @@ import (
 
 const (
 	ContextURL = ""
-	MaxPerPage = 5
+	MaxPerPage = 100
 	ApiVersion = "1.0.0"
 	// query parameters
 	QueryParamPage     = "page"
@@ -22,7 +22,7 @@ const (
 )
 
 type ThingDescriptionPage struct {
-	Context string      `json:"@context"`
+	Context string      `json:"@context,omitempty"`
 	Items   interface{} `json:"items"`
 	Page    int         `json:"page"`
 	PerPage int         `json:"perPage"`
