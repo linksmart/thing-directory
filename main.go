@@ -156,7 +156,6 @@ func setupHTTPRouter(config *Config, api *catalog.HTTPAPI) (*negroni.Negroni, er
 
 	r.get("/td", commonHandlers.ThenFunc(api.List))
 	r.get("/td/filter/{path}/{op}/{value:.*}", commonHandlers.ThenFunc(api.Filter))
-	r.get("/td/filter", commonHandlers.ThenFunc(api.FilterJSONPath))
 
 	r.post("/td", commonHandlers.ThenFunc(api.Post))
 	r.get("/td/{id:.+}", commonHandlers.ThenFunc(api.Get))

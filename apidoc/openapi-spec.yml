@@ -18,9 +18,17 @@ paths:
       tags:
         - td
       summary: Retrieves paginated list of Thing Descriptions
+      description: The syntax of JSONPath expressions is based on the [JSON Slice](https://github.com/bhmj/jsonslice/blob/master/README.md) library.
       parameters:
         - $ref: '#/components/parameters/ParamPage'
         - $ref: '#/components/parameters/ParamPerPage'
+        - name: fetch
+          in: query
+          description: JSONPath expression for fetching specific items
+          required: false
+          schema:
+            type: string
+          example: $[?(@.title=='Kitchen Plug')].properties.history.forms[0].href
       responses:
         '200':
           description: Successful response
