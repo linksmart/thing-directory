@@ -12,11 +12,12 @@ import (
 )
 
 const (
-	ContextURL         = ""
-	MaxPerPage         = 5
-	ApiVersion         = "1.0.0"
-	GetParamPage       = "page"
-	GetParamPerPage    = "perPage"
+	ContextURL = ""
+	MaxPerPage = 5
+	ApiVersion = "1.0.0"
+	// query parameters
+	QueryParamPage     = "page"
+	QueryParamPerPage  = "perPage"
 	QueryParamJSONPath = "fetch"
 )
 
@@ -190,7 +191,7 @@ func (a *HTTPAPI) List(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	page, perPage, err := utils.ParsePagingParams(
-		req.Form.Get(GetParamPage), req.Form.Get(GetParamPerPage), MaxPerPage)
+		req.Form.Get(QueryParamPage), req.Form.Get(QueryParamPerPage), MaxPerPage)
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "Error parsing query parameters:", err.Error())
 		return
@@ -244,7 +245,7 @@ func (a *HTTPAPI) Filter(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	page, perPage, err := utils.ParsePagingParams(
-		req.Form.Get(GetParamPage), req.Form.Get(GetParamPerPage), MaxPerPage)
+		req.Form.Get(QueryParamPage), req.Form.Get(QueryParamPerPage), MaxPerPage)
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "Error parsing query parameters:", err.Error())
 		return
