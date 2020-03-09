@@ -3,12 +3,14 @@
 package catalog
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"runtime/debug"
 	"strings"
 	"time"
 
+	"github.com/bhmj/jsonslice"
 	"github.com/linksmart/service-catalog/v3/utils"
 	uuid "github.com/satori/go.uuid"
 )
@@ -126,6 +128,49 @@ func (c *Controller) filter(path, op, value string, page, perPage int) ([]ThingD
 	}
 	// Return the page
 	return matches[offset : offset+limit], len(matches), nil
+}
+
+func (c *Controller) filterJSONPath(jsonpath string, page, perPage int) ([]interface{}, int, error) {
+
+	items := make([]ThingDescription, 0)
+	pp := MaxPerPage
+	for p := 1; ; p++ {
+		slice, t, err := c.storage.list(p, pp)
+		if err != nil {
+			return nil, 0, err
+		}
+		items = append(items, slice...)
+
+		if p*pp >= t {
+			break
+		}
+	}
+
+	b, err := json.Marshal(items)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error serializing for jsonpath: %s", err)
+	}
+	items = nil
+
+	b, err = jsonslice.Get(b, jsonpath)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error evaluating jsonpath: %s", err)
+	}
+
+	var results []interface{}
+	err = json.Unmarshal(b, &results)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error de-serializing for jsonpath: %s", err)
+	}
+	b = nil
+
+	// Pagination
+	offset, limit, err := utils.GetPagingAttr(len(results), page, perPage, MaxPerPage)
+	if err != nil {
+		return nil, 0, &BadRequestError{fmt.Sprintf("Unable to paginate: %s", err)}
+	}
+	// Return the page
+	return results[offset : offset+limit], len(results), nil
 }
 
 func (c *Controller) total() (int, error) {

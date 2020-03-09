@@ -12,19 +12,20 @@ import (
 )
 
 const (
-	ContextURL      = ""
-	MaxPerPage      = 100
-	ApiVersion      = "1.0.0"
-	GetParamPage    = "page"
-	GetParamPerPage = "perPage"
+	ContextURL         = ""
+	MaxPerPage         = 5
+	ApiVersion         = "1.0.0"
+	GetParamPage       = "page"
+	GetParamPerPage    = "perPage"
+	QueryParamJSONPath = "fetch"
 )
 
 type ThingDescriptionPage struct {
-	Context string             `json:"@context"`
-	Items   []ThingDescription `json:"items"`
-	Page    int                `json:"page"`
-	PerPage int                `json:"perPage"`
-	Total   int                `json:"total"`
+	Context string      `json:"@context"`
+	Items   interface{} `json:"items"`
+	Page    int         `json:"page"`
+	PerPage int         `json:"perPage"`
+	Total   int         `json:"total"`
 }
 
 // Read-only catalog api
@@ -195,10 +196,20 @@ func (a *HTTPAPI) List(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	items, total, err := a.controller.list(page, perPage)
-	if err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, err.Error())
-		return
+	var items interface{}
+	var total int
+	if req.Form.Get(QueryParamJSONPath) == "" {
+		items, total, err = a.controller.list(page, perPage)
+		if err != nil {
+			ErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	} else {
+		items, total, err = a.controller.filterJSONPath(req.Form.Get(QueryParamJSONPath), page, perPage)
+		if err != nil {
+			ErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
 	}
 
 	coll := &ThingDescriptionPage{
@@ -216,6 +227,7 @@ func (a *HTTPAPI) List(w http.ResponseWriter, req *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
+	w.Header().Add("X-Request-URL", req.RequestURI)
 	w.Write(b)
 }
 
