@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/linksmart/go-sec/auth/obtainer"
-	"github.com/linksmart/thing-directory/catalog"
 	sc "github.com/linksmart/service-catalog/v3/catalog"
 	"github.com/linksmart/service-catalog/v3/client"
 )
@@ -32,7 +31,7 @@ func registerInServiceCatalog(conf *Config) (func() error, error) {
 				//Schema:    map[string]interface{}{},
 			},
 			Meta: map[string]interface{}{
-				"apiVersion": catalog.ApiVersion,
+				"apiVersion": Version,
 			},
 		}},
 		Doc: "https://docs.linksmart.eu/display/RC",

@@ -24,14 +24,37 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+const LINKSMART = `
+╦   ╦ ╔╗╔ ╦╔═  ╔═╗ ╔╦╗ ╔═╗ ╦═╗ ╔╦╗
+║   ║ ║║║ ╠╩╗  ╚═╗ ║║║ ╠═╣ ╠╦╝  ║
+╩═╝ ╩ ╝╚╝ ╩ ╩  ╚═╝ ╩ ╩ ╩ ╩ ╩╚═  ╩
+`
+
 var (
-	confPath   = flag.String("conf", "conf/thing-directory.json", "Configuration file path")
-	schemaPath = flag.String("schema", "conf/wot_td_schema.json", "WoT Thing Description schema file path")
+	confPath    = flag.String("conf", "conf/thing-directory.json", "Configuration file path")
+	schemaPath  = flag.String("schema", "conf/wot_td_schema.json", "WoT Thing Description schema file path")
+	version     = flag.Bool("version", false, "Print the API version")
+	Version     string // set with build flags
+	BuildNumber string // set with build flags
 )
 
 func main() {
-	defer log.Println("Stopped.")
 	flag.Parse()
+	if *version {
+		fmt.Println(Version)
+		return
+	}
+
+	fmt.Print(LINKSMART)
+	log.Printf("Starting Historical Datastore")
+	defer log.Println("Stopped.")
+
+	if Version != "" {
+		log.Printf("Version: %s", Version)
+	}
+	if BuildNumber != "" {
+		log.Printf("Build Number: %s", BuildNumber)
+	}
 
 	config, err := loadConfig(*confPath)
 	if err != nil {
@@ -69,7 +92,7 @@ func main() {
 	defer controller.Stop()
 
 	// Create catalog API object
-	api := catalog.NewHTTPAPI(controller)
+	api := catalog.NewHTTPAPI(controller, Version)
 
 	nRouter, err := setupHTTPRouter(config, api)
 	if err != nil {

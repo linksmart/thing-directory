@@ -12,9 +12,9 @@ import (
 )
 
 const (
-	ContextURL = ""
-	MaxPerPage = 100
-	ApiVersion = "1.0.0"
+	ContextURL       = ""
+	MaxPerPage       = 100
+	ResponseMimeType = "application/ld+json"
 	// query parameters
 	QueryParamPage     = "page"
 	QueryParamPerPage  = "perPage"
@@ -31,12 +31,18 @@ type ThingDescriptionPage struct {
 
 // Read-only catalog api
 type HTTPAPI struct {
-	controller CatalogController
+	controller  CatalogController
+	contentType string
 }
 
-func NewHTTPAPI(controller CatalogController) *HTTPAPI {
+func NewHTTPAPI(controller CatalogController, version string) *HTTPAPI {
+	contentType := ResponseMimeType
+	if version != "" {
+		contentType += ";version=" + version
+	}
 	return &HTTPAPI{
-		controller: controller,
+		controller:  controller,
+		contentType: contentType,
 	}
 }
 
@@ -78,7 +84,7 @@ func (a *HTTPAPI) Post(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
+	w.Header().Set("Content-Type", a.contentType)
 	w.Header().Add("Location", id)
 	w.WriteHeader(http.StatusCreated)
 }
@@ -105,7 +111,7 @@ func (a *HTTPAPI) Get(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
+	w.Header().Set("Content-Type", a.contentType)
 	w.Write(b)
 }
 
@@ -147,7 +153,7 @@ func (a *HTTPAPI) Put(w http.ResponseWriter, req *http.Request) {
 					return
 				}
 			}
-			w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
+			w.Header().Set("Content-Type", a.contentType)
 			w.Header().Set("Location", id)
 			w.WriteHeader(http.StatusCreated)
 			return
@@ -160,7 +166,7 @@ func (a *HTTPAPI) Put(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
+	w.Header().Set("Content-Type", a.contentType)
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -228,7 +234,7 @@ func (a *HTTPAPI) List(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
+	w.Header().Set("Content-Type", a.contentType)
 	w.Header().Add("X-Request-URL", req.RequestURI)
 	w.Write(b)
 }
@@ -272,6 +278,6 @@ func (a *HTTPAPI) Filter(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/ld+json;version="+ApiVersion)
+	w.Header().Set("Content-Type", a.contentType)
 	w.Write(b)
 }

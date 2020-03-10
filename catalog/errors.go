@@ -43,7 +43,7 @@ func ErrorResponse(w http.ResponseWriter, code int, msgs ...string) {
 		log.Println("ERROR:", msg)
 	}
 	b, _ := json.Marshal(e)
-	w.Header().Set("Content-Type", "application/json;version="+ApiVersion)
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	w.Write(b)
 }
