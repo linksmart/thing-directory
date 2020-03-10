@@ -53,7 +53,11 @@ func (r *router) options(path string, handler http.Handler) {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintf(w, "<p>Thing Directory - Welcome!</p>"+
-		"<p><a href='https://github.com/linksmart/thing-directory'>https://github.com/linksmart/thing-directory</a></p>")
+	w.Header().Set("Content-Type", "text/plain")
+	fmt.Fprintf(w, "LinkSmart Thing Directory"+
+		"\n\nhttps://github.com/linksmart/thing-directory")
+
+	if Version != "" {
+		fmt.Fprintf(w, "\n\nVersion: "+Version)
+	}
 }
