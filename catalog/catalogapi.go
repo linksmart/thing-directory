@@ -199,14 +199,15 @@ func (a *HTTPAPI) List(w http.ResponseWriter, req *http.Request) {
 
 	var items interface{}
 	var total int
-	if req.Form.Get(QueryParamJSONPath) == "" {
-		items, total, err = a.controller.list(page, perPage)
+	if jsonPath := req.Form.Get(QueryParamJSONPath); jsonPath != "" {
+		w.Header().Add("X-Request-Fetch", jsonPath)
+		items, total, err = a.controller.filterJSONPath(jsonPath, page, perPage)
 		if err != nil {
 			ErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 	} else {
-		items, total, err = a.controller.filterJSONPath(req.Form.Get(QueryParamJSONPath), page, perPage)
+		items, total, err = a.controller.list(page, perPage)
 		if err != nil {
 			ErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
