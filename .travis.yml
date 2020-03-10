@@ -10,7 +10,7 @@ env:
     - BUILDNUM=$TRAVIS_BUILD_NUMBER
 
 install: true # skips default installation step
-script: docker build -t linksmart/td .
+script: docker build -t linksmart/td --build-arg version=${VERSION} --build-arg buildnum=${BUILDNUM} .
 
 before_deploy:
   - echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USERNAME" --password-stdin

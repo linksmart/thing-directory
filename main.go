@@ -46,7 +46,7 @@ func main() {
 	}
 
 	fmt.Print(LINKSMART)
-	log.Printf("Starting Historical Datastore")
+	log.Printf("Starting Thing Directory")
 	defer log.Println("Stopped.")
 
 	if Version != "" {
