@@ -10,13 +10,24 @@ This is currently under development.
 ## Getting Started
 API Documentation: [OpenAPI Specification](https://linksmart.eu/swagger-ui/dist/?url=https://raw.githubusercontent.com/linksmart/thing-directory/master/apidoc/openapi-spec.yml)
 
-## Deployment
+## Installation
+### Binary Distribution
+1. Download the binary distribution and configuration file from [releases](https://github.com/linksmart/thing-directory/releases)
+2. Download the WoT Thing Description JSON Schema document. E.g. [wot_td_schema.json](https://raw.githubusercontent.com/linksmart/thing-directory/master/wot/wot_td_schema.json)
+3. Run, e.g. in Linux/AMD64:
+```
+./thing-directory-linux-amd64 --conf ./thing-directory.json --schema ./wot_td_schema.json
+```
+For more information about the CLI arguments, set `--help` flag.
+
 ### Docker
-The following command runs the latest build of Thing Directory with the default configuration file ([/conf/thing-directory.json](https://github.com/linksmart/thing-directory/blob/master/sample_conf/thing-directory.json)):
+Run the latest build of Thing Directory with the default configuration file ([/conf/thing-directory.json](https://github.com/linksmart/thing-directory/blob/master/sample_conf/thing-directory.json)):
 ```
 docker run -p 8081:8081 linksmart/td
 ```
 The index of the RESTful API should now be accessible at: http://localhost:8081
+
+The configurations can be changes by mounting a directory and providing the paths in CLI arguments. For more information about the CLI arguments, set `--help` flag.
 
 Please refer to the API Documentation to learn about the different endpoints.
 
