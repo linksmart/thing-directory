@@ -126,7 +126,7 @@ func main() {
 	}
 
 	// Register in the LinkSmart Service Catalog
-	if config.ServiceCatalog != nil {
+	if config.ServiceCatalog.Enabled {
 		unregisterService, err := registerInServiceCatalog(config)
 		if err != nil {
 			panic("Error registering service:" + err.Error())

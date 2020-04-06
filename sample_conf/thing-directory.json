@@ -6,7 +6,7 @@
   "bindPort": 8081,
   "storage": {
     "type": "leveldb",
-    "dsn": "/data"
+    "dsn": "./data"
   },
   "serviceCatalog": null,
   "auth": {

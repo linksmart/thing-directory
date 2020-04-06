@@ -22,15 +22,13 @@ LABEL BUILD=${buildnum}
 
 WORKDIR /home
 COPY --from=builder /home/thing-directory .
-COPY sample_conf/thing-directory.json /conf/
-COPY wot/wot_td_schema.json /conf/
+COPY sample_conf/thing-directory.json /home/conf/
+COPY wot/wot_td_schema.json /home/conf/
 
-ENV SC_DNSSDENABLED=false
-ENV SC_STORAGE_TYPE=leveldb
-ENV SC_STORAGE_DSN=/data
+ENV TD_STORAGE_DSN=/data
 
-VOLUME /conf /data
+VOLUME /data
 EXPOSE 8081
 
 ENTRYPOINT ["./thing-directory"]
-CMD ["--conf", "/conf/thing-directory.json", "--schema", "/conf/wot_td_schema.json"]
+# Note: this loads the default config files from /home/conf/. Use --help to to learn about CLI arguments.

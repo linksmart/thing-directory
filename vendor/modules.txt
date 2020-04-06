@@ -26,6 +26,9 @@ github.com/gorilla/mux
 # github.com/justinas/alice v0.0.0-20160512134231-052b8b6c18ed
 ## explicit
 github.com/justinas/alice
+# github.com/kelseyhightower/envconfig v1.4.0
+## explicit
+github.com/kelseyhightower/envconfig
 # github.com/linksmart/go-sec v1.0.1
 ## explicit
 github.com/linksmart/go-sec/auth/keycloak/obtainer
