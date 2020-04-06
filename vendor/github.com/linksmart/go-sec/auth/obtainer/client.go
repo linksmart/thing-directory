@@ -10,13 +10,13 @@ type Client struct {
 	obtainer  *Obtainer
 	username  string
 	password  string
-	serviceID string
+	clientID string
 	tgt       string
 	ticket    string
 	sync.Mutex
 }
 
-func NewClient(providerName, providerURL, username, password, serviceID string) (*Client, error) {
+func NewClient(providerName, providerURL, username, password, clientID string) (*Client, error) {
 	// Setup obtainer
 	o, err := Setup(providerName, providerURL)
 	if err != nil {
@@ -27,7 +27,7 @@ func NewClient(providerName, providerURL, username, password, serviceID string) 
 		obtainer:  o,
 		username:  username,
 		password:  password,
-		serviceID: serviceID,
+		clientID: clientID,
 	}, nil
 }
 
@@ -38,14 +38,14 @@ func (c *Client) Obtain() (string, error) {
 
 	if c.ticket == "" {
 		// Get Ticket Granting Ticket
-		TGT, err := c.obtainer.Login(c.username, c.password, c.serviceID)
+		TGT, err := c.obtainer.Login(c.username, c.password, c.clientID)
 		if err != nil {
 			return "", err
 		}
 		c.tgt = TGT
 
 		// Get Service Ticket
-		ticket, err := c.obtainer.RequestTicket(TGT, c.serviceID)
+		ticket, err := c.obtainer.RequestTicket(TGT, c.clientID)
 		if err != nil {
 			return "", err
 		}
@@ -62,17 +62,17 @@ func (c *Client) Renew() (string, error) {
 	defer c.Unlock()
 
 	// Renew Service Ticket using previous TGT
-	ticket, err := c.obtainer.RequestTicket(c.tgt, c.serviceID)
+	ticket, err := c.obtainer.RequestTicket(c.tgt, c.clientID)
 	if err != nil {
 		// Get a new Ticket Granting Ticket
-		TGT, err := c.obtainer.Login(c.username, c.password, c.serviceID)
+		TGT, err := c.obtainer.Login(c.username, c.password, c.clientID)
 		if err != nil {
 			return "", err
 		}
 		c.tgt = TGT
 
 		// Get Service Ticket
-		ticket, err = c.obtainer.RequestTicket(TGT, c.serviceID)
+		ticket, err = c.obtainer.RequestTicket(TGT, c.clientID)
 		if err != nil {
 			return "", err
 		}

@@ -4,17 +4,17 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/url"
 
 	"github.com/kelseyhightower/envconfig"
-	"github.com/linksmart/go-sec/authz"
+	"github.com/linksmart/go-sec/auth/obtainer"
+	"github.com/linksmart/go-sec/auth/validator"
 )
 
 const (
-	DNSSDServiceType = "_linksmart-rc._tcp"
+	DNSSDServiceType = "_linksmart-td._tcp"
 	BackendMemory    = "memory"
 	BackendLevelDB   = "leveldb"
 )
@@ -28,15 +28,15 @@ type Config struct {
 	DnssdEnabled   bool           `json:"dnssdEnabled"`
 	Storage        StorageConfig  `json:"storage"`
 	ServiceCatalog ServiceCatalog `json:"serviceCatalog"`
-	Auth           ValidatorConf  `json:"auth"`
+	Auth           validator.Conf `json:"auth"`
 }
 
 type ServiceCatalog struct {
-	Enabled  bool         `json:"enabled"`
-	Discover bool         `json:"discover"`
-	Endpoint string       `json:"endpoint"`
-	Ttl      int          `json:"ttl"`
-	Auth     ObtainerConf `json:"auth"`
+	Enabled  bool          `json:"enabled"`
+	Discover bool          `json:"discover"`
+	Endpoint string        `json:"endpoint"`
+	Ttl      int           `json:"ttl"`
+	Auth     obtainer.Conf `json:"auth"`
 }
 
 type StorageConfig struct {
@@ -50,34 +50,33 @@ var supportedBackends = map[string]bool{
 }
 
 func (c *Config) Validate() error {
-	var err error
 	if c.BindAddr == "" || c.BindPort == 0 || c.PublicEndpoint == "" {
-		err = fmt.Errorf("BindAddr, BindPort, and PublicEndpoint have to be defined")
+		return fmt.Errorf("BindAddr, BindPort, and PublicEndpoint have to be defined")
 	}
-	_, err = url.Parse(c.PublicEndpoint)
+	_, err := url.Parse(c.PublicEndpoint)
 	if err != nil {
-		err = fmt.Errorf("PublicEndpoint should be a valid URL")
+		return fmt.Errorf("PublicEndpoint should be a valid URL")
 	}
 	_, err = url.Parse(c.Storage.DSN)
 	if err != nil {
-		err = fmt.Errorf("storage DSN should be a valid URL")
+		return fmt.Errorf("storage DSN should be a valid URL")
 	}
 	if !supportedBackends[c.Storage.Type] {
-		err = fmt.Errorf("Unsupported storage backend")
+		return fmt.Errorf("unsupported storage backend")
 	}
 
 	if c.ServiceCatalog.Enabled {
 		if c.ServiceCatalog.Endpoint == "" && c.ServiceCatalog.Discover == false {
-			err = fmt.Errorf("All ServiceCatalog entries must have either endpoint or a discovery flag defined")
+			return fmt.Errorf("Service Catalog must have either endpoint or set discovery flag")
 		}
 		if c.ServiceCatalog.Ttl <= 0 {
-			err = fmt.Errorf("All ServiceCatalog entries must have TTL >= 0")
+			return fmt.Errorf("Service Catalog must have TTL >= 0")
 		}
 		if c.ServiceCatalog.Auth.Enabled {
 			// Validate ticket obtainer config
 			err = c.ServiceCatalog.Auth.Validate()
 			if err != nil {
-				return err
+				return fmt.Errorf("invalid Service Catalog auth: %s", err)
 			}
 		}
 	}
@@ -86,7 +85,7 @@ func (c *Config) Validate() error {
 		// Validate ticket validator config
 		err = c.Auth.Validate()
 		if err != nil {
-			return err
+			return fmt.Errorf("invalid auth: %s", err)
 		}
 	}
 
@@ -112,98 +111,7 @@ func loadConfig(path string) (*Config, error) {
 	}
 
 	if err = config.Validate(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invalid configuration: %s", err)
 	}
 	return &config, nil
-}
-
-// Ticket Validator Config
-type ValidatorConf struct {
-	// Auth switch
-	Enabled bool `json:"enabled"`
-	// Authentication provider name
-	Provider string `json:"provider"`
-	// Authentication provider URL
-	ProviderURL string `json:"providerURL"`
-	// Service ID
-	ServiceID string `json:"serviceID"`
-	// Basic Authentication switch
-	BasicEnabled bool `json:"basicEnabled"`
-	// Authorization config
-	Authz *authz.Conf `json:"authorization"`
-}
-
-func (c ValidatorConf) Validate() error {
-
-	// Validate Provider
-	if c.Provider == "" {
-		return errors.New("Ticket Validator: Auth provider name (provider) is not specified.")
-	}
-
-	// Validate ProviderURL
-	if c.ProviderURL == "" {
-		return errors.New("Ticket Validator: Auth provider URL (providerURL) is not specified.")
-	}
-	_, err := url.Parse(c.ProviderURL)
-	if err != nil {
-		return errors.New("Ticket Validator: Auth provider URL (providerURL) is invalid: " + err.Error())
-	}
-
-	// Validate ServiceID
-	if c.ServiceID == "" {
-		return errors.New("Ticket Validator: Auth Service ID (serviceID) is not specified.")
-	}
-
-	// Validate Authorization
-	if c.Authz != nil {
-		if err := c.Authz.Validate(); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// Ticket Obtainer Client Config
-type ObtainerConf struct {
-	// Auth switch
-	Enabled bool `json:"enabled"`
-	// Authentication provider name
-	Provider string `json:"provider"`
-	// Authentication provider URL
-	ProviderURL string `json:"providerURL"`
-	// Service ID
-	ServiceID string `json:"serviceID"`
-	// User credentials
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
-func (c ObtainerConf) Validate() error {
-
-	// Validate Provider
-	if c.Provider == "" {
-		return errors.New("Ticket Obtainer: Auth provider name (provider) is not specified.")
-	}
-
-	// Validate ProviderURL
-	if c.ProviderURL == "" {
-		return errors.New("Ticket Obtainer: Auth provider URL (ProviderURL) is not specified.")
-	}
-	_, err := url.Parse(c.ProviderURL)
-	if err != nil {
-		return errors.New("Ticket Obtainer: Auth provider URL (ProviderURL) is invalid: " + err.Error())
-	}
-
-	// Validate Username
-	if c.Username == "" {
-		return errors.New("Ticket Obtainer: Auth Username (username) is not specified.")
-	}
-
-	// Validate ServiceID
-	if c.ServiceID == "" {
-		return errors.New("Ticket Obtainer: Auth Service ID (serviceID) is not specified.")
-	}
-
-	return nil
 }

@@ -1,5 +1,6 @@
 // Copyright 2014-2016 Fraunhofer Institute for Applied Information Technology FIT
 
+// Package validator provides an interface for OpenID Connect token validation
 package validator
 
 import (
@@ -31,19 +32,19 @@ func Register(name string, driver Driver) {
 	driversMu.Lock()
 	defer driversMu.Unlock()
 	if driver == nil {
-		panic("Auth: Validator driver is nil")
+		panic("auth validator driver is nil")
 	}
 	drivers[name] = driver
 }
 
 // Setup configures and returns the Validator
 // 	parameter authz is optional and can be set to nil
-func Setup(name, serverAddr, serviceID string, basicEnabled bool, authz *authz.Conf) (*Validator, error) {
+func Setup(name, serverAddr, clientID string, basicEnabled bool, authz *authz.Conf) (*Validator, error) {
 	driversMu.Lock()
 	driveri, ok := drivers[name]
 	driversMu.Unlock()
 	if !ok {
-		return nil, fmt.Errorf("Auth: unknown validator %s (forgot to import driver?)", name)
+		return nil, fmt.Errorf("unknown validator %s (forgot to import driver?)", name)
 	}
 
 	// Initialize the logger
@@ -57,7 +58,7 @@ func Setup(name, serverAddr, serviceID string, basicEnabled bool, authz *authz.C
 		driver:       driveri,
 		driverName:   name,
 		serverAddr:   serverAddr,
-		serviceID:    serviceID,
+		clientID:     clientID,
 		basicEnabled: basicEnabled,
 		authz:        authz,
 	}, nil
@@ -68,7 +69,7 @@ type Validator struct {
 	driver       Driver
 	driverName   string
 	serverAddr   string
-	serviceID    string
+	clientID     string
 	basicEnabled bool
 	// Authorization is optional
 	authz *authz.Conf
@@ -78,7 +79,7 @@ type Validator struct {
 //	When ticket is valid, it returns true together with the UserProfile
 //	When ticket is invalid, it returns false and provide the reason in the UserProfile.Status
 func (v *Validator) Validate(ticket string) (bool, *UserProfile, error) {
-	return v.driver.Validate(v.serverAddr, v.serviceID, ticket)
+	return v.driver.Validate(v.serverAddr, v.clientID, ticket)
 }
 
 // UserProfile is the profile of user that is returned by the Validator

@@ -6,6 +6,8 @@ import "errors"
 
 // Authorization struct
 type Conf struct {
+	// Enabled toggles authorization
+	Enabled bool `json:"enabled"`
 	// Authorization rules
 	Rules []Rule `json:"rules"`
 }
@@ -24,13 +26,13 @@ func (authz *Conf) Validate() error {
 	// Check each authorization rule
 	for _, rule := range authz.Rules {
 		if len(rule.Resources) == 0 {
-			return errors.New("Authz: No resources in an authorization rule.")
+			return errors.New("no resources in an authorization rule")
 		}
 		if len(rule.Methods) == 0 {
-			return errors.New("Authz: No methods in an authorization rule.")
+			return errors.New("no methods in an authorization rule")
 		}
 		if len(rule.Users) == 0 && len(rule.Groups) == 0 {
-			return errors.New("Authz: At least one user or group must be assigned to each authorization rule.")
+			return errors.New("at least one user or group must be assigned to each authorization rule")
 		}
 	}
 

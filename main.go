@@ -163,9 +163,9 @@ func setupHTTPRouter(config *Config, api *catalog.HTTPAPI) (*negroni.Negroni, er
 		v, err := validator.Setup(
 			config.Auth.Provider,
 			config.Auth.ProviderURL,
-			config.Auth.ServiceID,
+			config.Auth.ClientID,
 			config.Auth.BasicEnabled,
-			config.Auth.Authz)
+			&config.Auth.Authz)
 		if err != nil {
 			return nil, err
 		}

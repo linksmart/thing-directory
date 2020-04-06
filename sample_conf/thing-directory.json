@@ -11,11 +11,12 @@
   "serviceCatalog": null,
   "auth": {
     "enabled": false,
-    "provider": "provider-name",
+    "provider": "keycloak",
     "providerURL": "https://provider-url",
-    "serviceID": "sampleTD",
+    "clientID": "sampleTD",
     "basicEnabled": false,
     "authorization": {
+      "enabled": true,
       "rules": [
         {
           "resources": ["/td"],

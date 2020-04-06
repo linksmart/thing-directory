@@ -29,7 +29,7 @@ github.com/justinas/alice
 # github.com/kelseyhightower/envconfig v1.4.0
 ## explicit
 github.com/kelseyhightower/envconfig
-# github.com/linksmart/go-sec v1.0.1
+# github.com/linksmart/go-sec v1.1.0
 ## explicit
 github.com/linksmart/go-sec/auth/keycloak/obtainer
 github.com/linksmart/go-sec/auth/keycloak/validator

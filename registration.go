@@ -16,8 +16,8 @@ func registerInServiceCatalog(conf *Config) (func() error, error) {
 
 	service := sc.Service{
 		ID:          conf.ServiceID,
-		Type:        "_linksmart-rc._tcp",
-		Title:       "LinkSmart Resource Catalog",
+		Type:        "_linksmart-td._tcp",
+		Title:       "LinkSmart Thing Directory",
 		Description: conf.Description,
 		APIs: []sc.API{{
 			ID:    "things",
@@ -26,15 +26,15 @@ func registerInServiceCatalog(conf *Config) (func() error, error) {
 			Protocol: "HTTP",
 			URL:      conf.PublicEndpoint,
 			Spec: sc.Spec{
-				MediaType: "application/vnd.oai.swagger+json;version=2.0",
-				URL:       "https://raw.githubusercontent.com/linksmart/resource-catalog/master/apidoc/rc-api-swagger.json",
+				MediaType: "application/vnd.oai.swagger;version=3.0.0",
+				URL:       "https://raw.githubusercontent.com/linksmart/thing-directory/master/apidoc/openapi-spec.yml",
 				//Schema:    map[string]interface{}{},
 			},
 			Meta: map[string]interface{}{
 				"apiVersion": Version,
 			},
 		}},
-		Doc: "https://docs.linksmart.eu/display/RC",
+		Doc: "https://github.com/linksmart/thing-directory",
 		//Meta: map[string]interface{}{},
 		TTL: uint32(conf.ServiceCatalog.Ttl),
 	}
@@ -43,7 +43,7 @@ func registerInServiceCatalog(conf *Config) (func() error, error) {
 	var err error
 	if cat.Auth.Enabled {
 		// Setup ticket client
-		ticket, err = obtainer.NewClient(cat.Auth.Provider, cat.Auth.ProviderURL, cat.Auth.Username, cat.Auth.Password, cat.Auth.ServiceID)
+		ticket, err = obtainer.NewClient(cat.Auth.Provider, cat.Auth.ProviderURL, cat.Auth.Username, cat.Auth.Password, cat.Auth.ClientID)
 		if err != nil {
 			return nil, fmt.Errorf("error creating auth client: %s", err)
 		}

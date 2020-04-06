@@ -1,5 +1,6 @@
 // Copyright 2014-2016 Fraunhofer Institute for Applied Information Technology FIT
 
+// Package obtainer provides an interface for OpenID Connect token obtainment from a provider
 package obtainer
 
 import (
@@ -12,10 +13,10 @@ import (
 
 // Interface methods to login, obtain Service Ticket, and logout
 type Driver interface {
-	// Login must return a Ticket Granting Ticket (TGT), given serverAddr, valid username, password, and serviceID
-	Login(serverAddr, username, password, serviceID string) (string, error)
-	// RequestTicket must return a Service Ticket, given serverAddr, valid TGT and serviceID
-	RequestTicket(serverAddr, TGT, serviceID string) (string, error)
+	// Login must return a Ticket Granting Ticket (TGT), given serverAddr, valid username, password, and clientID
+	Login(serverAddr, username, password, clientID string) (string, error)
+	// RequestTicket must return a Service Ticket, given serverAddr, valid TGT and clientID
+	RequestTicket(serverAddr, TGT, clientID string) (string, error)
 	// Logout must expire the TGT, given serverAddr, and a valid TGT
 	Logout(serverAddr, TGT string) error
 }
@@ -31,7 +32,7 @@ func Register(name string, driver Driver) {
 	driversMu.Lock()
 	defer driversMu.Unlock()
 	if driver == nil {
-		panic("Auth: Obtainer driver is nil")
+		panic("auth obtainer driver is nil")
 	}
 	drivers[name] = driver
 }
@@ -42,7 +43,7 @@ func Setup(name, serverAddr string) (*Obtainer, error) {
 	driveri, ok := drivers[name]
 	driversMu.Unlock()
 	if !ok {
-		return nil, fmt.Errorf("Auth: unknown obtainer %s (forgot to import driver?)", name)
+		return nil, fmt.Errorf("unknown obtainer %s (forgot to import driver?)", name)
 	}
 
 	// Initialize the logger
@@ -67,12 +68,12 @@ type Obtainer struct {
 // Wrapper functions
 // These functions are public
 
-func (o *Obtainer) Login(username, password, serviceID string) (string, error) {
-	return o.driver.Login(o.serverAddr, username, password, serviceID)
+func (o *Obtainer) Login(username, password, clientID string) (string, error) {
+	return o.driver.Login(o.serverAddr, username, password, clientID)
 }
 
-func (o *Obtainer) RequestTicket(TGT, serviceID string) (string, error) {
-	return o.driver.RequestTicket(o.serverAddr, TGT, serviceID)
+func (o *Obtainer) RequestTicket(TGT, clientID string) (string, error) {
+	return o.driver.RequestTicket(o.serverAddr, TGT, clientID)
 }
 
 func (o *Obtainer) Logout(TGT string) error {

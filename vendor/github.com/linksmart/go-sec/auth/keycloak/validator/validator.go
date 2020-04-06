@@ -1,5 +1,6 @@
 // Copyright 2014-2016 Fraunhofer Institute for Applied Information Technology FIT
 
+// Package validator implements OpenID Connect token validation obtained from Keycloak
 package validator
 
 import (
@@ -45,7 +46,7 @@ func (v *KeycloakValidator) Validate(serverAddr, clientID, ticket string) (bool,
 		// Get the public key
 		res, err := http.Get(serverAddr)
 		if err != nil {
-			return false, nil, fmt.Errorf("Error getting the public key from the authentication server: %s", err)
+			return false, nil, fmt.Errorf("error getting the public key from the authentication server: %s", err)
 		}
 		defer res.Body.Close()
 
@@ -54,24 +55,24 @@ func (v *KeycloakValidator) Validate(serverAddr, clientID, ticket string) (bool,
 		}
 		err = json.NewDecoder(res.Body).Decode(&body)
 		if err != nil {
-			return false, nil, fmt.Errorf("Error getting the public key from the authentication server response: %s", err)
+			return false, nil, fmt.Errorf("error getting the public key from the authentication server response: %s", err)
 		}
 
 		// Decode the public key
 		decoded, err := base64.StdEncoding.DecodeString(body.PublicKey)
 		if err != nil {
-			return false, nil, fmt.Errorf("Error decoding the authentication server public key: %s", err)
+			return false, nil, fmt.Errorf("error decoding the authentication server public key: %s", err)
 		}
 
 		// Parse the public key
 		parsed, err := x509.ParsePKIXPublicKey(decoded)
 		if err != nil {
-			return false, nil, fmt.Errorf("Error pasring the authentication server public key: %s", err)
+			return false, nil, fmt.Errorf("error pasring the authentication server public key: %s", err)
 		}
 
 		var ok bool
 		if publicKey, ok = parsed.(*rsa.PublicKey); !ok {
-			return false, nil, fmt.Errorf("The authentication server's public key type is not RSA.")
+			return false, nil, fmt.Errorf("the authentication server's public key type is not RSA")
 		}
 	}
 
@@ -79,7 +80,7 @@ func (v *KeycloakValidator) Validate(serverAddr, clientID, ticket string) (bool,
 	token, err := jwt.Parse(ticket, func(token *jwt.Token) (interface{}, error) {
 		// Make sure that the algorithm is RS256
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
-			return nil, fmt.Errorf("Unable to validate authentication token. Unexpected signing method: %v", token.Header["alg"])
+			return nil, fmt.Errorf("unable to validate authentication token. Unexpected signing method: %v", token.Header["alg"])
 		}
 		return publicKey, nil
 	})
@@ -115,7 +116,7 @@ func (v *KeycloakValidator) Validate(serverAddr, clientID, ticket string) (bool,
 		// Get the user data
 		groupInts, ok := claims["groups"].([]interface{})
 		if !ok {
-			return false, nil, fmt.Errorf("Unable to get the user's group membership")
+			return false, nil, fmt.Errorf("unable to get the user's group membership")
 		}
 		// convert []interface{} to []string
 		groups := make([]string, len(groupInts))
@@ -124,12 +125,12 @@ func (v *KeycloakValidator) Validate(serverAddr, clientID, ticket string) (bool,
 		}
 		username, ok := claims["preferred_username"].(string)
 		if !ok {
-			return false, nil, fmt.Errorf("Unable to get the user's username.")
+			return false, nil, fmt.Errorf("unable to get the user's username")
 		}
 		return true, &validator.UserProfile{
 			Username: username,
 			Groups:   groups,
 		}, nil
 	}
-	return false, nil, fmt.Errorf("Unable to extract claims from the jwt id_token.")
+	return false, nil, fmt.Errorf("unable to extract claims from the jwt id_token")
 }

@@ -88,7 +88,7 @@ func (v *Validator) Handler(next http.Handler) http.Handler {
 // validationChain validates a token and performs authorization
 func (v *Validator) validationChain(token, path, method string) (int, error) {
 	// Validate Token
-	valid, profile, err := v.driver.Validate(v.serverAddr, v.serviceID, token)
+	valid, profile, err := v.driver.Validate(v.serverAddr, v.clientID, token)
 	if err != nil {
 		return http.StatusInternalServerError, fmt.Errorf("Authentication server error: %s", err)
 	}
@@ -127,7 +127,7 @@ func (v *Validator) basicAuth(credentials string) (string, int, error) {
 		}
 
 		// Setup ticket client
-		client, err = obtainer.NewClient(v.driverName, v.serverAddr, pair[0], pair[1], v.serviceID)
+		client, err = obtainer.NewClient(v.driverName, v.serverAddr, pair[0], pair[1], v.clientID)
 		if err != nil {
 			return "", http.StatusInternalServerError, fmt.Errorf("Basic Auth: Unable to create client for token generation: %s", err)
 		}
@@ -140,7 +140,7 @@ func (v *Validator) basicAuth(credentials string) (string, int, error) {
 		return "", http.StatusUnauthorized, fmt.Errorf("Basic Auth: Unable to obtain ticket: %s", err)
 	}
 
-	valid, _, err := v.driver.Validate(v.serverAddr, v.serviceID, token)
+	valid, _, err := v.driver.Validate(v.serverAddr, v.clientID, token)
 	if err != nil {
 		return "", http.StatusInternalServerError, fmt.Errorf("Basic Auth: Validation error: %s", err)
 	}

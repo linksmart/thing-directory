@@ -1,5 +1,6 @@
 // Copyright 2014-2016 Fraunhofer Institute for Applied Information Technology FIT
 
+// Package authz provides simple rule-based authorization that can be used to implement access control
 package authz
 
 import "strings"

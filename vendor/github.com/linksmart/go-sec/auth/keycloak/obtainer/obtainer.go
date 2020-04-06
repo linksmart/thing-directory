@@ -1,5 +1,6 @@
 // Copyright 2014-2016 Fraunhofer Institute for Applied Information Technology FIT
 
+// Package obtainer implements OpenID Connect token obtainment from Keycloak
 package obtainer
 
 import (
@@ -65,16 +66,16 @@ func (o *KeycloakObtainer) Login(serverAddr, username, password, clientID string
 		return "", err
 	}
 	if res.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("Unable to login with username `%s`: %s", username, string(body))
+		return "", fmt.Errorf("unable to login with username `%s`: %s", username, string(body))
 	}
 
 	var token Token
 	err = json.Unmarshal(body, &token)
 	if err != nil {
-		return "", fmt.Errorf("Error getting the token: %s", err)
+		return "", fmt.Errorf("error getting the token: %s", err)
 	}
 	if len(strings.Split(token.RefreshToken, ".")) != 3 {
-		return "", fmt.Errorf("Invalid format for refresh_token.")
+		return "", fmt.Errorf("invalid format for refresh_token")
 	}
 
 	serialized, _ := json.Marshal(&token)
@@ -91,7 +92,7 @@ func (o *KeycloakObtainer) RequestTicket(serverAddr, sToken, clientID string) (s
 	// decode the id_token acquired on Login()
 	decoded, err := base64.RawStdEncoding.DecodeString(strings.Split(token.IdToken, ".")[1])
 	if err != nil {
-		return "", fmt.Errorf("Error decoding the id_token: %s", err)
+		return "", fmt.Errorf("error decoding the id_token: %s", err)
 	}
 	var idToken map[string]interface{}
 	json.Unmarshal(decoded, &idToken)
@@ -118,12 +119,12 @@ func (o *KeycloakObtainer) RequestTicket(serverAddr, sToken, clientID string) (s
 		return "", err
 	}
 	if res.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("Error getting a new token: %s", string(body))
+		return "", fmt.Errorf("error getting a new token: %s", string(body))
 	}
 
 	err = json.Unmarshal(body, &token)
 	if err != nil {
-		return "", fmt.Errorf("Error parsing the new token: %s", err)
+		return "", fmt.Errorf("error parsing the new token: %s", err)
 	}
 
 	return token.IdToken, nil
