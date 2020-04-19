@@ -3,7 +3,7 @@
 [![GitHub tag (latest pre-release)](https://img.shields.io/github/tag-pre/linksmart/thing-directory.svg?label=pre-release)](https://github.com/linksmart/thing-directory/tags)
 [![Build Status](https://travis-ci.com/linksmart/thing-directory.svg?branch=master)](https://travis-ci.com/linksmart/thing-directory)
   
-This is an implementation of the [Web of Things (WoT) Thing Directory](https://www.w3.org/TR/wot-architecture/#dfn-thing-directory) which provides a RESTful API to maintain [Thing Descriptions](https://www.w3.org/TR/wot-thing-description/).
+This is an implementation of the W3C [Web of Things (WoT) Thing Directory](https://www.w3.org/TR/wot-architecture/#dfn-thing-directory), a catalog of [Thing Descriptions](https://www.w3.org/TR/wot-thing-description/).
 
 This is currently under development.
 
@@ -41,3 +41,7 @@ cd thing-directory
 go build
 ```
 
+## Contributing
+Contributions are welcome. 
+
+Please fork, make your changes, and submit a pull request. For major changes, please open an issue first and discuss it with the other authors.
