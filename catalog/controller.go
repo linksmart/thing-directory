@@ -3,6 +3,7 @@
 package catalog
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -10,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/antchfx/jsonquery"
 	"github.com/bhmj/jsonslice"
 	"github.com/linksmart/service-catalog/v3/utils"
 	uuid "github.com/satori/go.uuid"
@@ -97,6 +99,7 @@ func (c *Controller) list(page, perPage int) ([]ThingDescription, int, error) {
 	return tds, total, nil
 }
 
+// Deprecated
 func (c *Controller) filter(path, op, value string, page, perPage int) ([]ThingDescription, int, error) {
 
 	matches := make([]ThingDescription, 0)
@@ -130,20 +133,31 @@ func (c *Controller) filter(path, op, value string, page, perPage int) ([]ThingD
 	return matches[offset : offset+limit], len(matches), nil
 }
 
-func (c *Controller) filterJSONPath(jsonpath string, page, perPage int) ([]interface{}, int, error) {
-
-	items := make([]ThingDescription, 0)
+func (c *Controller) listAll() ([]ThingDescription, int, error) {
+	var items []ThingDescription
 	pp := MaxPerPage
 	for p := 1; ; p++ {
-		slice, t, err := c.storage.list(p, pp)
+		slice, total, err := c.storage.list(p, pp)
 		if err != nil {
 			return nil, 0, err
 		}
 		items = append(items, slice...)
 
-		if p*pp >= t {
-			break
+		if p*pp >= total {
+			return items, total, nil
 		}
+	}
+}
+
+func (c *Controller) filterJSONPath(jsonpath string, page, perPage int) ([]interface{}, int, error) {
+	var results []interface{}
+
+	items, total, err := c.listAll()
+	if err != nil {
+		return nil, 0, err
+	}
+	if total == 0 {
+		return results, 0, nil
 	}
 
 	b, err := json.Marshal(items)
@@ -157,12 +171,53 @@ func (c *Controller) filterJSONPath(jsonpath string, page, perPage int) ([]inter
 		return nil, 0, fmt.Errorf("error evaluating jsonpath: %s", err)
 	}
 
-	var results []interface{}
 	err = json.Unmarshal(b, &results)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error de-serializing for jsonpath: %s", err)
 	}
 	b = nil
+
+	// Pagination
+	offset, limit, err := utils.GetPagingAttr(len(results), page, perPage, MaxPerPage)
+	if err != nil {
+		return nil, 0, &BadRequestError{fmt.Sprintf("Unable to paginate: %s", err)}
+	}
+	// Return the page
+	return results[offset : offset+limit], len(results), nil
+}
+
+func (c *Controller) filterXPath(xpath string, page, perPage int) ([]interface{}, int, error) {
+	var results []interface{}
+
+	items, total, err := c.listAll()
+	if err != nil {
+		return nil, 0, err
+	}
+	if total == 0 {
+		return results, 0, nil
+	}
+
+	b, err := json.Marshal(items)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error serializing entries for xpath parset: %s", err)
+	}
+	items = nil
+
+	doc, err := jsonquery.Parse(bytes.NewReader(b))
+	if err != nil {
+		return nil, 0, fmt.Errorf("error parsing JSON for xpath filtering: %s", err)
+	}
+	b = nil
+
+	nodes, err := jsonquery.QueryAll(doc, xpath)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error parsing JSON for xpath filtering: %s", err)
+	}
+
+	for _, n := range nodes {
+		// TODO
+		fmt.Println(n)
+	}
 
 	// Pagination
 	offset, limit, err := utils.GetPagingAttr(len(results), page, perPage, MaxPerPage)
