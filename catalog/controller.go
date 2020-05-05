@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"time"
 
@@ -215,7 +216,7 @@ func (c *Controller) filterXPath(xpath string, page, perPage int) ([]interface{}
 	}
 
 	for _, n := range nodes {
-		// TODO
+		results = append(results, getObjectFromNOde(n))
 		fmt.Println(n)
 	}
 
@@ -226,6 +227,48 @@ func (c *Controller) filterXPath(xpath string, page, perPage int) ([]interface{}
 	}
 	// Return the page
 	return results[offset : offset+limit], len(results), nil
+}
+
+func basicTypeFromStr(strVal string) interface{} {
+	//Following code is a hack to get the right type of object.
+	//But this might cause unexpected behaviours. e.g. if user explicitly set "true" or "false" and
+	floatVal, err := strconv.ParseFloat(strVal, 64)
+	if err == nil {
+		return floatVal
+	}
+	boolVal, err := strconv.ParseBool(strVal) //bit value is set to True of False by the library.
+	if err == nil {
+		return boolVal
+	}
+	return strVal
+}
+
+//Gets the concrete object from node by parsing the node recursively.
+//Ideally this function needs to be part of the library itself
+func getObjectFromNOde(n *jsonquery.Node) interface{} {
+
+	if n.Type == jsonquery.TextNode { //If top most element is of type textnode, then just return the value
+		return basicTypeFromStr(n.Data)
+	}
+
+	if n.FirstChild.Data == "" { //In case of array, there will be no key
+		retArray := make([]interface{}, 0)
+		for child := n.FirstChild; child != nil; child = child.NextSibling {
+			retArray = append(retArray, getObjectFromNOde(child))
+		}
+		return retArray
+	} else { //normal map
+		retMap := make(map[string]interface{})
+
+		for child := n.FirstChild; child != nil; child = child.NextSibling {
+			if child.Type != jsonquery.TextNode {
+				retMap[child.Data] = getObjectFromNOde(child)
+			} else {
+				return basicTypeFromStr(child.Data)
+			}
+		}
+		return retMap
+	}
 }
 
 func (c *Controller) total() (int, error) {
