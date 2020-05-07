@@ -153,6 +153,7 @@ func (c *Controller) listAll() ([]ThingDescription, int, error) {
 func (c *Controller) filterJSONPath(jsonpath string, page, perPage int) ([]interface{}, int, error) {
 	var results []interface{}
 
+	// query all items
 	items, total, err := c.listAll()
 	if err != nil {
 		return nil, 0, err
@@ -161,35 +162,39 @@ func (c *Controller) filterJSONPath(jsonpath string, page, perPage int) ([]inter
 		return results, 0, nil
 	}
 
+	// serialize to json
 	b, err := json.Marshal(items)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error serializing for jsonpath: %s", err)
 	}
 	items = nil
 
+	// filter results with jsonpath
 	b, err = jsonslice.Get(b, jsonpath)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error evaluating jsonpath: %s", err)
 	}
 
+	// de-serialize the filtered results
 	err = json.Unmarshal(b, &results)
 	if err != nil {
-		return nil, 0, fmt.Errorf("error de-serializing for jsonpath: %s", err)
+		return nil, 0, fmt.Errorf("error de-serializing jsonpath evaluation results: %s", err)
 	}
 	b = nil
 
-	// Pagination
+	// paginate
 	offset, limit, err := utils.GetPagingAttr(len(results), page, perPage, MaxPerPage)
 	if err != nil {
-		return nil, 0, &BadRequestError{fmt.Sprintf("Unable to paginate: %s", err)}
+		return nil, 0, &BadRequestError{fmt.Sprintf("unable to paginate: %s", err)}
 	}
-	// Return the page
+	// return the requested page
 	return results[offset : offset+limit], len(results), nil
 }
 
 func (c *Controller) filterXPath(xpath string, page, perPage int) ([]interface{}, int, error) {
 	var results []interface{}
 
+	// query all items
 	items, total, err := c.listAll()
 	if err != nil {
 		return nil, 0, err
@@ -198,71 +203,73 @@ func (c *Controller) filterXPath(xpath string, page, perPage int) ([]interface{}
 		return results, 0, nil
 	}
 
+	// serialize to json
 	b, err := json.Marshal(items)
 	if err != nil {
-		return nil, 0, fmt.Errorf("error serializing entries for xpath parset: %s", err)
+		return nil, 0, fmt.Errorf("error serializing entries for xpath filtering: %s", err)
 	}
 	items = nil
 
+	// parse the json document
 	doc, err := jsonquery.Parse(bytes.NewReader(b))
 	if err != nil {
-		return nil, 0, fmt.Errorf("error parsing JSON for xpath filtering: %s", err)
+		return nil, 0, fmt.Errorf("error parsing serialized input for xpath filtering: %s", err)
 	}
 	b = nil
 
+	// filter with xpath
 	nodes, err := jsonquery.QueryAll(doc, xpath)
 	if err != nil {
-		return nil, 0, fmt.Errorf("error parsing JSON for xpath filtering: %s", err)
+		return nil, 0, fmt.Errorf("error filtering input with xpath: %s", err)
 	}
-
 	for _, n := range nodes {
-		results = append(results, getObjectFromNOde(n))
-		fmt.Println(n)
+		results = append(results, getObjectFromNode(n))
 	}
 
-	// Pagination
+	// paginate
 	offset, limit, err := utils.GetPagingAttr(len(results), page, perPage, MaxPerPage)
 	if err != nil {
-		return nil, 0, &BadRequestError{fmt.Sprintf("Unable to paginate: %s", err)}
+		return nil, 0, &BadRequestError{fmt.Sprintf("unable to paginate: %s", err)}
 	}
-	// Return the page
+	// return the requested page
 	return results[offset : offset+limit], len(results), nil
 }
 
+// basicTypeFromStr is a hack to get the right type of object.
+// Note: This might cause unexpected behaviour e.g. if user explicitly set "true" or "false"
 func basicTypeFromStr(strVal string) interface{} {
-	//Following code is a hack to get the right type of object.
-	//But this might cause unexpected behaviours. e.g. if user explicitly set "true" or "false" and
 	floatVal, err := strconv.ParseFloat(strVal, 64)
 	if err == nil {
 		return floatVal
 	}
-	boolVal, err := strconv.ParseBool(strVal) //bit value is set to True of False by the library.
+	// string value is set to "true" or "false" by the library for boolean values.
+	boolVal, err := strconv.ParseBool(strVal) // bit value is set to true or false by the library.
 	if err == nil {
 		return boolVal
 	}
 	return strVal
 }
 
-//Gets the concrete object from node by parsing the node recursively.
-//Ideally this function needs to be part of the library itself
-func getObjectFromNOde(n *jsonquery.Node) interface{} {
+// getObjectFromNode gets the concrete object from node by parsing the node recursively.
+// Ideally this function needs to be part of the library itself
+func getObjectFromNode(n *jsonquery.Node) interface{} {
 
-	if n.Type == jsonquery.TextNode { //If top most element is of type textnode, then just return the value
+	if n.Type == jsonquery.TextNode { // if top most element is of type textnode, then just return the value
 		return basicTypeFromStr(n.Data)
 	}
 
-	if n.FirstChild.Data == "" { //In case of array, there will be no key
+	if n.FirstChild.Data == "" { // in case of array, there will be no key
 		retArray := make([]interface{}, 0)
 		for child := n.FirstChild; child != nil; child = child.NextSibling {
-			retArray = append(retArray, getObjectFromNOde(child))
+			retArray = append(retArray, getObjectFromNode(child))
 		}
 		return retArray
-	} else { //normal map
+	} else { // normal map
 		retMap := make(map[string]interface{})
 
 		for child := n.FirstChild; child != nil; child = child.NextSibling {
 			if child.Type != jsonquery.TextNode {
-				retMap[child.Data] = getObjectFromNOde(child)
+				retMap[child.Data] = getObjectFromNode(child)
 			} else {
 				return basicTypeFromStr(child.Data)
 			}
