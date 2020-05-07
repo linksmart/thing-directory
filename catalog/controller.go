@@ -223,7 +223,7 @@ func (c *Controller) filterXPath(path string, page, perPage int) ([]interface{},
 		return nil, 0, fmt.Errorf("error filtering input with xpath: %s", err)
 	}
 	for _, n := range nodes {
-		results = append(results, getObjectFromNode(n))
+		results = append(results, getObjectFromXPathNode(n))
 	}
 
 	// paginate
@@ -235,9 +235,9 @@ func (c *Controller) filterXPath(path string, page, perPage int) ([]interface{},
 	return results[offset : offset+limit], len(results), nil
 }
 
-// basicTypeFromStr is a hack to get the actual data type from xpath.TextNode
+// basicTypeFromXPathStr is a hack to get the actual data type from xpath.TextNode
 // Note: This might cause unexpected behaviour e.g. if user explicitly set string value to "true" or "false"
-func basicTypeFromStr(strVal string) interface{} {
+func basicTypeFromXPathStr(strVal string) interface{} {
 	floatVal, err := strconv.ParseFloat(strVal, 64)
 	if err == nil {
 		return floatVal
@@ -250,18 +250,18 @@ func basicTypeFromStr(strVal string) interface{} {
 	return strVal
 }
 
-// getObjectFromNode gets the concrete object from node by parsing the node recursively.
+// getObjectFromXPathNode gets the concrete object from node by parsing the node recursively.
 // Ideally this function needs to be part of the library itself
-func getObjectFromNode(n *xpath.Node) interface{} {
+func getObjectFromXPathNode(n *xpath.Node) interface{} {
 
 	if n.Type == xpath.TextNode { // if top most element is of type textnode, then just return the value
-		return basicTypeFromStr(n.Data)
+		return basicTypeFromXPathStr(n.Data)
 	}
 
 	if n.FirstChild.Data == "" { // in case of array, there will be no key
 		retArray := make([]interface{}, 0)
 		for child := n.FirstChild; child != nil; child = child.NextSibling {
-			retArray = append(retArray, getObjectFromNode(child))
+			retArray = append(retArray, getObjectFromXPathNode(child))
 		}
 		return retArray
 	} else { // normal map
@@ -269,9 +269,9 @@ func getObjectFromNode(n *xpath.Node) interface{} {
 
 		for child := n.FirstChild; child != nil; child = child.NextSibling {
 			if child.Type != xpath.TextNode {
-				retMap[child.Data] = getObjectFromNode(child)
+				retMap[child.Data] = getObjectFromXPathNode(child)
 			} else {
-				return basicTypeFromStr(child.Data)
+				return basicTypeFromXPathStr(child.Data)
 			}
 		}
 		return retMap
