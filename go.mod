@@ -3,8 +3,10 @@ module github.com/linksmart/thing-directory
 go 1.14
 
 require (
+	github.com/antchfx/jsonquery v1.1.3
 	github.com/bhmj/jsonslice v0.0.0-20191224143743-ee6d2730b10a
 	github.com/codegangsta/negroni v1.0.0
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gorilla/context v1.1.1
 	github.com/gorilla/mux v1.7.3
 	github.com/justinas/alice v0.0.0-20160512134231-052b8b6c18ed
@@ -19,4 +21,5 @@ require (
 	github.com/satori/go.uuid v1.2.0
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/xeipuuv/gojsonschema v1.2.0
+	golang.org/x/net v0.0.0-20200421231249-e086a090c8fd // indirect
 )

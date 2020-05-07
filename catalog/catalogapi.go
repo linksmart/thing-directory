@@ -16,9 +16,12 @@ const (
 	MaxPerPage       = 100
 	ResponseMimeType = "application/ld+json"
 	// query parameters
-	QueryParamPage     = "page"
-	QueryParamPerPage  = "perPage"
-	QueryParamJSONPath = "fetch"
+	QueryParamPage    = "page"
+	QueryParamPerPage = "perPage"
+	// Deprecated
+	QueryParamFetchPath = "fetch"
+	QueryParamJSONPath  = "jsonpath"
+	QueryParamXPath     = "xpath"
 )
 
 type ThingDescriptionPage struct {
@@ -206,12 +209,22 @@ func (a *HTTPAPI) List(w http.ResponseWriter, req *http.Request) {
 	var items interface{}
 	var total int
 	if jsonPath := req.Form.Get(QueryParamJSONPath); jsonPath != "" {
-		w.Header().Add("X-Request-Fetch", jsonPath)
+		w.Header().Add("X-Request-Jsonpath", jsonPath)
 		items, total, err = a.controller.filterJSONPath(jsonPath, page, perPage)
 		if err != nil {
 			ErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+	} else if xPath := req.Form.Get(QueryParamXPath); xPath != "" {
+		w.Header().Add("X-Request-Xpath", xPath)
+		items, total, err = a.controller.filterXPath(xPath, page, perPage)
+		if err != nil {
+			ErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	} else if req.Form.Get(QueryParamFetchPath) != "" {
+		ErrorResponse(w, http.StatusBadRequest, "fetch query parameter is deprecated. Use jsonpath or xpath")
+		return
 	} else {
 		items, total, err = a.controller.list(page, perPage)
 		if err != nil {
@@ -239,6 +252,7 @@ func (a *HTTPAPI) List(w http.ResponseWriter, req *http.Request) {
 	w.Write(b)
 }
 
+// Deprecated:
 // Lists filtered devices in a DeviceCollection
 func (a *HTTPAPI) Filter(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)

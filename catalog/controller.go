@@ -3,14 +3,17 @@
 package catalog
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/bhmj/jsonslice"
+	xpath "github.com/antchfx/jsonquery"
+	jsonpath "github.com/bhmj/jsonslice"
 	"github.com/linksmart/service-catalog/v3/utils"
 	uuid "github.com/satori/go.uuid"
 )
@@ -97,6 +100,7 @@ func (c *Controller) list(page, perPage int) ([]ThingDescription, int, error) {
 	return tds, total, nil
 }
 
+// Deprecated
 func (c *Controller) filter(path, op, value string, page, perPage int) ([]ThingDescription, int, error) {
 
 	matches := make([]ThingDescription, 0)
@@ -130,47 +134,148 @@ func (c *Controller) filter(path, op, value string, page, perPage int) ([]ThingD
 	return matches[offset : offset+limit], len(matches), nil
 }
 
-func (c *Controller) filterJSONPath(jsonpath string, page, perPage int) ([]interface{}, int, error) {
-
-	items := make([]ThingDescription, 0)
+func (c *Controller) listAll() ([]ThingDescription, int, error) {
+	var items []ThingDescription
 	pp := MaxPerPage
 	for p := 1; ; p++ {
-		slice, t, err := c.storage.list(p, pp)
+		slice, total, err := c.storage.list(p, pp)
 		if err != nil {
 			return nil, 0, err
 		}
 		items = append(items, slice...)
 
-		if p*pp >= t {
-			break
+		if p*pp >= total {
+			return items, total, nil
 		}
 	}
+}
 
+func (c *Controller) filterJSONPath(path string, page, perPage int) ([]interface{}, int, error) {
+	var results []interface{}
+
+	// query all items
+	items, total, err := c.listAll()
+	if err != nil {
+		return nil, 0, err
+	}
+	if total == 0 {
+		return results, 0, nil
+	}
+
+	// serialize to json
 	b, err := json.Marshal(items)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error serializing for jsonpath: %s", err)
 	}
 	items = nil
 
-	b, err = jsonslice.Get(b, jsonpath)
+	// filter results with jsonpath
+	b, err = jsonpath.Get(b, path)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error evaluating jsonpath: %s", err)
 	}
 
-	var results []interface{}
+	// de-serialize the filtered results
 	err = json.Unmarshal(b, &results)
 	if err != nil {
-		return nil, 0, fmt.Errorf("error de-serializing for jsonpath: %s", err)
+		return nil, 0, fmt.Errorf("error de-serializing jsonpath evaluation results: %s", err)
 	}
 	b = nil
 
-	// Pagination
+	// paginate
 	offset, limit, err := utils.GetPagingAttr(len(results), page, perPage, MaxPerPage)
 	if err != nil {
-		return nil, 0, &BadRequestError{fmt.Sprintf("Unable to paginate: %s", err)}
+		return nil, 0, &BadRequestError{fmt.Sprintf("unable to paginate: %s", err)}
 	}
-	// Return the page
+	// return the requested page
 	return results[offset : offset+limit], len(results), nil
+}
+
+func (c *Controller) filterXPath(path string, page, perPage int) ([]interface{}, int, error) {
+	var results []interface{}
+
+	// query all items
+	items, total, err := c.listAll()
+	if err != nil {
+		return nil, 0, err
+	}
+	if total == 0 {
+		return results, 0, nil
+	}
+
+	// serialize to json
+	b, err := json.Marshal(items)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error serializing entries for xpath filtering: %s", err)
+	}
+	items = nil
+
+	// parse the json document
+	doc, err := xpath.Parse(bytes.NewReader(b))
+	if err != nil {
+		return nil, 0, fmt.Errorf("error parsing serialized input for xpath filtering: %s", err)
+	}
+	b = nil
+
+	// filter with xpath
+	nodes, err := xpath.QueryAll(doc, path)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error filtering input with xpath: %s", err)
+	}
+	for _, n := range nodes {
+		results = append(results, getObjectFromXPathNode(n))
+	}
+
+	// paginate
+	offset, limit, err := utils.GetPagingAttr(len(results), page, perPage, MaxPerPage)
+	if err != nil {
+		return nil, 0, &BadRequestError{fmt.Sprintf("unable to paginate: %s", err)}
+	}
+	// return the requested page
+	return results[offset : offset+limit], len(results), nil
+}
+
+// basicTypeFromXPathStr is a hack to get the actual data type from xpath.TextNode
+// Note: This might cause unexpected behaviour e.g. if user explicitly set string value to "true" or "false"
+func basicTypeFromXPathStr(strVal string) interface{} {
+	floatVal, err := strconv.ParseFloat(strVal, 64)
+	if err == nil {
+		return floatVal
+	}
+	// string value is set to "true" or "false" by the library for boolean values.
+	boolVal, err := strconv.ParseBool(strVal) // bit value is set to true or false by the library.
+	if err == nil {
+		return boolVal
+	}
+	return strVal
+}
+
+// getObjectFromXPathNode gets the concrete object from node by parsing the node recursively.
+// Ideally this function needs to be part of the library itself
+func getObjectFromXPathNode(n *xpath.Node) interface{} {
+
+	if n.Type == xpath.TextNode { // if top most element is of type textnode, then just return the value
+		return basicTypeFromXPathStr(n.Data)
+	}
+
+	if n.FirstChild.Data == "" { // in case of array, there will be no key
+		retArray := make([]interface{}, 0)
+		for child := n.FirstChild; child != nil; child = child.NextSibling {
+			retArray = append(retArray, getObjectFromXPathNode(child))
+		}
+		return retArray
+	} else { // normal map
+		retMap := make(map[string]interface{})
+
+		for child := n.FirstChild; child != nil; child = child.NextSibling {
+			if child.Type != xpath.TextNode {
+				retMap[child.Data] = getObjectFromXPathNode(child)
+			} else {
+				return basicTypeFromXPathStr(child.Data)
+			}
+		}
+		return retMap
+	}
 }
 
 func (c *Controller) total() (int, error) {
