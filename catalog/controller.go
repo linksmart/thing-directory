@@ -235,8 +235,8 @@ func (c *Controller) filterXPath(path string, page, perPage int) ([]interface{},
 	return results[offset : offset+limit], len(results), nil
 }
 
-// basicTypeFromStr is a hack to get the right type of object.
-// Note: This might cause unexpected behaviour e.g. if user explicitly set "true" or "false"
+// basicTypeFromStr is a hack to get the actual data type from xpath.TextNode
+// Note: This might cause unexpected behaviour e.g. if user explicitly set string value to "true" or "false"
 func basicTypeFromStr(strVal string) interface{} {
 	floatVal, err := strconv.ParseFloat(strVal, 64)
 	if err == nil {
