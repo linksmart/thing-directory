@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/antchfx/jsonquery"
-	"github.com/bhmj/jsonslice"
+	xpath "github.com/antchfx/jsonquery"
+	jsonpath "github.com/bhmj/jsonslice"
 	"github.com/linksmart/service-catalog/v3/utils"
 	uuid "github.com/satori/go.uuid"
 )
@@ -150,7 +150,7 @@ func (c *Controller) listAll() ([]ThingDescription, int, error) {
 	}
 }
 
-func (c *Controller) filterJSONPath(jsonpath string, page, perPage int) ([]interface{}, int, error) {
+func (c *Controller) filterJSONPath(path string, page, perPage int) ([]interface{}, int, error) {
 	var results []interface{}
 
 	// query all items
@@ -170,7 +170,7 @@ func (c *Controller) filterJSONPath(jsonpath string, page, perPage int) ([]inter
 	items = nil
 
 	// filter results with jsonpath
-	b, err = jsonslice.Get(b, jsonpath)
+	b, err = jsonpath.Get(b, path)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error evaluating jsonpath: %s", err)
 	}
@@ -191,7 +191,7 @@ func (c *Controller) filterJSONPath(jsonpath string, page, perPage int) ([]inter
 	return results[offset : offset+limit], len(results), nil
 }
 
-func (c *Controller) filterXPath(xpath string, page, perPage int) ([]interface{}, int, error) {
+func (c *Controller) filterXPath(path string, page, perPage int) ([]interface{}, int, error) {
 	var results []interface{}
 
 	// query all items
@@ -211,14 +211,14 @@ func (c *Controller) filterXPath(xpath string, page, perPage int) ([]interface{}
 	items = nil
 
 	// parse the json document
-	doc, err := jsonquery.Parse(bytes.NewReader(b))
+	doc, err := xpath.Parse(bytes.NewReader(b))
 	if err != nil {
 		return nil, 0, fmt.Errorf("error parsing serialized input for xpath filtering: %s", err)
 	}
 	b = nil
 
 	// filter with xpath
-	nodes, err := jsonquery.QueryAll(doc, xpath)
+	nodes, err := xpath.QueryAll(doc, path)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error filtering input with xpath: %s", err)
 	}
@@ -252,9 +252,9 @@ func basicTypeFromStr(strVal string) interface{} {
 
 // getObjectFromNode gets the concrete object from node by parsing the node recursively.
 // Ideally this function needs to be part of the library itself
-func getObjectFromNode(n *jsonquery.Node) interface{} {
+func getObjectFromNode(n *xpath.Node) interface{} {
 
-	if n.Type == jsonquery.TextNode { // if top most element is of type textnode, then just return the value
+	if n.Type == xpath.TextNode { // if top most element is of type textnode, then just return the value
 		return basicTypeFromStr(n.Data)
 	}
 
@@ -268,7 +268,7 @@ func getObjectFromNode(n *jsonquery.Node) interface{} {
 		retMap := make(map[string]interface{})
 
 		for child := n.FirstChild; child != nil; child = child.NextSibling {
-			if child.Type != jsonquery.TextNode {
+			if child.Type != xpath.TextNode {
 				retMap[child.Data] = getObjectFromNode(child)
 			} else {
 				return basicTypeFromStr(child.Data)
