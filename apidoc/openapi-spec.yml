@@ -1,9 +1,9 @@
 openapi: 3.0.0
 info:
-  version: "1.0.0-beta.1"
+  version: "1.0.0-beta.3"
   title: LinkSmart Thing Directory
   description: >
-    API documetnation of the [LinkSmart Thing Directory](https://github.com/linksmart/thing-directory), an implementation of the [Web of Things (WoT)](https://www.w3.org/WoT/) Thing Directory.
+    API documetnation of the [LinkSmart Thing Directory](https://github.com/linksmart/thing-directory), an implementation of the [W3C Web of Things (WoT)](https://www.w3.org/WoT/) Thing Directory.
 
   license:
     name: Apache 2.0
@@ -22,13 +22,20 @@ paths:
       parameters:
         - $ref: '#/components/parameters/ParamPage'
         - $ref: '#/components/parameters/ParamPerPage'
-        - name: fetch
+        - name: jsonpath
           in: query
           description: JSONPath expression for fetching specific items
           required: false
           schema:
             type: string
-          example: $[?(@.title=='Kitchen Plug')].properties.history.forms[0].href
+          example: $[?(@.title=='Kitchen Plug')].properties
+        - name: xpath
+          in: query
+          description: xPath 3.0 expression for fetching specific items
+          required: false
+          schema:
+            type: string
+          example: //*[title='Kitchen Lamp']/properties
       responses:
         '200':
           description: Successful response
@@ -169,6 +176,7 @@ paths:
           $ref: '#/components/responses/RespInternalServerError'
   '/td/filter/{path}/{op}/{value}':
     get:
+      deprecated: true
       tags:
         - td
       summary: Filtering API
