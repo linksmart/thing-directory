@@ -3,12 +3,16 @@
 [![GitHub tag (latest pre-release)](https://img.shields.io/github/tag-pre/linksmart/thing-directory.svg?label=pre-release)](https://github.com/linksmart/thing-directory/tags)
 [![Build Status](https://travis-ci.com/linksmart/thing-directory.svg?branch=master)](https://travis-ci.com/linksmart/thing-directory)
   
-This is an implementation of the W3C [Web of Things (WoT) Thing Directory](https://www.w3.org/TR/wot-architecture/#dfn-thing-directory), a catalog of [Thing Descriptions](https://www.w3.org/TR/wot-thing-description/).
+This is a candidate implementation for the W3C [Web of Things (WoT) Thing Directory](https://www.w3.org/TR/wot-architecture/#dfn-thing-directory) service, a catalog of [Thing Descriptions](https://www.w3.org/TR/wot-thing-description/).
+
+The catalog currently supports XPath 3.0 and JSONPath as query languages.
 
 This is currently under development.
 
 ## Getting Started
-API Documentation: [OpenAPI Specification](https://linksmart.eu/swagger-ui/dist/?url=https://raw.githubusercontent.com/linksmart/thing-directory/master/apidoc/openapi-spec.yml)
+* [Configuration](https://github.com/linksmart/thing-directory/wiki/Configuration)
+* [Query Language](https://github.com/linksmart/thing-directory/wiki/Query-Language)
+* [OpenAPI Specification](https://linksmart.eu/swagger-ui/dist/?url=https://raw.githubusercontent.com/linksmart/thing-directory/master/apidoc/openapi-spec.yml)
 
 ## Installation
 ### Binary Distribution
