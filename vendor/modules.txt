@@ -1,11 +1,11 @@
 # github.com/ancientlore/go-avltree v1.0.1
 github.com/ancientlore/go-avltree
-# github.com/antchfx/jsonquery v1.1.3
+# github.com/antchfx/jsonquery v1.1.4
 ## explicit
 github.com/antchfx/jsonquery
-# github.com/antchfx/xpath v1.1.6
+# github.com/antchfx/xpath v1.1.7
 github.com/antchfx/xpath
-# github.com/bhmj/jsonslice v0.0.0-20191224143743-ee6d2730b10a
+# github.com/bhmj/jsonslice v0.0.0-20200507101114-bc37219df21b
 ## explicit
 github.com/bhmj/jsonslice
 # github.com/codegangsta/negroni v1.0.0
@@ -55,8 +55,6 @@ github.com/miekg/dns
 # github.com/oleksandr/bonjour v0.0.0-20160508152359-5dcf00d8b228
 ## explicit
 github.com/oleksandr/bonjour
-# github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852
-## explicit
 # github.com/onsi/ginkgo v1.12.0
 ## explicit
 # github.com/onsi/gomega v1.9.0
