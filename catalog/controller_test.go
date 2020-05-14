@@ -3,6 +3,7 @@
 package catalog
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"reflect"
@@ -117,35 +118,35 @@ func TestControllerGet(t *testing.T) {
 	t.Log("Storage Type: " + TestStorageType)
 	controller := setup(t)
 
-	t.Run("add and retrieve", func(t *testing.T) {
-
-		var td = map[string]any{
-			"@context": "https://www.w3.org/2019/wot/td/v1",
-			"id":       "urn:example:test/thing1",
-			"title":    "example thing",
-			"security": []string{"basic_sc"},
-			"securityDefinitions": map[string]any{
-				"basic_sc": map[string]string{
-					"in":     "header",
-					"scheme": "basic",
-				},
+	var td = map[string]any{
+		"@context": "https://www.w3.org/2019/wot/td/v1",
+		"id":       "urn:example:test/thing1",
+		"title":    "example thing",
+		"security": []string{"basic_sc"},
+		"securityDefinitions": map[string]any{
+			"basic_sc": map[string]string{
+				"in":     "header",
+				"scheme": "basic",
 			},
-		}
+		},
+	}
 
-		id, err := controller.add(td)
-		if err != nil {
-			t.Fatalf("Unexpected error on add: %s", err)
-		}
+	id, err := controller.add(td)
+	if err != nil {
+		t.Fatalf("Unexpected error on add: %s", err)
+	}
 
+	t.Run("retrieve", func(t *testing.T) {
 		storedTD, err := controller.get(id)
 		if err != nil {
 			t.Fatalf("Error retrieving: %s", err)
 		}
 
+		// set system-generated attributes
 		storedTD["created"] = td["created"]
 		storedTD["modified"] = td["modified"]
 
-		if !reflect.DeepEqual(td, storedTD) {
+		if !SerializedEqual(td, storedTD) {
 			t.Fatalf("Added and retrieved TDs are not equal:\n Added:\n%v\n Retrieved:\n%v\n", td, storedTD)
 		}
 	})
@@ -166,54 +167,53 @@ func TestControllerGet(t *testing.T) {
 
 }
 
-//
-//func TestControllerUpdate(t *testing.T) {
-//	t.Log(TestStorageType)
-//	controller, shutdown, err := setup()
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//	defer shutdown()
-//
-//	var d = Device{
-//		Name:        "my_device",
-//		Meta:        map[string]interface{}{"k": "v"},
-//		Description: "description",
-//		Ttl:         100,
-//	}
-//
-//	id, err := controller.add(d)
-//	if err != nil {
-//		t.Fatal("Error adding a device:", err.Error())
-//	}
-//
-//	// Change
-//	d.Id = id
-//	d.URL = fmt.Sprintf("%s/%s/%s", TestApiLocation, TypeDevices, d.Id)
-//	d.Name = "changed"
-//	d.Meta = map[string]interface{}{"k": "changed"}
-//	d.Description = "changed"
-//	d.Ttl = 110
-//
-//	err = controller.update(d.Id, d)
-//	if err != nil {
-//		t.Fatal("Error updating device:", err.Error())
-//	}
-//
-//	sd, err := controller.get(id)
-//	if err != nil {
-//		t.Fatal("Error retrieving device:", err.Error())
-//	}
-//
-//	d.Type = ApiDeviceType
-//	d.Created = sd.Created
-//	d.Updated = sd.Updated
-//	d.Expires = sd.Expires
-//	if !reflect.DeepEqual(d.simplify(), sd) {
-//		t.Fatalf("Updates were not applied or returned.\n Expected:\n%v\n Returned\n%v\n", *d.simplify(), *sd)
-//	}
-//}
-//
+func TestControllerUpdate(t *testing.T) {
+	t.Log("Storage Type: " + TestStorageType)
+	controller := setup(t)
+
+	var td = map[string]any{
+		"@context": "https://www.w3.org/2019/wot/td/v1",
+		"id":       "urn:example:test/thing1",
+		"title":    "example thing",
+		"security": []string{"basic_sc"},
+		"securityDefinitions": map[string]any{
+			"basic_sc": map[string]string{
+				"in":     "header",
+				"scheme": "basic",
+			},
+		},
+	}
+
+	id, err := controller.add(td)
+	if err != nil {
+		t.Fatalf("Unexpected error on add: %s", err)
+	}
+
+	t.Run("update attributes", func(t *testing.T) {
+		// Change
+		td["title"] = "new title"
+		td["description"] = "description of the thing"
+
+		err = controller.update(id, td)
+		if err != nil {
+			t.Fatal("Error updating TD:", err.Error())
+		}
+
+		storedTD, err := controller.get(id)
+		if err != nil {
+			t.Fatal("Error retrieving TD:", err.Error())
+		}
+
+		// set system-generated attributes
+		storedTD["created"] = td["created"]
+		storedTD["modified"] = td["modified"]
+
+		if !SerializedEqual(td, storedTD) {
+			t.Fatalf("Updates were not applied or returned:\n Expected:\n%v\n Retrieved:\n%v\n", td, storedTD)
+		}
+	})
+}
+
 func TestControllerDelete(t *testing.T) {
 	t.Log("Storage Type: " + TestStorageType)
 	controller := setup(t)
@@ -454,4 +454,12 @@ func TestControllerCleanExpired(t *testing.T) {
 		t.Fatalf("TD was not removed after 1 seconds")
 	}
 
+}
+
+func SerializedEqual(td1 map[string]any, td2 map[string]any) bool {
+	// serialize to ease comparison of interfaces and concrete types
+	tdBytes, _ := json.Marshal(td1)
+	storedTDBytes, _ := json.Marshal(td2)
+
+	return reflect.DeepEqual(tdBytes, storedTDBytes)
 }
