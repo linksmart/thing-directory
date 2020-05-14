@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -272,146 +273,193 @@ func TestControllerDelete(t *testing.T) {
 	})
 }
 
-//
-//func TestControllerList(t *testing.T) {
-//	t.Log(TestStorageType)
-//	controller, shutdown, err := setup()
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//	defer shutdown()
-//
-//	var storedDevices []SimpleDevice
-//	for i := 0; i < 5; i++ {
-//		d := Device{
-//			Name:        "my_device",
-//			Meta:        map[string]interface{}{"k": "v"},
-//			Description: "description",
-//		}
-//
-//		id, err := controller.add(d)
-//		if err != nil {
-//			t.Fatal("Error adding a device:", err.Error())
-//		}
-//		sd, err := controller.get(id)
-//		if err != nil {
-//			t.Fatal("Error retrieving device:", err.Error())
-//		}
-//
-//		storedDevices = append(storedDevices, *sd)
-//	}
-//
-//	var catalogedDevices []SimpleDevice
-//	perPage := 3
-//	for page := 1; ; page++ {
-//		devicesInPage, total, err := controller.list(page, perPage)
-//		if err != nil {
-//			t.Fatal("Error getting list of devices:", err.Error())
-//		}
-//
-//		if page == 1 && len(devicesInPage) != 3 {
-//			t.Fatalf("Page 1 has %d entries instead of 3\n", len(devicesInPage))
-//		}
-//		if page == 2 && len(devicesInPage) != 2 {
-//			t.Fatalf("Page 2 has %d entries instead of 2\n", len(devicesInPage))
-//		}
-//		if page == 3 && len(devicesInPage) != 0 {
-//			t.Fatalf("Page 3 has %d entries instead of being blank\n", len(devicesInPage))
-//		}
-//
-//		catalogedDevices = append(catalogedDevices, devicesInPage...)
-//
-//		if page*perPage >= total {
-//			break
-//		}
-//	}
-//
-//	if len(catalogedDevices) != 5 {
-//		t.Fatalf("Catalog contains %d entries instead of 5\n", len(catalogedDevices))
-//	}
-//
-//	for i, sd := range catalogedDevices {
-//		if !reflect.DeepEqual(storedDevices[i], sd) {
-//			t.Fatalf("Device listed in catalog is different with the one stored:\n Stored:\n%v\n Listed\n%v\n",
-//				storedDevices[i], sd)
-//		}
-//	}
-//}
-//
-//func TestControllerFilter(t *testing.T) {
-//	t.Log(TestStorageType)
-//	controller, shutdown, err := setup()
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//	defer shutdown()
-//
-//	for i := 0; i < 5; i++ {
-//		d := Device{
-//			Name:        "my_device",
-//			Meta:        map[string]interface{}{"k": "v"},
-//			Description: "description",
-//		}
-//
-//		_, err := controller.add(d)
-//		if err != nil {
-//			t.Fatal("Error adding a device:", err.Error())
-//		}
-//	}
-//
-//	controller.add(Device{
-//		Name:        "my_device",
-//		Meta:        map[string]interface{}{"k": "v"},
-//		Description: "interesting",
-//	})
-//	controller.add(Device{
-//		Name:        "my_device",
-//		Meta:        map[string]interface{}{"k": "v"},
-//		Description: "interesting",
-//	})
-//
-//	devices, total, err := controller.filter("description", "equals", "interesting", 1, 10)
-//	if err != nil {
-//		t.Fatal("Error filtering devices:", err.Error())
-//	}
-//	if total != 2 {
-//		t.Fatalf("Returned %d instead of 2 devices when filtering description=interesting: \n%v", total, devices)
-//	}
-//	for _, d := range devices {
-//		if d.Description != "interesting" {
-//			t.Fatal("Wrong results when filtering description=interesting:\n", d)
-//		}
-//	}
-//}
-//
-//func TestControllerTotal(t *testing.T) {
-//	t.Log(TestStorageType)
-//	controller, shutdown, err := setup()
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//	defer shutdown()
-//
-//	for i := 0; i < 5; i++ {
-//		d := Device{
-//			Name: "my_device",
-//		}
-//
-//		_, err := controller.add(d)
-//		if err != nil {
-//			t.Fatal("Error adding a device:", err.Error())
-//		}
-//	}
-//
-//	total, err := controller.total()
-//	if err != nil {
-//		t.Fatal("Error getting total of devices:", err.Error())
-//	}
-//	if total != 5 {
-//		t.Fatal("Expected total 5 but got:", total)
-//	}
-//}
-//
+func TestControllerList(t *testing.T) {
+	t.Log("Storage Type: " + TestStorageType)
+	controller := setup(t)
+
+	// add several entries
+	var addedTDs []ThingDescription
+	for i := 0; i < 5; i++ {
+		var td = map[string]any{
+			"@context": "https://www.w3.org/2019/wot/td/v1",
+			"id":       "urn:example:test/thing_" + strconv.Itoa(i),
+			"title":    "example thing",
+			"security": []string{"basic_sc"},
+			"securityDefinitions": map[string]any{
+				"basic_sc": map[string]string{
+					"in":     "header",
+					"scheme": "basic",
+				},
+			},
+		}
+
+		id, err := controller.add(td)
+		if err != nil {
+			t.Fatal("Error adding a TD:", err.Error())
+		}
+		sd, err := controller.get(id)
+		if err != nil {
+			t.Fatal("Error retrieving TD:", err.Error())
+		}
+
+		addedTDs = append(addedTDs, sd)
+	}
+
+	// query all pages
+	var collection []ThingDescription
+	perPage := 3
+	for page := 1; ; page++ {
+		collectionPage, total, err := controller.list(page, perPage)
+		if err != nil {
+			t.Fatal("Error getting list of TDs:", err.Error())
+		}
+
+		if page == 1 && len(collectionPage) != 3 {
+			t.Fatalf("Page 1 has %d entries instead of 3", len(collectionPage))
+		}
+		if page == 2 && len(collectionPage) != 2 {
+			t.Fatalf("Page 2 has %d entries instead of 2", len(collectionPage))
+		}
+		if page == 3 && len(collectionPage) != 0 {
+			t.Fatalf("Page 3 has %d entries instead of being blank", len(collectionPage))
+		}
+
+		collection = append(collection, collectionPage...)
+
+		if page*perPage >= total {
+			break
+		}
+	}
+
+	if len(collection) != 5 {
+		t.Fatalf("Catalog contains %d entries instead of 5", len(collection))
+	}
+
+	// compare added and collection
+	for i, sd := range collection {
+		if !reflect.DeepEqual(addedTDs[i], sd) {
+			t.Fatalf("TDs listed in catalog is different with the one stored:\n Stored:\n%v\n Listed\n%v\n",
+				addedTDs[i], sd)
+		}
+	}
+}
+
+func TestControllerFilter(t *testing.T) {
+	t.Log("Storage Type: " + TestStorageType)
+	controller := setup(t)
+
+	for i := 0; i < 5; i++ {
+		var td = map[string]any{
+			"@context": "https://www.w3.org/2019/wot/td/v1",
+			"id":       "urn:example:test/thing_" + strconv.Itoa(i),
+			"title":    "example thing",
+			"security": []string{"basic_sc"},
+			"securityDefinitions": map[string]any{
+				"basic_sc": map[string]string{
+					"in":     "header",
+					"scheme": "basic",
+				},
+			},
+		}
+
+		_, err := controller.add(td)
+		if err != nil {
+			t.Fatal("Error adding a TD:", err.Error())
+		}
+	}
+
+	controller.add(map[string]any{
+		"@context": "https://www.w3.org/2019/wot/td/v1",
+		"id":       "urn:example:test/thing_x",
+		"title":    "interesting thing",
+		"security": []string{"basic_sc"},
+		"securityDefinitions": map[string]any{
+			"basic_sc": map[string]string{
+				"in":     "header",
+				"scheme": "basic",
+			},
+		},
+	})
+	controller.add(map[string]any{
+		"@context": "https://www.w3.org/2019/wot/td/v1",
+		"id":       "urn:example:test/thing_y",
+		"title":    "interesting thing",
+		"security": []string{"basic_sc"},
+		"securityDefinitions": map[string]any{
+			"basic_sc": map[string]string{
+				"in":     "header",
+				"scheme": "basic",
+			},
+		},
+	})
+
+	t.Run("filter with JSONPath", func(t *testing.T) {
+		TDs, total, err := controller.filterJSONPath("$[?(@.title=='interesting thing')]", 1, 10)
+		if err != nil {
+			t.Fatal("Error filtering:", err.Error())
+		}
+		if total != 2 {
+			t.Fatalf("Returned %d instead of 2 TDs when filtering based on title: \n%v", total, TDs)
+		}
+		for _, td := range TDs {
+			if td.(map[string]any)["title"] != "interesting thing" {
+				t.Fatal("Wrong results when filtering based on title:\n", td)
+			}
+		}
+	})
+
+	t.Run("filter with XPath", func(t *testing.T) {
+		TDs, total, err := controller.filterXPath("*[title='interesting thing']", 1, 10)
+		if err != nil {
+			t.Fatal("Error filtering:", err.Error())
+		}
+		if total != 2 {
+			t.Fatalf("Returned %d instead of 2 TDs when filtering based on title: \n%v", total, TDs)
+		}
+		for _, td := range TDs {
+			if td.(map[string]any)["title"] != "interesting thing" {
+				t.Fatal("Wrong results when filtering based on title:\n", td)
+			}
+		}
+	})
+
+}
+
+func TestControllerTotal(t *testing.T) {
+	t.Log("Storage Type: " + TestStorageType)
+	controller := setup(t)
+
+	const createTotal = 5
+
+	for i := 0; i < createTotal; i++ {
+		var td = ThingDescription{
+			"@context": "https://www.w3.org/2019/wot/td/v1",
+			"id":       "urn:example:test/thing_" + strconv.Itoa(i),
+			"title":    "example thing",
+			"security": []string{"basic_sc"},
+			"securityDefinitions": map[string]any{
+				"basic_sc": map[string]string{
+					"in":     "header",
+					"scheme": "basic",
+				},
+			},
+		}
+
+		_, err := controller.add(td)
+		if err != nil {
+			t.Fatalf("Error adding a TD: %s", err)
+		}
+	}
+
+	total, err := controller.total()
+	if err != nil {
+		t.Fatalf("Error getting total of TD: %s", err)
+	}
+	if total != createTotal {
+		t.Fatalf("Expected total %d but got %d", createTotal, total)
+	}
+}
+
 func TestControllerCleanExpired(t *testing.T) {
 	t.Log("Storage Type: " + TestStorageType)
 
@@ -421,7 +469,7 @@ func TestControllerCleanExpired(t *testing.T) {
 
 	controller := setup(t)
 
-	var td = map[string]any{
+	var td = ThingDescription{
 		"@context": "https://www.w3.org/2019/wot/td/v1",
 		"id":       "urn:example:test/thing1",
 		"title":    "example thing",
@@ -456,7 +504,7 @@ func TestControllerCleanExpired(t *testing.T) {
 
 }
 
-func SerializedEqual(td1 map[string]any, td2 map[string]any) bool {
+func SerializedEqual(td1 ThingDescription, td2 ThingDescription) bool {
 	// serialize to ease comparison of interfaces and concrete types
 	tdBytes, _ := json.Marshal(td1)
 	storedTDBytes, _ := json.Marshal(td2)
