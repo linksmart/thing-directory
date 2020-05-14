@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/linksmart/thing-directory/wot"
 	"github.com/pborman/uuid"
@@ -75,12 +76,13 @@ func TestControllerAdd(t *testing.T) {
 
 		id, err := controller.add(td)
 		if err != nil {
-			t.Fatalf("Unexpected error on add: %v", err.Error())
+			t.Fatalf("Unexpected error on add: %s", err)
 		}
 		if id != td["id"] {
-			t.Fatalf("User defined ID is not returned. Getting %v instead of %v\n", id, td["id"])
+			t.Fatalf("User defined ID is not returned. Getting %s instead of %s\n", id, td["id"])
 		}
 
+		// add it again
 		_, err = controller.add(td)
 		if err == nil {
 			t.Error("Didn't get any error when adding a service with non-unique id.")
@@ -103,10 +105,10 @@ func TestControllerAdd(t *testing.T) {
 
 		id, err := controller.add(td)
 		if err != nil {
-			t.Fatalf("Unexpected error on add: %v", err.Error())
+			t.Fatalf("Unexpected error on add: %s", err)
 		}
 		if uuid.Parse(id) == nil {
-			t.Fatalf("System-generated URN is not a uuid. Got: %v\n", id)
+			t.Fatalf("System-generated URN is not a uuid. Got: %s\n", id)
 		}
 	})
 }
@@ -132,12 +134,12 @@ func TestControllerGet(t *testing.T) {
 
 		id, err := controller.add(td)
 		if err != nil {
-			t.Fatalf("Unexpected error on add: %v", err.Error())
+			t.Fatalf("Unexpected error on add: %s", err)
 		}
 
 		storedTD, err := controller.get(id)
 		if err != nil {
-			t.Fatal("Error retrieving:", err.Error())
+			t.Fatalf("Error retrieving: %s", err)
 		}
 
 		storedTD["created"] = td["created"]
@@ -212,55 +214,64 @@ func TestControllerGet(t *testing.T) {
 //	}
 //}
 //
-//func TestControllerDelete(t *testing.T) {
-//	t.Log(TestStorageType)
-//	controller, shutdown, err := setup()
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//	defer shutdown()
-//
-//	var d = Device{
-//		Name:        "my_device",
-//		Meta:        map[string]interface{}{"k": "v"},
-//		Description: "description",
-//		Ttl:         100,
-//	}
-//
-//	id, err := controller.add(d)
-//	if err != nil {
-//		t.Fatal("Error adding a device:", err.Error())
-//	}
-//
-//	err = controller.delete(id)
-//	if err != nil {
-//		t.Fatal("Error deleting device:", err.Error())
-//	}
-//
-//	err = controller.delete(id)
-//	if err != nil {
-//		switch err.(type) {
-//		case *NotFoundError:
-//		// good
-//		default:
-//			t.Fatalf("Device was deleted. Expected NotFoundError but got %s", err)
-//		}
-//	} else {
-//		t.Fatal("No error when deleting a deleted device:", err.Error())
-//	}
-//
-//	_, err = controller.get(id)
-//	if err != nil {
-//		switch err.(type) {
-//		case *NotFoundError:
-//			// good
-//		default:
-//			t.Fatalf("Device was deleted. Expected NotFoundError but got %s", err)
-//		}
-//	} else {
-//		t.Fatal("No error when retrieving a deleted device")
-//	}
-//}
+func TestControllerDelete(t *testing.T) {
+	t.Log("Storage Type: " + TestStorageType)
+	controller := setup(t)
+
+	var td = map[string]any{
+		"@context": "https://www.w3.org/2019/wot/td/v1",
+		"id":       "urn:example:test/thing1",
+		"title":    "example thing",
+		"security": []string{"basic_sc"},
+		"securityDefinitions": map[string]any{
+			"basic_sc": map[string]string{
+				"in":     "header",
+				"scheme": "basic",
+			},
+		},
+	}
+
+	id, err := controller.add(td)
+	if err != nil {
+		t.Fatalf("Error adding a TD: %s", err)
+	}
+
+	t.Run("delete", func(t *testing.T) {
+		err = controller.delete(id)
+		if err != nil {
+			t.Fatalf("Error deleting TD: %s", err)
+		}
+	})
+
+	t.Run("delete a deleted TD", func(t *testing.T) {
+		err = controller.delete(id)
+		if err != nil {
+			switch err.(type) {
+			case *NotFoundError:
+			// good
+			default:
+				t.Fatalf("TD was deleted. Expected NotFoundError but got %s", err)
+			}
+		} else {
+			t.Fatalf("No error when deleting a deleted TD: %s", err)
+		}
+	})
+
+	t.Run("retrieve a deleted TD", func(t *testing.T) {
+		_, err = controller.get(id)
+		if err != nil {
+			switch err.(type) {
+			case *NotFoundError:
+				// good
+			default:
+				t.Fatalf("TD was deleted. Expected NotFoundError but got %s", err)
+			}
+		} else {
+			t.Fatal("No error when retrieving a deleted TD")
+		}
+	})
+}
+
 //
 //func TestControllerList(t *testing.T) {
 //	t.Log(TestStorageType)
@@ -401,298 +412,46 @@ func TestControllerGet(t *testing.T) {
 //	}
 //}
 //
-//func TestControllerCleanExpired(t *testing.T) {
-//	t.Log(TestStorageType)
-//	controller, shutdown, err := setup()
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//	defer shutdown()
-//
-//	var d = Device{
-//		Name: "my_device",
-//		Ttl:  1,
-//		Resources: []Resource{
-//			Resource{
-//				Id:        "my_resource_id",
-//				Protocols: []Protocol{Protocol{Type: "REST", Endpoint: map[string]interface{}{"url": "http://localhost:9000/api"}}},
-//			},
-//		},
-//	}
-//
-//	id, err := controller.add(d)
-//	if err != nil {
-//		t.Fatal("Error adding a device:", err.Error())
-//	}
-//
-//	addingTime := time.Now()
-//	time.Sleep(6 * time.Second)
-//
-//	checkingTime := time.Now()
-//	dd, err := controller.get(id)
-//	if err != nil {
-//		switch err.(type) {
-//		case *NotFoundError:
-//		// good
-//		default:
-//			t.Fatalf("Got an error other than NotFoundError when getting an expired device: %s\n", err)
-//		}
-//	} else {
-//		t.Fatalf("Device was not removed after 1 seconds. \nTTL: %v \nCreated: %v \nExpiry: %v \nNot deleted after: %v at %v\n",
-//			dd.Ttl,
-//			dd.Created,
-//			dd.Expires,
-//			checkingTime.Sub(addingTime),
-//			checkingTime.UTC(),
-//		)
-//	}
-//
-//	// Make sure that resource is removed
-//	_, err = controller.getResource("my_resource_id")
-//	if err != nil {
-//		switch err.(type) {
-//		case *NotFoundError:
-//		// good
-//		default:
-//			t.Fatalf("Got an error other than NotFoundError when getting the resource of an expired device: %s", err)
-//		}
-//	} else {
-//		t.Fatal("Resource of an expired device is not removed.")
-//	}
-//}
-//
-//// RESOURCES
-//
-//func TestControllerGetResources(t *testing.T) {
-//	t.Log(TestStorageType)
-//	controller, shutdown, err := setup()
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//	defer shutdown()
-//
-//	var d = Device{
-//		Resources: []Resource{
-//			Resource{
-//				Id:   "my_resource_id",
-//				Name: "my_resource",
-//				Meta: map[string]interface{}{"k": "v"},
-//				Protocols: []Protocol{Protocol{
-//					Type:         "REST",
-//					Endpoint:     map[string]interface{}{"url": "http://localhost:9000/rest/device/resource"},
-//					Methods:      []string{"GET"},
-//					ContentTypes: []string{"application/senml+json"},
-//				}},
-//				Representation: map[string]interface{}{"application/senml+json": ""},
-//			},
-//		},
-//	}
-//
-//	id, err := controller.add(d)
-//	if err != nil {
-//		t.Fatal("Error adding a device:", err.Error())
-//	}
-//
-//	resource, err := controller.getResource("my_resource_id")
-//	if err != nil {
-//		t.Fatal("Error retrieving a resource:", err.Error())
-//	}
-//
-//	added := d.Resources[0]
-//	added.URL = fmt.Sprintf("%s/%s/%s", TestApiLocation, TypeResources, added.Id)
-//	added.Device = fmt.Sprintf("%s/%s/%s", TestApiLocation, TypeDevices, id)
-//	if !reflect.DeepEqual(*resource, d.Resources[0]) {
-//		t.Fatalf("Added resource is different with the one retrieved.\n Added:\n%v\n Retrieved\n%v\n",
-//			added, *resource)
-//	}
-//
-//	// Test NotFoundError
-//	_, err = controller.getResource("some_id")
-//	if err != nil {
-//		switch err.(type) {
-//		case *NotFoundError:
-//		// good
-//		default:
-//			t.Fatalf("Resource doesn't exist. Expected NotFoundError but got %s", err)
-//		}
-//	} else {
-//		t.Fatal("No error when retrieving a non-existing resource")
-//	}
-//
-//	// Test deletion of resource
-//	err = controller.delete(id)
-//	if err != nil {
-//		t.Fatal("Error deleting a device:", err.Error())
-//	}
-//	_, err = controller.getResource("my_resource_id")
-//	if err != nil {
-//		switch err.(type) {
-//		case *NotFoundError:
-//		// good
-//		default:
-//			t.Fatalf("Device was deleted. Expected NotFoundError when getting its resource but got %s", err)
-//		}
-//	} else {
-//		t.Fatal("No error when retrieving a resource from a deleted device.")
-//	}
-//}
-//
-//func TestControllerListResources(t *testing.T) {
-//	t.Log(TestStorageType)
-//	controller, shutdown, err := setup()
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//	defer shutdown()
-//
-//	var storedResources []Resource
-//	for i := 1; i < 6; i += 2 {
-//		d := Device{
-//			Resources: []Resource{
-//				Resource{
-//					Id:        fmt.Sprint(i - 1),
-//					Name:      fmt.Sprintf("my_resource_%d", i),
-//					Meta:      map[string]interface{}{"k": "v"},
-//					Protocols: []Protocol{Protocol{Type: "REST", Endpoint: map[string]interface{}{"url": ""}}},
-//				},
-//				Resource{
-//					Id:        fmt.Sprint(i),
-//					Name:      fmt.Sprintf("my_resource_%d", i+1),
-//					Meta:      map[string]interface{}{"k": "v"},
-//					Protocols: []Protocol{Protocol{Type: "REST", Endpoint: map[string]interface{}{"url": ""}}},
-//				},
-//			},
-//		}
-//
-//		id, err := controller.add(d)
-//		if err != nil {
-//			t.Fatal("Error adding a device:", err.Error())
-//		}
-//
-//		for _, r := range d.Resources {
-//			r.URL = fmt.Sprintf("%s/%s/%s", TestApiLocation, TypeResources, r.Id)
-//			r.Device = fmt.Sprintf("%s/%s/%s", TestApiLocation, TypeDevices, id)
-//			storedResources = append(storedResources, r)
-//		}
-//	}
-//
-//	var catalogedResources []Resource
-//	perPage := 4
-//	for page := 1; ; page++ {
-//		resourcesInPage, total, err := controller.listResources(page, perPage)
-//		if err != nil {
-//			t.Fatal("Error getting list of devices:", err.Error())
-//		}
-//
-//		if page == 1 && len(resourcesInPage) != 4 {
-//			t.Fatalf("Page 1 has %d entries instead of 4\n", len(resourcesInPage))
-//		}
-//		if page == 2 && len(resourcesInPage) != 2 {
-//			t.Fatalf("Page 2 has %d entries instead of 2\n", len(resourcesInPage))
-//		}
-//		if page == 3 && len(resourcesInPage) != 0 {
-//			t.Fatalf("Page 3 has %d entries instead of being blank\n", len(resourcesInPage))
-//		}
-//
-//		catalogedResources = append(catalogedResources, resourcesInPage...)
-//
-//		if page*perPage >= total {
-//			break
-//		}
-//	}
-//
-//	if len(catalogedResources) != 6 {
-//		t.Fatalf("Catalog contains %d resources instead of 6\n", len(catalogedResources))
-//	}
-//
-//	for i, sr := range catalogedResources {
-//		if !reflect.DeepEqual(storedResources[i], sr) {
-//			t.Fatalf("Device listed in catalog is different with the one stored:\n Stored:\n%v\n Listed\n%v\n",
-//				storedResources[i], sr)
-//		}
-//	}
-//}
-//
-//func TestControllerFilterResources(t *testing.T) {
-//	t.Log(TestStorageType)
-//	controller, shutdown, err := setup()
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//	defer shutdown()
-//
-//	for i := 0; i < 5; i++ {
-//		_, err := controller.add(Device{
-//			Resources: []Resource{
-//				Resource{
-//					Name:      fmt.Sprintf("boring_%d", i),
-//					Protocols: []Protocol{Protocol{Type: "REST", Endpoint: map[string]interface{}{"url": ""}}},
-//				},
-//			},
-//		})
-//		if err != nil {
-//			t.Fatal("Error adding a device:", err.Error())
-//		}
-//	}
-//
-//	controller.add(Device{
-//		Resources: []Resource{
-//			Resource{
-//				Name:      "interesting_1",
-//				Protocols: []Protocol{Protocol{Type: "REST", Endpoint: map[string]interface{}{"url": ""}}},
-//			},
-//		},
-//	})
-//	controller.add(Device{
-//		Resources: []Resource{
-//			Resource{
-//				Name:      "interesting_2",
-//				Protocols: []Protocol{Protocol{Type: "REST", Endpoint: map[string]interface{}{"url": ""}}},
-//			},
-//		},
-//	})
-//
-//	resources, total, err := controller.filterResources("name", "prefix", "interesting", 1, 10)
-//	if err != nil {
-//		t.Fatal("Error filtering resources:", err.Error())
-//	}
-//	if total != 2 {
-//		t.Fatalf("Returned %d instead of 2 resources when filtering name/prefix/interesting: \n%v", total, resources)
-//	}
-//	for _, r := range resources {
-//		if !strings.Contains(r.Name, "interesting") {
-//			t.Fatal("Wrong results when filtering name/prefix/interesting:\n", r)
-//		}
-//	}
-//}
-//
-//func TestControllerTotalResources(t *testing.T) {
-//	t.Log(TestStorageType)
-//	controller, shutdown, err := setup()
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//	defer shutdown()
-//
-//	for i := 0; i < 5; i++ {
-//		_, err := controller.add(Device{
-//			Resources: []Resource{
-//				Resource{
-//					Name:      fmt.Sprintf("resource_%d", i),
-//					Protocols: []Protocol{Protocol{Type: "REST", Endpoint: map[string]interface{}{"url": ""}}},
-//				},
-//			},
-//		})
-//		if err != nil {
-//			t.Fatal("Error adding a device:", err.Error())
-//		}
-//	}
-//
-//	total, err := controller.totalResources()
-//	if err != nil {
-//		t.Fatal("Error getting total of resources:", err.Error())
-//	}
-//	if total != 5 {
-//		t.Fatal("Expected total 5 resources but got:", total)
-//	}
-//}
+func TestControllerCleanExpired(t *testing.T) {
+	t.Log("Storage Type: " + TestStorageType)
+
+	// shorten controller's cleanup interval to test quickly
+	controllerExpiryCleanupInterval = 2 * time.Second
+	const wait = 3 * time.Second
+
+	controller := setup(t)
+
+	var td = map[string]any{
+		"@context": "https://www.w3.org/2019/wot/td/v1",
+		"id":       "urn:example:test/thing1",
+		"title":    "example thing",
+		"security": []string{"basic_sc"},
+		"securityDefinitions": map[string]any{
+			"basic_sc": map[string]string{
+				"in":     "header",
+				"scheme": "basic",
+			},
+		},
+		"ttl": 1.0, // this should not live long
+	}
+
+	id, err := controller.add(td)
+	if err != nil {
+		t.Fatal("Error adding a TD:", err.Error())
+	}
+
+	time.Sleep(wait)
+
+	_, err = controller.get(id)
+	if err != nil {
+		switch err.(type) {
+		case *NotFoundError:
+		// good
+		default:
+			t.Fatalf("Got an error other than NotFoundError when getting an expired TD: %s\n", err)
+		}
+	} else {
+		t.Fatalf("TD was not removed after 1 seconds")
+	}
+
+}
