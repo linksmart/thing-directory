@@ -14,8 +14,8 @@ const (
 
 var (
 	TestSupportedBackends = map[string]bool{
-		CatalogBackendMemory:  true,
-		CatalogBackendLevelDB: true,
+		BackendMemory:  false,
+		BackendLevelDB: true,
 	}
 	TestStorageType string
 )

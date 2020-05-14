@@ -11,6 +11,10 @@ import (
 type ThingDescription = map[string]interface{}
 
 const (
+	DNSSDServiceType = "_linksmart-td._tcp"
+	BackendMemory    = "memory"
+	BackendLevelDB   = "leveldb"
+
 	// TD keys
 	_id       = "id"
 	_created  = "created"

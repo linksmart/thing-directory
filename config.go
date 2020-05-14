@@ -11,13 +11,10 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	"github.com/linksmart/go-sec/auth/obtainer"
 	"github.com/linksmart/go-sec/auth/validator"
+	"github.com/linksmart/thing-directory/catalog"
 )
 
-const (
-	DNSSDServiceType = "_linksmart-td._tcp"
-	BackendMemory    = "memory"
-	BackendLevelDB   = "leveldb"
-)
+
 
 type Config struct {
 	ServiceID      string         `json:"serviceID"`
@@ -45,8 +42,8 @@ type StorageConfig struct {
 }
 
 var supportedBackends = map[string]bool{
-	BackendMemory:  false,
-	BackendLevelDB: true,
+	catalog.BackendMemory:  false,
+	catalog.BackendLevelDB: true,
 }
 
 func (c *Config) Validate() error {
