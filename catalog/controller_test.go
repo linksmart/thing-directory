@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/linksmart/thing-directory/wot"
-	"github.com/pborman/uuid"
+	uuid "github.com/satori/go.uuid"
 )
 
 type any = interface{}
@@ -22,7 +22,7 @@ func setup(t *testing.T) CatalogController {
 	var (
 		storage Storage
 		tempDir = fmt.Sprintf("%s/thing-directory/test-%s-ldb",
-			strings.Replace(os.TempDir(), "\\", "/", -1), uuid.New())
+			strings.Replace(os.TempDir(), "\\", "/", -1), uuid.NewV4())
 	)
 
 	// TODO: use env var
@@ -46,7 +46,7 @@ func setup(t *testing.T) CatalogController {
 	}
 
 	t.Cleanup(func() {
-		t.Logf("Cleaning up...")
+		//t.Logf("Cleaning up...")
 		controller.Stop()
 		err = os.RemoveAll(tempDir) // Remove temp files
 		if err != nil {
@@ -109,7 +109,8 @@ func TestControllerAdd(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Unexpected error on add: %s", err)
 		}
-		if uuid.Parse(id) == nil {
+		_, err = uuid.FromString(id)
+		if err == nil {
 			t.Fatalf("System-generated URN is not a uuid. Got: %s\n", id)
 		}
 	})
