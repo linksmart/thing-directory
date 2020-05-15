@@ -18,7 +18,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-func setupTestHTTPServer(t *testing.T) *httptest.Server {
+func setupTestHTTPServer(t *testing.T) (CatalogController, *httptest.Server) {
 	var (
 		storage Storage
 		err     error
@@ -52,10 +52,10 @@ func setupTestHTTPServer(t *testing.T) *httptest.Server {
 
 	r := mux.NewRouter().StrictSlash(true)
 	// CRUD
-	r.Methods("GET").Path("/td/{id}").HandlerFunc(api.Get)
+	r.Methods("GET").Path("/td/{id:.+}").HandlerFunc(api.Get)
 	r.Methods("POST").Path("/td/").HandlerFunc(api.Post)
-	r.Methods("PUT").Path("/td/{id}").HandlerFunc(api.Put)
-	r.Methods("DELETE").Path("/td/{id}").HandlerFunc(api.Delete)
+	r.Methods("PUT").Path("/td/{id:.+}").HandlerFunc(api.Put)
+	r.Methods("DELETE").Path("/td/{id:.+}").HandlerFunc(api.Delete)
 	// Listing and filtering
 	r.Methods("GET").Path("/td").HandlerFunc(api.List)
 
@@ -70,10 +70,10 @@ func setupTestHTTPServer(t *testing.T) *httptest.Server {
 		}
 	})
 
-	return httpServer
+	return controller, httpServer
 }
 
-func mockedTD(id string) []byte {
+func mockedTD(id string) ThingDescription {
 	var td = map[string]any{
 		"@context": "https://www.w3.org/2019/wot/td/v1",
 		"title":    "example thing",
@@ -87,29 +87,31 @@ func mockedTD(id string) []byte {
 	if id != "" {
 		td["id"] = id
 	}
-	b, _ := json.Marshal(td)
-	return b
+	return td
 }
 
-func TestCreate(t *testing.T) {
-	testServer := setupTestHTTPServer(t)
+func TestPost(t *testing.T) {
+	controller, testServer := setupTestHTTPServer(t)
 
-	td := mockedTD("") // without ID
+	t.Run("Without ID", func(t *testing.T) {
+		td := mockedTD("") // without ID
+		b, _ := json.Marshal(td)
 
-	t.Run("POST a TD", func(t *testing.T) {
-		// Create
-		url := testServer.URL + "/td/"
-		t.Log("Calling POST", url)
-		res, err := http.Post(url, wot.MediaTypeThingDescription, bytes.NewReader(td))
+		// create over HTTP
+		res, err := http.Post(testServer.URL+"/td/", wot.MediaTypeThingDescription, bytes.NewReader(b))
 		if err != nil {
-			t.Fatal(err.Error())
+			t.Fatalf("Error posting: %s", err)
+		}
+		defer res.Body.Close()
+
+		b, err = ioutil.ReadAll(res.Body)
+		if err != nil {
+			t.Fatalf("Error reading response body: %s", err)
 		}
 
-		b, err := ioutil.ReadAll(res.Body)
 		if res.StatusCode != http.StatusCreated {
 			t.Fatalf("Expected response %v, got: %d. Reponse body: %s", http.StatusCreated, res.StatusCode, b)
 		}
-		defer res.Body.Close()
 
 		// Check if system-generated id is in response
 		location, err := res.Location()
@@ -119,241 +121,226 @@ func TestCreate(t *testing.T) {
 		if !strings.Contains(location.String(), "urn:uuid:") {
 			t.Fatalf("System-generated ID is not a UUID. Get response location: %s\n", location)
 		}
+
+		//// Check if an item is created
+		//total, err := controller.total()
+		//if err != nil {
+		//	t.Fatalf("Error getting total through controller: %s", err)
+		//}
+		//if total != 1 {
+		//	t.Fatalf("Server should contain exactly 1 entry, but got total: %d", total)
+		//}
+
+		storedTD, err := controller.get(location.String())
+		if err != nil {
+			t.Fatalf("Error getting through controller: %s", err)
+		}
+
+		// set system-generated attributes
+		td["id"] = storedTD["id"]
+		td["created"] = storedTD["created"]
+		td["modified"] = storedTD["modified"]
+
+		if !SerializedEqual(td, storedTD) {
+			t.Fatalf("Posted:\n%v\n Retrieved:\n%v\n", td, storedTD)
+		}
 	})
 
-	t.Run("Verify the collection", func(t *testing.T) {
-		// Retrieve a page
-		res, err := http.Get(testServer.URL + "/td/")
+	t.Run("With ID", func(t *testing.T) {
+		td := mockedTD("urn:example:test/thing_1")
+		b, _ := json.Marshal(td)
+
+		// create over HTTP - this should fail
+		res, err := http.Post(testServer.URL+"/td/", wot.MediaTypeThingDescription, bytes.NewReader(b))
 		if err != nil {
-			t.Fatal(err.Error())
+			t.Fatalf("Error posting: %s", err)
 		}
 		defer res.Body.Close()
 
-		var collectionPage ThingDescriptionPage
-		err = json.NewDecoder(res.Body).Decode(&collectionPage)
+		b, err = ioutil.ReadAll(res.Body)
 		if err != nil {
-			t.Fatal(err.Error())
+			t.Fatalf("Error reading response body: %s", err)
 		}
 
-		if collectionPage.Total != 1 {
-			t.Fatal("Server should return collection with exactly 1 entry, but got total", collectionPage.Total)
+		if res.StatusCode != http.StatusBadRequest {
+			t.Fatalf("Expected response %v, got: %d. Reponse body: %s", http.StatusBadRequest, res.StatusCode, b)
 		}
 	})
 }
 
-//
-//func TestRetrieve(t *testing.T) {
-//	router, shutdown, err := setupRouter()
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//	ts := httptest.NewServer(router)
-//	defer ts.Close()
-//	defer shutdown()
-//
-//	mockedDevice := mockedDevice("1", "10")
-//	b, _ := json.Marshal(mockedDevice)
-//
-//	// Create
-//	url := ts.URL + TestApiLocation + "/devices/" + mockedDevice.Id
-//	t.Log("Calling PUT", url)
-//	res, err := httpPut(url, bytes.NewReader(b))
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//
-//	// Retrieve: device
-//	t.Log("Calling GET", url)
-//	res, err = http.Get(url)
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//
-//	if res.StatusCode != http.StatusOK {
-//		t.Fatalf("Server should return %v, got instead: %v (%s)", http.StatusOK, res.StatusCode, res.Status)
-//	}
-//
-//	if !strings.HasPrefix(res.Header.Get("Content-Type"), "application/ld+json") {
-//		t.Fatalf("Response should have Content-Type: application/ld+json, got instead %s", res.Header.Get("Content-Type"))
-//	}
-//
-//	var retrievedDevice *SimpleDevice
-//	decoder := json.NewDecoder(res.Body)
-//	defer res.Body.Close()
-//
-//	err = decoder.Decode(&retrievedDevice)
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//
-//	if !strings.HasPrefix(retrievedDevice.URL, TestApiLocation) {
-//		t.Fatalf("Device URL should have been prefixed with %v by catalog, retrieved URL: %v", TestApiLocation, retrievedDevice.URL)
-//	}
-//
-//	simple := mockedDevice.simplify()
-//	simple.Created = retrievedDevice.Created
-//	simple.Updated = retrievedDevice.Updated
-//	simple.Expires = retrievedDevice.Expires
-//	simple.Device.Resources = nil
-//	if !reflect.DeepEqual(simple, retrievedDevice) {
-//		t.Fatalf("The retrieved device is not the same as the added one:\n Added:\n %v \n Retrieved: \n %v", *mockedDevice.simplify(), *retrievedDevice)
-//	}
-//}
-//
-//func TestUpdate(t *testing.T) {
-//	router, shutdown, err := setupRouter()
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//	ts := httptest.NewServer(router)
-//	defer ts.Close()
-//	defer shutdown()
-//
-//	mockedDevice1 := mockedDevice("1", "10")
-//	b, _ := json.Marshal(mockedDevice1)
-//
-//	// Create
-//	url := ts.URL + TestApiLocation + "/devices/" + mockedDevice1.Id
-//	t.Log("Calling PUT", url)
-//	res, err := httpPut(url, bytes.NewReader(b))
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//
-//	// Update
-//	mockedDevice2 := mockedDevice("1", "10")
-//	mockedDevice2.Description = "Updated Test Device"
-//	b, _ = json.Marshal(mockedDevice2)
-//
-//	t.Log("Calling PUT", url)
-//	res, err = httpPut(url, bytes.NewReader(b))
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//
-//	if res.StatusCode != http.StatusOK {
-//		body, err := ioutil.ReadAll(res.Body)
-//		if err != nil {
-//			t.Fatal(err.Error())
-//		}
-//		t.Log(string(body))
-//		t.Fatalf("Server should return %v, got instead: %v (%s)", http.StatusCreated, res.StatusCode, res.Status)
-//	}
-//
-//	// Retrieve & compare
-//	t.Log("Calling GET", url)
-//	res, err = http.Get(url)
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//
-//	var retrievedDevice *SimpleDevice
-//	decoder := json.NewDecoder(res.Body)
-//	defer res.Body.Close()
-//
-//	err = decoder.Decode(&retrievedDevice)
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//
-//	simple := mockedDevice2.simplify()
-//	simple.Created = retrievedDevice.Created
-//	simple.Updated = retrievedDevice.Updated
-//	simple.Expires = retrievedDevice.Expires
-//	simple.Device.Resources = nil
-//	if !reflect.DeepEqual(simple, retrievedDevice) {
-//		t.Fatalf("The retrieved device is not the same as the added one:\n Added:\n %v \n Retrieved: \n %v", simple, retrievedDevice)
-//	}
-//
-//	// Create with user-defined ID (PUT for creation)
-//	mockedDevice3 := mockedDevice("1", "11")
-//	mockedDevice3.Id = ""
-//	b, _ = json.Marshal(mockedDevice3)
-//	url = ts.URL + TestApiLocation + "/devices/" + "device123"
-//	t.Log("Calling PUT", url)
-//	res, err = httpPut(url, bytes.NewReader(b))
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//
-//	if res.StatusCode != http.StatusCreated {
-//		body, err := ioutil.ReadAll(res.Body)
-//		if err != nil {
-//			t.Fatal(err.Error())
-//		}
-//		t.Log(string(body))
-//		t.Fatalf("Server should return %v, got instead: %v (%s)", http.StatusCreated, res.StatusCode, res.Status)
-//	}
-//
-//	// Check if user-defined id is in response
-//	location, err := res.Location()
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//	parts := strings.Split(location.String(), "/")
-//	if parts[len(parts)-1] != "device123" {
-//		t.Fatalf("User-defined id is not returned in location. Getting %v\n", location.String())
-//	}
-//}
-//
-//func TestDelete(t *testing.T) {
-//	router, shutdown, err := setupRouter()
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//	ts := httptest.NewServer(router)
-//	defer ts.Close()
-//	defer shutdown()
-//
-//	device := mockedDevice("1", "10")
-//	b, _ := json.Marshal(device)
-//
-//	// Create
-//	url := ts.URL + TestApiLocation + "/devices/" + device.Id
-//	t.Log("Calling POST", url)
-//	res, err := httpPut(url, bytes.NewReader(b))
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//
-//	// Delete
-//	t.Log("Calling DELETE", url)
-//	req, err := http.NewRequest("DELETE", url, bytes.NewReader([]byte{}))
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//	res, err = http.DefaultClient.Do(req)
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//
-//	if res.StatusCode != http.StatusOK {
-//		t.Fatalf("Server should return %v, got instead: %v (%s)", http.StatusOK, res.StatusCode, res.Status)
-//	}
-//
-//	// Retrieve whole collection
-//	url = ts.URL + TestApiLocation + "/devices"
-//	t.Log("Calling GET", url)
-//	res, err = http.Get(url)
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//
-//	var collection *DeviceCollection
-//	decoder := json.NewDecoder(res.Body)
-//	defer res.Body.Close()
-//
-//	err = decoder.Decode(&collection)
-//
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//
-//	if collection.Total != 0 {
-//		t.Fatal("Server should return an empty collection, but got total", collection.Total)
-//	}
-//
-//}
+func TestGet(t *testing.T) {
+	controller, testServer := setupTestHTTPServer(t)
+
+	// add through controller
+	id := "urn:example:test/thing_1"
+	td := mockedTD(id)
+	_, err := controller.add(td)
+	if err != nil {
+		t.Fatalf("Error adding through controller: %s", err)
+	}
+
+	// retrieve over HTTP
+	res, err := http.Get(testServer.URL + "/td/" + id)
+	if err != nil {
+		t.Fatalf("Error getting TD: %s", err)
+	}
+	defer res.Body.Close()
+
+	b, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("Error reading response body: %s", err)
+	}
+
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("Expected response %v, got: %d. Reponse body: %s", http.StatusOK, res.StatusCode, b)
+	}
+
+	if !strings.HasPrefix(res.Header.Get("Content-Type"), "application/ld+json") {
+		t.Fatalf("Response should have Content-Type: application/ld+json, got instead %s", res.Header.Get("Content-Type"))
+	}
+
+	var retrievedTD ThingDescription
+	err = json.Unmarshal(b, &retrievedTD)
+	if err != nil {
+		t.Fatalf("Error decoding body: %s", err)
+	}
+
+	// retrieve through controller to compare
+	td, err = controller.get(id)
+	if err != nil {
+		t.Fatalf("Error getting through controller: %s", err)
+	}
+
+	if !SerializedEqual(td, retrievedTD) {
+		t.Fatalf("The retrieved TD is not the same as the added one:\n Added:\n %v \n Retrieved: \n %v", td, retrievedTD)
+	}
+}
+
+func TestPut(t *testing.T) {
+	controller, testServer := setupTestHTTPServer(t)
+
+	// add through controller
+	id := "urn:example:test/thing_1"
+	td := mockedTD(id)
+	_, err := controller.add(td)
+	if err != nil {
+		t.Fatalf("Error adding through controller: %s", err)
+	}
+
+	t.Run("Update existing", func(t *testing.T) {
+		td["title"] = "updated title"
+		b, _ := json.Marshal(td)
+		// update over HTTP
+		res, err := httpDoRequest(http.MethodPut, testServer.URL+"/td/"+id, bytes.NewReader(b))
+		if err != nil {
+			t.Fatalf("Error putting TD: %s", err)
+		}
+		defer res.Body.Close()
+
+		b, err = ioutil.ReadAll(res.Body)
+		if err != nil {
+			t.Fatalf("Error reading response body: %s", err)
+		}
+
+		if res.StatusCode != http.StatusOK {
+			t.Fatalf("Expected response %v, got: %d. Reponse body: %s", http.StatusOK, res.StatusCode, b)
+		}
+
+		storedTD, err := controller.get(id)
+		if err != nil {
+			t.Fatalf("Error getting through controller: %s", err)
+		}
+
+		// set system-generated attributes
+		td["modified"] = storedTD["modified"]
+
+		if !SerializedEqual(td, storedTD) {
+			t.Fatalf("Posted:\n%v\n Retrieved:\n%v\n", td, storedTD)
+		}
+	})
+
+	t.Run("Create with ID", func(t *testing.T) {
+		id := "urn:example:test/thing_2"
+		td := mockedTD(id)
+		b, _ := json.Marshal(td)
+
+		// create over HTTP
+		res, err := httpDoRequest(http.MethodPut, testServer.URL+"/td/"+id, bytes.NewReader(b))
+		if err != nil {
+			t.Fatalf("Error putting TD: %s", err)
+		}
+		defer res.Body.Close()
+
+		b, err = ioutil.ReadAll(res.Body)
+		if err != nil {
+			t.Fatalf("Error reading response body: %s", err)
+		}
+
+		if res.StatusCode != http.StatusCreated {
+			t.Fatalf("Expected response %v, got: %d. Reponse body: %s", http.StatusCreated, res.StatusCode, b)
+		}
+
+		// retrieve through controller
+		storedTD, err := controller.get(id)
+		if err != nil {
+			t.Fatalf("Error getting through controller: %s", err)
+		}
+
+		// set system-generated attributes
+		td["created"] = storedTD["created"]
+		td["modified"] = storedTD["modified"]
+
+		if !SerializedEqual(td, storedTD) {
+			t.Fatalf("Put:\n%v\n Retrieved:\n%v\n", td, storedTD)
+		}
+	})
+}
+
+func TestDelete(t *testing.T) {
+	controller, testServer := setupTestHTTPServer(t)
+
+	// add through controller
+	id := "urn:example:test/thing_1"
+	td := mockedTD(id)
+	_, err := controller.add(td)
+	if err != nil {
+		t.Fatalf("Error adding through controller: %s", err)
+	}
+
+	t.Run("Remove existing", func(t *testing.T) {
+		// delete over HTTP
+		res, err := httpDoRequest(http.MethodDelete, testServer.URL+"/td/"+id, bytes.NewReader(nil))
+		if err != nil {
+			t.Fatalf("Error deleting TD: %s", err)
+		}
+		defer res.Body.Close()
+
+		if res.StatusCode != http.StatusOK {
+			t.Fatalf("Server should return %v, got instead: %d", http.StatusOK, res.StatusCode)
+		}
+
+		// retrieve through controller
+		_, err = controller.get(id)
+		if err == nil {
+			t.Fatalf("No error on deleted item.")
+		}
+	})
+
+	t.Run("Remove non-existing", func(t *testing.T) {
+		// delete over HTTP
+		res, err := httpDoRequest(http.MethodDelete, testServer.URL+"/td/something-else", bytes.NewReader(nil))
+		if err != nil {
+			t.Fatalf("Error deleting TD: %s", err)
+		}
+		defer res.Body.Close()
+
+		if res.StatusCode != http.StatusNotFound {
+			t.Fatalf("Server should return %v, got instead: %d", http.StatusNotFound, res.StatusCode)
+		}
+	})
+
+}
+
 //
 //func TestList(t *testing.T) {
 //	router, shutdown, err := setupRouter()
@@ -439,15 +426,15 @@ func TestCreate(t *testing.T) {
 //	}
 //}
 //
-//
-//func httpPut(url string, r *bytes.Reader) (*http.Response, error) {
-//	req, err := http.NewRequest("PUT", url, r)
-//	if err != nil {
-//		return nil, err
-//	}
-//	res, err := http.DefaultClient.Do(req)
-//	if err != nil {
-//		return nil, err
-//	}
-//	return res, nil
-//}
+
+func httpDoRequest(method, url string, r *bytes.Reader) (*http.Response, error) {
+	req, err := http.NewRequest(method, url, r)
+	if err != nil {
+		return nil, err
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
