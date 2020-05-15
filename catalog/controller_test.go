@@ -109,9 +109,12 @@ func TestControllerAdd(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Unexpected error on add: %s", err)
 		}
-		_, err = uuid.FromString(id)
+		if !strings.HasPrefix(id, "urn:") {
+			t.Fatalf("System-generated ID is not a URN. Got: %s\n", id)
+		}
+		_, err = uuid.FromString(strings.TrimPrefix(id, "urn:"))
 		if err == nil {
-			t.Fatalf("System-generated URN is not a uuid. Got: %s\n", id)
+			t.Fatalf("System-generated ID is not a uuid. Got: %s\n", id)
 		}
 	})
 }
