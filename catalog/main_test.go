@@ -3,14 +3,20 @@
 package catalog
 
 import (
+	"encoding/json"
 	"os"
+	"reflect"
 	"testing"
+
+	"github.com/linksmart/thing-directory/wot"
 )
 
 const (
-	TestApiLocation    = "/rc"
-	TestStaticLocation = "/static"
+	envTestSchemaPath = "TEST_SCHEMA_PATH"
+	defaultSchemaPath = "../wot/wot_td_schema.json"
 )
+
+type any = interface{}
 
 var (
 	TestSupportedBackends = map[string]bool{
@@ -20,7 +26,24 @@ var (
 	TestStorageType string
 )
 
+func loadSchema() error {
+	path := os.Getenv(envTestSchemaPath)
+	if path == "" {
+		path = defaultSchemaPath
+	}
+	return wot.LoadSchema(path)
+}
+
+func serializedEqual(td1 ThingDescription, td2 ThingDescription) bool {
+	// serialize to ease comparison of interfaces and concrete types
+	tdBytes, _ := json.Marshal(td1)
+	storedTDBytes, _ := json.Marshal(td2)
+
+	return reflect.DeepEqual(tdBytes, storedTDBytes)
+}
+
 func TestMain(m *testing.M) {
+	// run tests for each storage backend
 	for b, supported := range TestSupportedBackends {
 		if supported {
 			TestStorageType = b

@@ -3,7 +3,6 @@
 package catalog
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"reflect"
@@ -12,11 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/linksmart/thing-directory/wot"
 	uuid "github.com/satori/go.uuid"
 )
-
-type any = interface{}
 
 func setup(t *testing.T) CatalogController {
 	var (
@@ -25,8 +21,7 @@ func setup(t *testing.T) CatalogController {
 			strings.Replace(os.TempDir(), "\\", "/", -1), uuid.NewV4())
 	)
 
-	// TODO: use env var
-	err := wot.LoadSchema("../wot/wot_td_schema.json")
+	err := loadSchema()
 	if err != nil {
 		t.Fatalf("error loading WoT Thing Description schema: %s", err)
 	}
@@ -151,7 +146,7 @@ func TestControllerGet(t *testing.T) {
 		storedTD["created"] = td["created"]
 		storedTD["modified"] = td["modified"]
 
-		if !SerializedEqual(td, storedTD) {
+		if !serializedEqual(td, storedTD) {
 			t.Fatalf("Added and retrieved TDs are not equal:\n Added:\n%v\n Retrieved:\n%v\n", td, storedTD)
 		}
 	})
@@ -213,7 +208,7 @@ func TestControllerUpdate(t *testing.T) {
 		storedTD["created"] = td["created"]
 		storedTD["modified"] = td["modified"]
 
-		if !SerializedEqual(td, storedTD) {
+		if !serializedEqual(td, storedTD) {
 			t.Fatalf("Updates were not applied or returned:\n Expected:\n%v\n Retrieved:\n%v\n", td, storedTD)
 		}
 	})
@@ -505,13 +500,4 @@ func TestControllerCleanExpired(t *testing.T) {
 	} else {
 		t.Fatalf("TD was not removed after 1 seconds")
 	}
-
-}
-
-func SerializedEqual(td1 ThingDescription, td2 ThingDescription) bool {
-	// serialize to ease comparison of interfaces and concrete types
-	tdBytes, _ := json.Marshal(td1)
-	storedTDBytes, _ := json.Marshal(td2)
-
-	return reflect.DeepEqual(tdBytes, storedTDBytes)
 }

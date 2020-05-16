@@ -12,6 +12,11 @@ var schema *gojsonschema.Schema
 
 // LoadSchema loads the schema into the package
 func LoadSchema(path string) error {
+	if schema != nil {
+		// already loaded
+		return nil
+	}
+
 	file, err := ioutil.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("error reading file: %s", err)

@@ -36,8 +36,7 @@ func setupTestHTTPServer(t *testing.T) (CatalogController, *httptest.Server) {
 		}
 	}
 
-	// TODO: use env var
-	err = wot.LoadSchema("../wot/wot_td_schema.json")
+	err = loadSchema()
 	if err != nil {
 		t.Fatalf("error loading WoT Thing Description schema: %s", err)
 	}
@@ -144,7 +143,7 @@ func TestPost(t *testing.T) {
 		td["created"] = storedTD["created"]
 		td["modified"] = storedTD["modified"]
 
-		if !SerializedEqual(td, storedTD) {
+		if !serializedEqual(td, storedTD) {
 			t.Fatalf("Posted:\n%v\n Retrieved:\n%v\n", td, storedTD)
 		}
 	})
@@ -218,7 +217,7 @@ func TestGet(t *testing.T) {
 		t.Fatalf("Error getting through controller: %s", err)
 	}
 
-	if !SerializedEqual(td, retrievedTD) {
+	if !serializedEqual(td, retrievedTD) {
 		t.Fatalf("The retrieved TD is not the same as the added one:\n Added:\n %v \n Retrieved: \n %v", td, retrievedTD)
 	}
 }
@@ -261,7 +260,7 @@ func TestPut(t *testing.T) {
 		// set system-generated attributes
 		td["modified"] = storedTD["modified"]
 
-		if !SerializedEqual(td, storedTD) {
+		if !serializedEqual(td, storedTD) {
 			t.Fatalf("Posted:\n%v\n Retrieved:\n%v\n", td, storedTD)
 		}
 	})
@@ -297,7 +296,7 @@ func TestPut(t *testing.T) {
 		td["created"] = storedTD["created"]
 		td["modified"] = storedTD["modified"]
 
-		if !SerializedEqual(td, storedTD) {
+		if !serializedEqual(td, storedTD) {
 			t.Fatalf("Put:\n%v\n Retrieved:\n%v\n", td, storedTD)
 		}
 	})
