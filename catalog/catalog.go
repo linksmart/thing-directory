@@ -42,8 +42,8 @@ type CatalogController interface {
 	list(page, perPage int) ([]ThingDescription, int, error)
 	// Deprecated
 	filter(path, op, value string, page, perPage int) ([]ThingDescription, int, error)
-	filterJSONPath(jsonpath string, page, perPage int) ([]interface{}, int, error)
-	filterXPath(jsonpath string, page, perPage int) ([]interface{}, int, error)
+	filterJSONPath(path string, page, perPage int) ([]interface{}, int, error)
+	filterXPath(path string, page, perPage int) ([]interface{}, int, error)
 	total() (int, error)
 	cleanExpired()
 

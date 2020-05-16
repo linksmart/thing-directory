@@ -60,7 +60,7 @@ func setupTestHTTPServer(t *testing.T) (CatalogController, *httptest.Server) {
 	r.Methods("PUT").Path("/td/{id:.+}").HandlerFunc(api.Put)
 	r.Methods("DELETE").Path("/td/{id:.+}").HandlerFunc(api.Delete)
 	// Listing and filtering
-	r.Methods("GET").Path("/td").HandlerFunc(api.List)
+	r.Methods("GET").Path("/td").HandlerFunc(api.GetMany)
 
 	httpServer := httptest.NewServer(r)
 
@@ -202,8 +202,8 @@ func TestGet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error parsing media type: %s", err)
 	}
-	if mediaType != ResponseMimeType {
-		t.Fatalf("Expected Content-Type: %s, got %s", ResponseMimeType, res.Header.Get("Content-Type"))
+	if mediaType != ResponseMediaType {
+		t.Fatalf("Expected Content-Type: %s, got %s", ResponseMediaType, res.Header.Get("Content-Type"))
 	}
 
 	var retrievedTD ThingDescription
@@ -400,8 +400,8 @@ func TestGetAll(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Error parsing media type: %s", err)
 		}
-		if mediaType != ResponseMimeType {
-			t.Fatalf("Expected Content-Type: %s, got %s", ResponseMimeType, res.Header.Get("Content-Type"))
+		if mediaType != ResponseMediaType {
+			t.Fatalf("Expected Content-Type: %s, got %s", ResponseMediaType, res.Header.Get("Content-Type"))
 		}
 	})
 

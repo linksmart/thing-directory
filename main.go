@@ -177,8 +177,8 @@ func setupHTTPRouter(config *Config, api *catalog.HTTPAPI) (*negroni.Negroni, er
 	r := newRouter()
 	r.get("/", commonHandlers.ThenFunc(indexHandler))
 
-	r.get("/td", commonHandlers.ThenFunc(api.List))
-	r.get("/td/filter/{path}/{op}/{value:.*}", commonHandlers.ThenFunc(api.Filter))
+	r.get("/td", commonHandlers.ThenFunc(api.GetMany))
+	r.get("/td/filter/{path}/{op}/{value:.*}", commonHandlers.ThenFunc(api.Filter)) // deprecated
 
 	r.post("/td", commonHandlers.ThenFunc(api.Post))
 	r.get("/td/{id:.+}", commonHandlers.ThenFunc(api.Get))
