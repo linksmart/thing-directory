@@ -7,9 +7,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"mime"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -195,8 +198,12 @@ func TestGet(t *testing.T) {
 		t.Fatalf("Expected response %v, got: %d. Reponse body: %s", http.StatusOK, res.StatusCode, b)
 	}
 
-	if !strings.HasPrefix(res.Header.Get("Content-Type"), "application/ld+json") {
-		t.Fatalf("Response should have Content-Type: application/ld+json, got instead %s", res.Header.Get("Content-Type"))
+	mediaType, _, err := mime.ParseMediaType(res.Header.Get("Content-Type"))
+	if err != nil {
+		t.Fatalf("Error parsing media type: %s", err)
+	}
+	if mediaType != ResponseMimeType {
+		t.Fatalf("Expected Content-Type: %s, got %s", ResponseMimeType, res.Header.Get("Content-Type"))
 	}
 
 	var retrievedTD ThingDescription
@@ -341,91 +348,139 @@ func TestDelete(t *testing.T) {
 
 }
 
-//
-//func TestList(t *testing.T) {
-//	router, shutdown, err := setupRouter()
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//	ts := httptest.NewServer(router)
-//	defer ts.Close()
-//	defer shutdown()
-//
-//	url := ts.URL + TestApiLocation + "/devices"
-//	t.Log("Calling GET", url)
-//	res, err := http.Get(url)
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//
-//	if res.StatusCode != http.StatusOK {
-//		t.Fatalf("Server should return %v, got instead: %v (%s)", http.StatusOK, res.StatusCode, res.Status)
-//	}
-//
-//	if !strings.HasPrefix(res.Header.Get("Content-Type"), "application/ld+json") {
-//		t.Fatalf("Response should have Content-Type: application/ld+json, got instead %s", res.Header.Get("Content-Type"))
-//	}
-//
-//	var collection *DeviceCollection
-//	decoder := json.NewDecoder(res.Body)
-//	defer res.Body.Close()
-//
-//	err = decoder.Decode(&collection)
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//
-//	if collection.Total > 0 {
-//		t.Fatal("Server should return empty collection, but got total", collection.Total)
-//	}
-//}
-//
-//func TestFilter(t *testing.T) {
-//	router, shutdown, err := setupRouter()
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//	ts := httptest.NewServer(router)
-//	defer ts.Close()
-//	defer shutdown()
-//
-//	// Create 3 devices
-//	url := ts.URL + TestApiLocation + "/devices/"
-//	for i := 0; i < 3; i++ {
-//		d := mockedDevice(fmt.Sprint(i), fmt.Sprint(i*10))
-//		d.Id = ""
-//		b, _ := json.Marshal(d)
-//
-//		_, err := http.Post(url, "application/ld+json", bytes.NewReader(b))
-//		if err != nil {
-//			t.Fatal(err.Error())
-//		}
-//	}
-//
-//	// Devices
-//	// Filter many
-//	url = ts.URL + TestApiLocation + "/devices/" + "name/" + utils.FOpPrefix + "/" + "Test"
-//	t.Log("Calling GET", url)
-//	res, err := http.Get(url)
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//
-//	var collection *DeviceCollection
-//	decoder := json.NewDecoder(res.Body)
-//	defer res.Body.Close()
-//
-//	err = decoder.Decode(&collection)
-//
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//
-//	if collection.Total != 3 {
-//		t.Fatal("Server should return a collection of *3* resources, but got total", collection.Total)
-//	}
-//}
-//
+func TestGetAll(t *testing.T) {
+	controller, testServer := setupTestHTTPServer(t)
+
+	for i := 0; i < 3; i++ {
+		// add through controller
+		td := mockedTD("urn:example:test/thing_" + strconv.Itoa(i))
+		_, err := controller.add(td)
+		if err != nil {
+			t.Fatalf("Error adding through controller: %s", err)
+		}
+	}
+
+	t.Run("Response total", func(t *testing.T) {
+		res, err := http.Get(testServer.URL + "/td")
+		if err != nil {
+			t.Fatalf("Error getting TDs: %s", err)
+		}
+		defer res.Body.Close()
+
+		var collectionPage ThingDescriptionPage
+		err = json.NewDecoder(res.Body).Decode(&collectionPage)
+		if err != nil {
+			t.Fatalf("Error decoding page: %s", err)
+		}
+
+		items, ok := collectionPage.Items.([]interface{})
+		if !ok {
+			t.Fatalf("Items in catalog are not TDs. Got: %v", collectionPage.Items)
+		}
+		if len(items) != 3 {
+			t.Fatalf("Expected 3 items in page, got %d", len(items))
+		}
+		if collectionPage.Total != 3 {
+			t.Fatalf("Expected total value of 3, got %d", collectionPage.Total)
+		}
+	})
+
+	t.Run("Response headers", func(t *testing.T) {
+		res, err := http.Get(testServer.URL + "/td")
+		if err != nil {
+			t.Fatalf("Error getting TDs: %s", err)
+		}
+		defer res.Body.Close()
+
+		if res.StatusCode != http.StatusOK {
+			t.Fatalf("Expected status %v, got: %d", http.StatusOK, res.StatusCode)
+		}
+
+		mediaType, _, err := mime.ParseMediaType(res.Header.Get("Content-Type"))
+		if err != nil {
+			t.Fatalf("Error parsing media type: %s", err)
+		}
+		if mediaType != ResponseMimeType {
+			t.Fatalf("Expected Content-Type: %s, got %s", ResponseMimeType, res.Header.Get("Content-Type"))
+		}
+	})
+
+	t.Run("Response items", func(t *testing.T) {
+		res, err := http.Get(testServer.URL + "/td")
+		if err != nil {
+			t.Fatalf("Error getting TDs: %s", err)
+		}
+		defer res.Body.Close()
+
+		var collectionPage ThingDescriptionPage
+		err = json.NewDecoder(res.Body).Decode(&collectionPage)
+		if err != nil {
+			t.Fatalf("Error decoding page: %s", err)
+		}
+
+		// get all through controller
+		storedTDs, _, err := controller.list(1, 10)
+		if err != nil {
+			t.Fatal("Error getting list of TDs:", err.Error())
+		}
+
+		// compare response and stored
+		for i, sd := range collectionPage.Items.([]interface{}) {
+			if !reflect.DeepEqual(storedTDs[i], sd) {
+				t.Fatalf("TD responded over HTTP is different with the one stored:\n Stored:\n%v\n Listed\n%v\n",
+					storedTDs[i], sd)
+			}
+		}
+	})
+
+	t.Run("Filter bad JSONPath", func(t *testing.T) {
+		res, err := http.Get(testServer.URL + "/td?jsonpath=*/id")
+		if err != nil {
+			t.Fatalf("Error getting TDs: %s", err)
+		}
+		defer res.Body.Close()
+
+		b, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			t.Fatalf("Error reading response body: %s", err)
+		}
+		if res.StatusCode != http.StatusInternalServerError {
+			t.Fatalf("Expected status %v, got: %d. Response body:\n%s", http.StatusInternalServerError, res.StatusCode, b)
+		}
+	})
+
+	t.Run("Filter bad XPath", func(t *testing.T) {
+		res, err := http.Get(testServer.URL + "/td?xpath=$[:].id")
+		if err != nil {
+			t.Fatalf("Error getting TDs: %s", err)
+		}
+		defer res.Body.Close()
+
+		b, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			t.Fatalf("Error reading response body: %s", err)
+		}
+		if res.StatusCode != http.StatusInternalServerError {
+			t.Fatalf("Expected status %v, got: %d. Response body:\n%s", http.StatusInternalServerError, res.StatusCode, b)
+		}
+	})
+
+	t.Run("Filter multiple paths", func(t *testing.T) {
+		res, err := http.Get(testServer.URL + "/td?jsonpath=$[:].id&xpath=*/id")
+		if err != nil {
+			t.Fatalf("Error getting TDs: %s", err)
+		}
+		defer res.Body.Close()
+
+		b, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			t.Fatalf("Error reading response body: %s", err)
+		}
+		if res.StatusCode != http.StatusBadRequest {
+			t.Fatalf("Expected status %v, got: %d. Response body:\n%s", http.StatusBadRequest, res.StatusCode, b)
+		}
+	})
+}
 
 func httpDoRequest(method, url string, r *bytes.Reader) (*http.Response, error) {
 	req, err := http.NewRequest(method, url, r)
