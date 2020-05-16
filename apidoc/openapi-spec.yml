@@ -294,7 +294,7 @@ components:
       properties:
         '@context':
           format: url
-        things:
+        items:
           type: array
           items:
             $ref: '#/components/schemas/ThingDescription'
@@ -345,9 +345,8 @@ components:
       summary: Example Paginated Thing Descriptions
       value:
         {
-          "@context":"TBA",
-          "id":"151f00ab-0696-4814-921c-5b3ed3d6c240",
-          "thingDescriptions":[
+          "@context":"",
+          "items":[
           {
             "@context":"https://www.w3.org/2019/wot/td/v1",
             "id":"urn:uuid:32c0dc26-4183-4dda-8f77-8955e52066df",
