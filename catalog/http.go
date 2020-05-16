@@ -12,9 +12,9 @@ import (
 )
 
 const (
-	ContextURL       = ""
-	MaxPerPage       = 100
-	ResponseMimeType = "application/ld+json"
+	ContextURL        = ""
+	MaxPerPage        = 100
+	ResponseMediaType = "application/ld+json"
 	// query parameters
 	QueryParamPage    = "page"
 	QueryParamPerPage = "perPage"
@@ -32,14 +32,13 @@ type ThingDescriptionPage struct {
 	Total   int         `json:"total"`
 }
 
-// Read-only catalog api
 type HTTPAPI struct {
 	controller  CatalogController
 	contentType string
 }
 
 func NewHTTPAPI(controller CatalogController, version string) *HTTPAPI {
-	contentType := ResponseMimeType
+	contentType := ResponseMediaType
 	if version != "" {
 		contentType += ";version=" + version
 	}
@@ -49,7 +48,7 @@ func NewHTTPAPI(controller CatalogController, version string) *HTTPAPI {
 	}
 }
 
-// add one
+// Post handler creates one item
 func (a *HTTPAPI) Post(w http.ResponseWriter, req *http.Request) {
 	body, err := ioutil.ReadAll(req.Body)
 	req.Body.Close()
@@ -87,12 +86,11 @@ func (a *HTTPAPI) Post(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	w.Header().Set("Content-Type", a.contentType)
 	w.Header().Add("Location", id)
 	w.WriteHeader(http.StatusCreated)
 }
 
-// get one
+// Get handler get one item
 func (a *HTTPAPI) Get(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 
@@ -118,8 +116,8 @@ func (a *HTTPAPI) Get(w http.ResponseWriter, req *http.Request) {
 	w.Write(b)
 }
 
-// Updates an existing device (Response: StatusOK)
-// If the device does not exist, a new one will be created with the given id (Response: StatusCreated)
+// Put handler updates an existing item (Response: StatusOK)
+// If the item does not exist, a new one will be created with the given id (Response: StatusCreated)
 func (a *HTTPAPI) Put(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 
@@ -169,11 +167,10 @@ func (a *HTTPAPI) Put(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	w.Header().Set("Content-Type", a.contentType)
 	w.WriteHeader(http.StatusOK)
 }
 
-// delete one
+// Delete removes one item
 func (a *HTTPAPI) Delete(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 
@@ -192,8 +189,8 @@ func (a *HTTPAPI) Delete(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// Lists devices in a DeviceCollection
-func (a *HTTPAPI) List(w http.ResponseWriter, req *http.Request) {
+// GetMany lists entries in a paginated catalog format
+func (a *HTTPAPI) GetMany(w http.ResponseWriter, req *http.Request) {
 	err := req.ParseForm()
 	if err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query:", err.Error())
@@ -209,6 +206,10 @@ func (a *HTTPAPI) List(w http.ResponseWriter, req *http.Request) {
 	var items interface{}
 	var total int
 	if jsonPath := req.Form.Get(QueryParamJSONPath); jsonPath != "" {
+		if req.Form.Get(QueryParamXPath) != "" {
+			ErrorResponse(w, http.StatusBadRequest, "query with jsonpath should not be mixed with xpath")
+			return
+		}
 		w.Header().Add("X-Request-Jsonpath", jsonPath)
 		items, total, err = a.controller.filterJSONPath(jsonPath, page, perPage)
 		if err != nil {
@@ -253,7 +254,7 @@ func (a *HTTPAPI) List(w http.ResponseWriter, req *http.Request) {
 }
 
 // Deprecated:
-// Lists filtered devices in a DeviceCollection
+// Filter lists filtered items in a paginated catalog format
 func (a *HTTPAPI) Filter(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 	path := params["path"]

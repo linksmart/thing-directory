@@ -75,7 +75,7 @@ func main() {
 	// Setup API storage
 	var storage catalog.Storage
 	switch config.Storage.Type {
-	case BackendLevelDB:
+	case catalog.BackendLevelDB:
 		storage, err = catalog.NewLevelDBStorage(config.Storage.DSN, nil)
 		if err != nil {
 			panic("Failed to start LevelDB storage:" + err.Error())
@@ -112,7 +112,7 @@ func main() {
 	if config.DnssdEnabled {
 		go func() {
 			bonjourS, err = bonjour.Register(config.Description,
-				DNSSDServiceType,
+				catalog.DNSSDServiceType,
 				"",
 				config.BindPort,
 				[]string{"uri=/td"},
@@ -121,7 +121,7 @@ func main() {
 				log.Printf("Failed to register DNS-SD service: %s", err.Error())
 				return
 			}
-			log.Println("Registered service via DNS-SD using type", DNSSDServiceType)
+			log.Println("Registered service via DNS-SD using type", catalog.DNSSDServiceType)
 		}()
 	}
 
@@ -177,8 +177,8 @@ func setupHTTPRouter(config *Config, api *catalog.HTTPAPI) (*negroni.Negroni, er
 	r := newRouter()
 	r.get("/", commonHandlers.ThenFunc(indexHandler))
 
-	r.get("/td", commonHandlers.ThenFunc(api.List))
-	r.get("/td/filter/{path}/{op}/{value:.*}", commonHandlers.ThenFunc(api.Filter))
+	r.get("/td", commonHandlers.ThenFunc(api.GetMany))
+	r.get("/td/filter/{path}/{op}/{value:.*}", commonHandlers.ThenFunc(api.Filter)) // deprecated
 
 	r.post("/td", commonHandlers.ThenFunc(api.Post))
 	r.get("/td/{id:.+}", commonHandlers.ThenFunc(api.Get))

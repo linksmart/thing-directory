@@ -4,11 +4,13 @@ import (
 	"time"
 )
 
+const MediaTypeThingDescription = "application/td+json"
+
 /*
  This file has go models for Web Of Things (WoT) Things Description following : https://www.w3.org/TR/2019/CR-wot-thing-description-20191106/ (W3C Candidate Recommendation 6 November 2019)
 */
 
-type any interface{}
+type any = interface{}
 
 // ThingDescription is the structured data describing a Thing
 type ThingDescription struct {
@@ -459,20 +461,6 @@ type OAuth2SecurityScheme struct {
 
 	//Authorization flow.
 	Flow string `json:"flow"`
-}
-
-// ThingsDescriptionList describes a thing_description of registered Data Sources
-type ThingsDescriptionList struct {
-	// URL of the DataStreamList API
-	URL string `json:"url"`
-	// Entries is an array of Data Sources
-	Streams []ThingDescription `json:"things"`
-	// Page is the current page in Entries pagination
-	Page int `json:"page"`
-	// MaxEntries is the results per page in Entries pagination
-	PerPage int `json:"per_page"`
-	// Total is the total #of pages in Entries pagination
-	Total int `json:"total"`
 }
 
 var enumValues_DataSchemaType = []any{
