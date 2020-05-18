@@ -90,8 +90,8 @@ func (a *HTTPAPI) Post(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-//validation API
-func (a *HTTPAPI) Validation(w http.ResponseWriter, req *http.Request) {
+// GetValidation handler gets validation for the request body
+func (a *HTTPAPI) GetValidation(w http.ResponseWriter, req *http.Request) {
 	body, err := ioutil.ReadAll(req.Body)
 	req.Body.Close()
 	if err != nil {
@@ -100,7 +100,7 @@ func (a *HTTPAPI) Validation(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if len(body) == 0 {
-		ErrorResponse(w, http.StatusBadRequest, "Did you miss the json object in the body?")
+		ErrorResponse(w, http.StatusBadRequest, "Empty request body")
 		return
 	}
 	var td ThingDescription
@@ -110,8 +110,10 @@ func (a *HTTPAPI) Validation(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if err := validateThingDescription(td); err != nil {
-		ErrorResponse(w, http.StatusBadRequest, "Invalid Thing Description", err.Error())
+		ErrorResponse(w, http.StatusBadRequest, "Invalid Thing Description:", err.Error())
+		return
 	}
+
 
 	w.WriteHeader(http.StatusOK)
 }
