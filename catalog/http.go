@@ -90,6 +90,32 @@ func (a *HTTPAPI) Post(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
+//validation API
+func (a *HTTPAPI) Validation(w http.ResponseWriter, req *http.Request) {
+	body, err := ioutil.ReadAll(req.Body)
+	req.Body.Close()
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if len(body) == 0 {
+		ErrorResponse(w, http.StatusBadRequest, "Did you miss the json object in the body?")
+		return
+	}
+	var td ThingDescription
+	if err := json.Unmarshal(body, &td); err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "Error processing the request:", err.Error())
+		return
+	}
+
+	if err := validateThingDescription(td); err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "Invalid Thing Description", err.Error())
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
 // Get handler get one item
 func (a *HTTPAPI) Get(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)

@@ -43,6 +43,7 @@ func setup(t *testing.T) CatalogController {
 	t.Cleanup(func() {
 		//t.Logf("Cleaning up...")
 		controller.Stop()
+		storage.Close()
 		err = os.RemoveAll(tempDir) // Remove temp files
 		if err != nil {
 			t.Fatalf("error removing test files: %s", err)

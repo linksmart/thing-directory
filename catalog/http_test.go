@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"mime"
 	"net/http"
@@ -60,12 +61,15 @@ func setupTestHTTPServer(t *testing.T) (CatalogController, *httptest.Server) {
 	r.Methods("DELETE").Path("/td/{id:.+}").HandlerFunc(api.Delete)
 	// Listing and filtering
 	r.Methods("GET").Path("/td").HandlerFunc(api.GetMany)
+	//validation
+	r.Methods("GET").Path("/validation").HandlerFunc(api.Validation)
 
 	httpServer := httptest.NewServer(r)
 
 	t.Cleanup(func() {
 		controller.Stop()
 		httpServer.Close()
+		storage.Close()
 		err = os.RemoveAll(tempDir) // Remove temp files
 		if err != nil {
 			t.Fatalf("error removing test files: %s", err)
@@ -169,7 +173,66 @@ func TestPost(t *testing.T) {
 		}
 	})
 }
+func getWithBody(url, contentType string, body io.Reader) (resp *http.Response, err error) {
+	req, err := http.NewRequest("GET", url, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", contentType)
+	return http.DefaultClient.Do(req)
+}
 
+func TestValidation(t *testing.T) {
+	_, testServer := setupTestHTTPServer(t)
+	t.Run("Without Context", func(t *testing.T) {
+		td := map[string]any{
+			"title":    "example thing",
+			"security": []string{"nosec_sc"},
+			"securityDefinitions": map[string]any{
+				"nosec_sc": map[string]string{
+					"scheme": "nosec",
+				},
+			},
+		}
+		b, _ := json.Marshal(td)
+
+		// create over HTTP
+		res, err := getWithBody(testServer.URL+"/validation", wot.MediaTypeThingDescription, bytes.NewReader(b))
+		if err != nil {
+			t.Fatalf("Error posting: %s", err)
+		}
+		defer res.Body.Close()
+
+		b, err = ioutil.ReadAll(res.Body)
+		if err != nil {
+			t.Fatalf("Error reading response body: %s", err)
+		}
+
+		if res.StatusCode != http.StatusBadRequest {
+			t.Fatalf("Expected response %v, got: %d. Reponse body: %s", http.StatusBadRequest, res.StatusCode, b)
+		}
+	})
+	t.Run("Valid TD", func(t *testing.T) {
+		td := mockedTD("")
+		b, _ := json.Marshal(td)
+
+		// create over HTTP
+		res, err := getWithBody(testServer.URL+"/validation", wot.MediaTypeThingDescription, bytes.NewReader(b))
+		if err != nil {
+			t.Fatalf("Error posting: %s", err)
+		}
+		defer res.Body.Close()
+
+		b, err = ioutil.ReadAll(res.Body)
+		if err != nil {
+			t.Fatalf("Error reading response body: %s", err)
+		}
+
+		if res.StatusCode != http.StatusOK {
+			t.Fatalf("Expected response %v, got: %d. Reponse body: %s", http.StatusOK, res.StatusCode, b)
+		}
+	})
+}
 func TestGet(t *testing.T) {
 	controller, testServer := setupTestHTTPServer(t)
 
