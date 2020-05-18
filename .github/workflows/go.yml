@@ -56,7 +56,7 @@ jobs:
 
     - name: Upload release asset windows-amd64.exe
       if: success()
-      id: upload-release-asset-windows-amd64.exe
+      id: upload-release-asset-windows-amd64-exe
       uses: actions/upload-release-asset@v1.0.1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
