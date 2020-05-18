@@ -57,7 +57,7 @@ jobs:
         prerelease: true
 
     - name: Upload release asset ${{ matrix.name }}
-        uses: actions/upload-release-asset@v1.0.1
+      uses: actions/upload-release-asset@v1.0.1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
@@ -67,8 +67,6 @@ jobs:
         asset_content_type: application/octet-stream
 
     - name: Upload release asset sample_conf
-      if: success()
-      id: upload-release-asset-sample_conf
       uses: actions/upload-release-asset@v1.0.1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
