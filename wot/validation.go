@@ -45,7 +45,15 @@ func ValidateMap(td *map[string]interface{}) error {
 		for _, desc := range result.Errors() {
 			errors = append(errors, desc.String())
 		}
-		return fmt.Errorf("invalid Thing Description: %s", strings.Join(errors, ", "))
+		return &ValidationError{errors}
 	}
 	return nil
+}
+
+type ValidationError struct {
+	Errors []string
+}
+
+func (e ValidationError) Error() string {
+	return strings.Join(e.Errors, ", ")
 }

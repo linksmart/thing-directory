@@ -9,6 +9,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/linksmart/service-catalog/v3/utils"
+	"github.com/linksmart/thing-directory/wot"
 )
 
 const (
@@ -103,19 +104,37 @@ func (a *HTTPAPI) GetValidation(w http.ResponseWriter, req *http.Request) {
 		ErrorResponse(w, http.StatusBadRequest, "Empty request body")
 		return
 	}
+
 	var td ThingDescription
 	if err := json.Unmarshal(body, &td); err != nil {
 		ErrorResponse(w, http.StatusBadRequest, "Error processing the request:", err.Error())
 		return
 	}
 
+	response := struct {
+		Valid  bool     `json:"valid"`
+		Errors []string `json:"errors"`
+	}{}
+
 	if err := validateThingDescription(td); err != nil {
-		ErrorResponse(w, http.StatusBadRequest, "Invalid Thing Description:", err.Error())
+		if verr, ok := err.(*wot.ValidationError); ok {
+			response.Errors = verr.Errors
+		} else {
+			response.Errors = []string{err.Error()}
+		}
+	} else {
+		response.Valid = true
+	}
+
+	b, err := json.Marshal(response)
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-
+	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	w.Write(b)
 }
 
 // Get handler get one item
