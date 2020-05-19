@@ -51,6 +51,7 @@ jobs:
       run: |
         curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/control-build.sh | bash
         curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/pre-post-build.sh | bash
+        curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/service-build.sh | bash
         ls $DEBBUILDPATH/DEBIAN
         cat $DEBBUILDPATH/DEBIAN/control
         cat $DEBBUILDPATH/DEBIAN/preinst
