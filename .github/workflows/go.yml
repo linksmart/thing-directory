@@ -49,8 +49,12 @@ jobs:
       if: success()
       run: |
         curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/control-build.sh | bash
+        curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/pre-post-build.sh | bash
         ls $DEBBUILDPATH/DEBIAN
         cat $DEBBUILDPATH/DEBIAN/control
+        cat $DEBBUILDPATH/DEBIAN/preinst
+        cat $DEBBUILDPATH/DEBIAN/postinst
+        cat $DEBBUILDPATH/DEBIAN/prerm
       env: 
         NAME: thing-directory
         PLATFORM: amd64
@@ -67,8 +71,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: build_${{github.run_number}}
-        release_name: Nightly build_${{github.run_number}}
+        tag_name: ${{ steps.prepare_var.outputs.version_nr }}
+        release_name: Nightly ${{ steps.prepare_var.outputs.version_nr }}
         body: This is a nightly release. It may be not working properly.
         draft: false
         prerelease: true
