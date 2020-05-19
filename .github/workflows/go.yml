@@ -9,7 +9,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v1
         
-      - name: Build and test code 
+      - name: Test code 
         run: go test -v ./...
 
   go-build:
@@ -46,12 +46,13 @@ jobs:
         BUILDNUM: ${{github.run_number}}
         NAME: thing-directory
     
-    - name: Create DEB for Debian
+    - name: Create DEB for Debian amd64
       if: success()
       run: |
         curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/control-build.sh | bash
         curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/pre-post-build.sh | bash
         curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/service-build.sh | bash
+        curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/logrotate-build.sh | bash
         ls $DEBBUILDPATH/DEBIAN
         cat $DEBBUILDPATH/DEBIAN/control
         cat $DEBBUILDPATH/DEBIAN/preinst
@@ -59,6 +60,8 @@ jobs:
         cat $DEBBUILDPATH/DEBIAN/prerm
         ls $DEBBUILDPATH/lib/systemd/system
         cat $DEBBUILDPATH/lib/systemd/system/thing-directory.service
+        ls $DEBBUILDPATH/etc/logrotate.d
+        cat $DEBBUILDPATH/etc/logrotate.d/thing-directory.conf
       env: 
         NAME: thing-directory
         PLATFORM: amd64
