@@ -28,6 +28,7 @@ jobs:
         GREF: ${{github.ref}}
 
     - name: Set up Go 1.x
+      if: success()
       uses: actions/setup-go@v2
       with:
         go-version: ^1.14
@@ -55,6 +56,8 @@ jobs:
         cat $DEBBUILDPATH/DEBIAN/preinst
         cat $DEBBUILDPATH/DEBIAN/postinst
         cat $DEBBUILDPATH/DEBIAN/prerm
+        ls $DEBBUILDPATH/lib/systemd/system
+        cat $DEBBUILDPATH/lib/systemd/system/thing-directory.service
       env: 
         NAME: thing-directory
         PLATFORM: amd64
@@ -63,6 +66,8 @@ jobs:
         DESCRIPTION: Discovers Things
         DEBBUILDPATH: $HOME/deb
         VERSION: ${{ steps.prepare_var.outputs.version_nr }}
+        EXEPATH: thing-directory-linux-amd64
+        EXEARGUMENTS: --conf /etc/thing-directory/thing-directory.json --schema /etc/thing-directory/wot_td_schema.json
 
     - name: Create Release
       if: success()
