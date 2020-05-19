@@ -19,6 +19,14 @@ jobs:
     needs: test
     steps:
 
+    - name: Prepare Variables
+      id: prepare_var
+      run: |
+        versions=(${GREF//\// })
+        echo ::set-output name=version_nr::${versions[2]}
+      env:
+        GREF: ${{github.ref}}
+
     - name: Set up Go 1.x
       uses: actions/setup-go@v2
       with:
@@ -33,23 +41,24 @@ jobs:
       if: success()
       run: curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/go/go-build.sh | bash
       env:
-        VERSION: ${{github.ref}}
+        VERSION: ${{ steps.prepare_var.outputs.version_nr }}
         BUILDNUM: ${{github.run_number}}
         NAME: thing-directory
     
     - name: Create DEB for Debian
       if: success()
       run: |
-        mkdir -p $HOME/deb/DEBIAN
         curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/control-build.sh | bash
-        ls .
-        ls .
+        ls $DEBBUILDPATH/DEBIAN
+        cat $DEBBUILDPATH/DEBIAN/control
       env: 
         NAME: thing-directory
         PLATFORM: amd64
         DEPENDENCIES: libc-bin (>= 2.19)
         MAINAINER: Linksmart <dev@linksmart.net>
         DESCRIPTION: Discovers Things
+        DEBBUILDPATH: $HOME/deb
+        VERSION: ${{ steps.prepare_var.outputs.version_nr }}
 
     - name: Create Release
       if: success()
