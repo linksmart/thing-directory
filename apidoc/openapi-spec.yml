@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  version: "1.0.0-beta.3"
+  version: "1.0.0-beta.4"
   title: LinkSmart Thing Directory
   description: >
     API documetnation of the [LinkSmart Thing Directory](https://github.com/linksmart/thing-directory), an implementation of the [W3C Web of Things (WoT)](https://www.w3.org/WoT/) Thing Directory.
@@ -11,6 +11,9 @@ info:
 tags:
   - name: td
     description: Thing Directory
+  - name: validation
+    description: Validation API
+
 paths:
 
   /td:
@@ -18,7 +21,7 @@ paths:
       tags:
         - td
       summary: Retrieves paginated list of Thing Descriptions
-      description: The syntax of JSONPath expressions is based on the [JSON Slice](https://github.com/bhmj/jsonslice/blob/master/README.md#specs) specs.
+      description: The query languages, described [here](https://github.com/linksmart/thing-directory/wiki/Query-Language), can be used to filter results and fetch parts of Thing Descriptions.
       parameters:
         - $ref: '#/components/parameters/ParamPage'
         - $ref: '#/components/parameters/ParamPerPage'
@@ -222,7 +225,36 @@ paths:
           $ref: '#/components/responses/RespForbidden'
         '500':
           $ref: '#/components/responses/RespInternalServerError'
-
+  '/validation':
+    get:
+      tags:
+        - validation
+      summary: Retrieves the validation result for a given Thing Description
+      description: The Thing Description should be provided as JSON in the request body.
+      responses:
+        '200':
+          description: Validation Result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationResult'
+        '400':
+          $ref: '#/components/responses/RespBadRequest'
+        '401':
+          $ref: '#/components/responses/RespUnauthorized'
+        '403':
+          $ref: '#/components/responses/RespForbidden'
+        '500':
+          $ref: '#/components/responses/RespInternalServerError'
+      # wait for openapi 3.1.0 which brings back support for requetsBody in GET
+      # requestBody:
+      #   content:
+      #     application/ld+json:
+      #       schema:
+      #         type: object
+      #       examples:
+      #         ThingDescription:
+      #           $ref: '#/components/examples/ThingDescription'
 components:
   parameters:
     ParamPage:
@@ -245,31 +277,31 @@ components:
     RespBadRequest:
       description: Bad Request
       content:
-        application/ld+json:
+        application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
     RespUnauthorized:
       description: Unauthorized
       content:
-        application/ld+json:
+        application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
     RespForbidden:
       description: Forbidden
       content:
-        application/ld+json:
+        application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
     RespNotfound:
       description: Not Found
       content:
-        application/ld+json:
+        application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
     RespConflict:
       description: Conflict
       content:
-        application/ld+json:
+        application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
     RespInternalServerError:
@@ -304,6 +336,15 @@ components:
           type: integer
         total:
           type: integer
+    ValidationResult:
+      type: object
+      properties:
+        valid:
+          type: boolean
+        errors:
+          type: array
+          items:
+            type: string
   examples:
     ThingDescription:
       summary: Example Thing Description
