@@ -60,12 +60,15 @@ func setupTestHTTPServer(t *testing.T) (CatalogController, *httptest.Server) {
 	r.Methods("DELETE").Path("/td/{id:.+}").HandlerFunc(api.Delete)
 	// Listing and filtering
 	r.Methods("GET").Path("/td").HandlerFunc(api.GetMany)
+	// Validation
+	r.Methods("GET").Path("/validation").HandlerFunc(api.GetValidation)
 
 	httpServer := httptest.NewServer(r)
 
 	t.Cleanup(func() {
 		controller.Stop()
 		httpServer.Close()
+		storage.Close()
 		err = os.RemoveAll(tempDir) // Remove temp files
 		if err != nil {
 			t.Fatalf("error removing test files: %s", err)
@@ -480,6 +483,90 @@ func TestGetAll(t *testing.T) {
 		}
 	})
 }
+
+func TestValidation(t *testing.T) {
+	_, testServer := setupTestHTTPServer(t)
+
+	t.Run("Without Context", func(t *testing.T) {
+		td := map[string]any{
+			"title":    "example thing",
+			"security": []string{"nosec_sc"},
+			"securityDefinitions": map[string]any{
+				"nosec_sc": map[string]string{
+					"scheme": "nosec",
+				},
+			},
+		}
+		b, _ := json.Marshal(td)
+
+		// retrieve over HTTP
+		res, err := httpDoRequest(http.MethodGet, testServer.URL+"/validation", bytes.NewReader(b))
+		if err != nil {
+			t.Fatalf("Error getting: %s", err)
+		}
+		defer res.Body.Close()
+
+		b, err = ioutil.ReadAll(res.Body)
+		if err != nil {
+			t.Fatalf("Error reading response body: %s", err)
+		}
+
+		if res.StatusCode != http.StatusOK {
+			t.Fatalf("Expected response %v, got: %d. Reponse body: %s", http.StatusOK, res.StatusCode, b)
+		}
+
+		var result ValidationResult
+		err = json.Unmarshal(b, &result)
+		if err != nil {
+			t.Fatalf("Error decoding body: %s", err)
+		}
+
+		if result.Valid {
+			t.Fatalf("Expected valid set to false, got true.")
+		}
+
+		if len(result.Errors) != 1 && result.Errors[0] != "(root): @context is required" {
+			t.Fatalf("Expected 1 error for required context in root, got: %v", result.Errors)
+		}
+	})
+
+	t.Run("Valid TD", func(t *testing.T) {
+		td := mockedTD("")
+		b, _ := json.Marshal(td)
+
+		// retrieve over HTTP
+		res, err := httpDoRequest(http.MethodGet, testServer.URL+"/validation", bytes.NewReader(b))
+		if err != nil {
+			t.Fatalf("Error getting: %s", err)
+		}
+		defer res.Body.Close()
+
+		b, err = ioutil.ReadAll(res.Body)
+		if err != nil {
+			t.Fatalf("Error reading response body: %s", err)
+		}
+
+		if res.StatusCode != http.StatusOK {
+			t.Fatalf("Expected response %v, got: %d. Reponse body: %s", http.StatusOK, res.StatusCode, b)
+		}
+
+		var result ValidationResult
+		err = json.Unmarshal(b, &result)
+		if err != nil {
+			t.Fatalf("Error decoding body: %s", err)
+		}
+
+		if !result.Valid {
+			t.Fatalf("Expected valid set to true, got false.")
+		}
+
+		if len(result.Errors) != 0 {
+			t.Fatalf("Expected no errors, got: %v", result.Errors)
+		}
+	})
+}
+
+// UTILITY FUNCTIONS
 
 func httpDoRequest(method, url string, r *bytes.Reader) (*http.Response, error) {
 	req, err := http.NewRequest(method, url, r)

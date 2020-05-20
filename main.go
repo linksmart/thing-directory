@@ -185,6 +185,8 @@ func setupHTTPRouter(config *Config, api *catalog.HTTPAPI) (*negroni.Negroni, er
 	r.put("/td/{id:.+}", commonHandlers.ThenFunc(api.Put))
 	r.delete("/td/{id:.+}", commonHandlers.ThenFunc(api.Delete))
 
+	r.get("/validation", commonHandlers.ThenFunc(api.GetValidation))
+
 	logger := negroni.NewLogger()
 	logFlags := log.LstdFlags
 	if evalEnv(EnvDisableLogTime) {
