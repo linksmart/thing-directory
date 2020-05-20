@@ -14,11 +14,9 @@ script: go test -v ./...
 
 before_deploy:
   - echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USERNAME" --password-stdin
+  - docker build -t linksmart/td --build-arg version=${VERSION} --build-arg buildnum=${BUILDNUM} .
 
 deploy:
-  # build image
-  - provider: script
-    script: docker build -t linksmart/td --build-arg version=${VERSION} --build-arg buildnum=${BUILDNUM} .
   # push latest docker image
   - provider: script
     script: docker push linksmart/td:latest
