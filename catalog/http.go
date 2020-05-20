@@ -33,6 +33,11 @@ type ThingDescriptionPage struct {
 	Total   int         `json:"total"`
 }
 
+type ValidationResult struct {
+	Valid  bool     `json:"valid"`
+	Errors []string `json:"errors"`
+}
+
 type HTTPAPI struct {
 	controller  CatalogController
 	contentType string
@@ -111,11 +116,7 @@ func (a *HTTPAPI) GetValidation(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	response := struct {
-		Valid  bool     `json:"valid"`
-		Errors []string `json:"errors"`
-	}{}
-
+	var response ValidationResult
 	if err := validateThingDescription(td); err != nil {
 		if verr, ok := err.(*wot.ValidationError); ok {
 			response.Errors = verr.Errors
