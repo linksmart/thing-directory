@@ -96,48 +96,6 @@ func (a *HTTPAPI) Post(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-// GetValidation handler gets validation for the request body
-func (a *HTTPAPI) GetValidation(w http.ResponseWriter, req *http.Request) {
-	body, err := ioutil.ReadAll(req.Body)
-	req.Body.Close()
-	if err != nil {
-		ErrorResponse(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	if len(body) == 0 {
-		ErrorResponse(w, http.StatusBadRequest, "Empty request body")
-		return
-	}
-
-	var td ThingDescription
-	if err := json.Unmarshal(body, &td); err != nil {
-		ErrorResponse(w, http.StatusBadRequest, "Error processing the request:", err.Error())
-		return
-	}
-
-	var response ValidationResult
-	if err := validateThingDescription(td); err != nil {
-		if verr, ok := err.(*wot.ValidationError); ok {
-			response.Errors = verr.Errors
-		} else {
-			response.Errors = []string{err.Error()}
-		}
-	} else {
-		response.Valid = true
-	}
-
-	b, err := json.Marshal(response)
-	if err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	w.Header().Add("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(b)
-}
-
 // Get handler get one item
 func (a *HTTPAPI) Get(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
@@ -342,5 +300,47 @@ func (a *HTTPAPI) Filter(w http.ResponseWriter, req *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", a.contentType)
+	w.Write(b)
+}
+
+// GetValidation handler gets validation for the request body
+func (a *HTTPAPI) GetValidation(w http.ResponseWriter, req *http.Request) {
+	body, err := ioutil.ReadAll(req.Body)
+	req.Body.Close()
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if len(body) == 0 {
+		ErrorResponse(w, http.StatusBadRequest, "Empty request body")
+		return
+	}
+
+	var td ThingDescription
+	if err := json.Unmarshal(body, &td); err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "Error processing the request:", err.Error())
+		return
+	}
+
+	var response ValidationResult
+	if err := validateThingDescription(td); err != nil {
+		if verr, ok := err.(*wot.ValidationError); ok {
+			response.Errors = verr.Errors
+		} else {
+			response.Errors = []string{err.Error()}
+		}
+	} else {
+		response.Valid = true
+	}
+
+	b, err := json.Marshal(response)
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	w.Write(b)
 }
