@@ -60,4 +60,6 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	if Version != "" {
 		fmt.Fprintf(w, "\n\nVersion: "+Version)
 	}
+
+	fmt.Fprintf(w, "\n\n")
 }
