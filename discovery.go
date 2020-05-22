@@ -4,12 +4,41 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"strings"
 
+	"github.com/farshidtz/zeroconf" // switch to upstream when PR merged (https://github.com/grandcat/zeroconf/pull/73)
 	"github.com/linksmart/go-sec/auth/obtainer"
 	sc "github.com/linksmart/service-catalog/v3/catalog"
 	"github.com/linksmart/service-catalog/v3/client"
+	"github.com/linksmart/thing-directory/catalog"
 )
 
+// register as a DNS-SD Service
+func registerDNSSDService(conf *Config) (func(), error) {
+	// escape special characters (https://tools.ietf.org/html/rfc6763#section-4.3)
+	instance := strings.ReplaceAll(conf.DNSSD.Publish.Instance, ".", "\\.")
+	instance = strings.ReplaceAll(conf.DNSSD.Publish.Instance, "\\", "\\\\")
+
+	log.Printf("Registering DNS-SD service with Service Instance Name: %s.%s.%s Subtype: %s",
+		instance, catalog.DNSSDServiceType, conf.DNSSD.Publish.Domain, catalog.DNSSDServiceSubtype)
+
+	sd, err := zeroconf.Register(
+		instance,
+		catalog.DNSSDServiceType+","+catalog.DNSSDServiceSubtype,
+		conf.DNSSD.Publish.Domain,
+		conf.BindPort,
+		[]string{"td-http=/td", "version=" + Version},
+		nil,
+	)
+	if err != nil {
+		return sd.Shutdown, err
+	}
+
+	return sd.Shutdown, nil
+}
+
+// register in LinkSmart Service Catalog
 func registerInServiceCatalog(conf *Config) (func() error, error) {
 
 	cat := conf.ServiceCatalog

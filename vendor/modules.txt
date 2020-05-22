@@ -8,6 +8,8 @@ github.com/antchfx/xpath
 # github.com/bhmj/jsonslice v0.0.0-20200507101114-bc37219df21b
 ## explicit
 github.com/bhmj/jsonslice
+# github.com/cenkalti/backoff v2.2.1+incompatible
+github.com/cenkalti/backoff
 # github.com/codegangsta/negroni v1.0.0
 ## explicit
 github.com/codegangsta/negroni
@@ -22,6 +24,9 @@ github.com/eclipse/paho.mqtt.golang/packets
 github.com/farshidtz/elog
 # github.com/farshidtz/mqtt-match v1.0.1
 github.com/farshidtz/mqtt-match
+# github.com/farshidtz/zeroconf v1.0.1-0.20200522135212-459a917d5032
+## explicit
+github.com/farshidtz/zeroconf
 # github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e
 github.com/golang/groupcache/lru
 # github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db
@@ -50,18 +55,13 @@ github.com/linksmart/go-sec/authz
 github.com/linksmart/service-catalog/v3/catalog
 github.com/linksmart/service-catalog/v3/client
 github.com/linksmart/service-catalog/v3/utils
-# github.com/miekg/dns v1.1.27
-github.com/miekg/dns
-# github.com/oleksandr/bonjour v0.0.0-20160508152359-5dcf00d8b228
+# github.com/miekg/dns v1.1.29
 ## explicit
-github.com/oleksandr/bonjour
+github.com/miekg/dns
 # github.com/onsi/ginkgo v1.12.0
 ## explicit
 # github.com/onsi/gomega v1.9.0
 ## explicit
-# github.com/pborman/uuid v0.0.0-20170612153648-e790cca94e6c
-## explicit
-github.com/pborman/uuid
 # github.com/satori/go.uuid v1.2.0
 ## explicit
 github.com/satori/go.uuid
@@ -86,10 +86,11 @@ github.com/xeipuuv/gojsonreference
 # github.com/xeipuuv/gojsonschema v1.2.0
 ## explicit
 github.com/xeipuuv/gojsonschema
-# golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
+# golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
+## explicit
 golang.org/x/crypto/ed25519
 golang.org/x/crypto/ed25519/internal/edwards25519
-# golang.org/x/net v0.0.0-20200421231249-e086a090c8fd
+# golang.org/x/net v0.0.0-20200520182314-0ba52f642ac2
 ## explicit
 golang.org/x/net/bpf
 golang.org/x/net/internal/iana
@@ -99,6 +100,8 @@ golang.org/x/net/ipv4
 golang.org/x/net/ipv6
 golang.org/x/net/proxy
 golang.org/x/net/websocket
-# golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd
+# golang.org/x/sys v0.0.0-20200519105757-fe76b779f299
+## explicit
+golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows

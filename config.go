@@ -14,15 +14,13 @@ import (
 	"github.com/linksmart/thing-directory/catalog"
 )
 
-
-
 type Config struct {
 	ServiceID      string         `json:"serviceID"`
 	Description    string         `json:"description"`
 	PublicEndpoint string         `json:"publicEndpoint"`
 	BindAddr       string         `json:"bindAddr"`
 	BindPort       int            `json:"bindPort"`
-	DnssdEnabled   bool           `json:"dnssdEnabled"`
+	DNSSD          DNSSDConfig    `json:"dnssd"`
 	Storage        StorageConfig  `json:"storage"`
 	ServiceCatalog ServiceCatalog `json:"serviceCatalog"`
 	Auth           validator.Conf `json:"auth"`
@@ -34,6 +32,14 @@ type ServiceCatalog struct {
 	Endpoint string        `json:"endpoint"`
 	Ttl      int           `json:"ttl"`
 	Auth     obtainer.Conf `json:"auth"`
+}
+
+type DNSSDConfig struct {
+	Publish struct {
+		Enabled  bool   `json:"enabled"`
+		Instance string `json:"instance"`
+		Domain   string `json:"domain"`
+	}
 }
 
 type StorageConfig struct {

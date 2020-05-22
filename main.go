@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"time"
 
 	"github.com/codegangsta/negroni"
 	"github.com/gorilla/context"
@@ -20,7 +19,6 @@ import (
 	"github.com/linksmart/go-sec/auth/validator"
 	"github.com/linksmart/thing-directory/catalog"
 	"github.com/linksmart/thing-directory/wot"
-	"github.com/oleksandr/bonjour"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -107,22 +105,13 @@ func main() {
 	log.Printf("HTTP server listening on %v", addr)
 	go func() { log.Fatalln(http.Serve(listener, nRouter)) }()
 
-	// Announce service using DNS-SD
-	var bonjourS *bonjour.Server
-	if config.DnssdEnabled {
-		go func() {
-			bonjourS, err = bonjour.Register(config.Description,
-				catalog.DNSSDServiceType,
-				"",
-				config.BindPort,
-				[]string{"uri=/td"},
-				nil)
-			if err != nil {
-				log.Printf("Failed to register DNS-SD service: %s", err.Error())
-				return
-			}
-			log.Println("Registered service via DNS-SD using type", catalog.DNSSDServiceType)
-		}()
+	// Publish service using DNS-SD
+	if config.DNSSD.Publish.Enabled {
+		shutdown, err := registerDNSSDService(config)
+		if err != nil {
+			log.Printf("Failed to register DNS-SD service: %s", err)
+		}
+		defer shutdown()
 	}
 
 	// Register in the LinkSmart Service Catalog
@@ -142,13 +131,6 @@ func main() {
 	signal.Notify(handler, os.Interrupt, os.Kill)
 	<-handler
 	log.Println("Shutting down...")
-
-	// Stop bonjour registration
-	if bonjourS != nil {
-		bonjourS.Shutdown()
-		time.Sleep(1e9)
-	}
-
 }
 
 func setupHTTPRouter(config *Config, api *catalog.HTTPAPI) (*negroni.Negroni, error) {
