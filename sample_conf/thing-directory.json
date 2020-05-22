@@ -1,6 +1,10 @@
 {
   "description": "LinkSmart Thing Directory",
-  "dnssdEnabled": false,
+  "dnssd": {
+    "publish": false,
+    "instance": "LinkSmart Thing Directory",
+    "domain": "local."
+  },
   "publicEndpoint": "http://fqdn-of-the-host:8081",
   "bindAddr": "0.0.0.0",
   "bindPort": 8081,
