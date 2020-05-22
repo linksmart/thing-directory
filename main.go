@@ -106,7 +106,7 @@ func main() {
 	go func() { log.Fatalln(http.Serve(listener, nRouter)) }()
 
 	// Publish service using DNS-SD
-	if config.DNSSD.Publish {
+	if config.DNSSD.Publish.Enabled {
 		shutdown, err := registerDNSSDService(config)
 		if err != nil {
 			log.Printf("Failed to register DNS-SD service: %s", err)

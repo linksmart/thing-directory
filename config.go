@@ -35,9 +35,11 @@ type ServiceCatalog struct {
 }
 
 type DNSSDConfig struct {
-	Publish  bool   `json:"publish"`
-	Instance string `json:"instance"`
-	Domain   string `json:"domain"`
+	Publish struct {
+		Enabled  bool   `json:"enabled"`
+		Instance string `json:"instance"`
+		Domain   string `json:"domain"`
+	}
 }
 
 type StorageConfig struct {

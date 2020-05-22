@@ -17,18 +17,18 @@ import (
 // register as a DNS-SD Service
 func registerDNSSDService(conf *Config) (func(), error) {
 	// escape special characters (https://tools.ietf.org/html/rfc6763#section-4.3)
-	instance := strings.ReplaceAll(conf.DNSSD.Instance, ".", "\\.")
-	instance = strings.ReplaceAll(conf.DNSSD.Instance, "\\", "\\\\")
+	instance := strings.ReplaceAll(conf.DNSSD.Publish.Instance, ".", "\\.")
+	instance = strings.ReplaceAll(conf.DNSSD.Publish.Instance, "\\", "\\\\")
 
 	log.Printf("Registering DNS-SD service with Service Instance Name: %s.%s.%s Subtype: %s",
-		instance, catalog.DNSSDServiceType, conf.DNSSD.Domain, catalog.DNSSDServiceSubtype)
+		instance, catalog.DNSSDServiceType, conf.DNSSD.Publish.Domain, catalog.DNSSDServiceSubtype)
 
 	sd, err := zeroconf.Register(
 		instance,
 		catalog.DNSSDServiceType+","+catalog.DNSSDServiceSubtype,
-		conf.DNSSD.Domain,
+		conf.DNSSD.Publish.Domain,
 		conf.BindPort,
-		[]string{"td=/td", "version=" + Version},
+		[]string{"td-http=/td", "version=" + Version},
 		nil,
 	)
 	if err != nil {
