@@ -23,7 +23,7 @@ jobs:
       id: prepare_var
       run: |
         versions=(${GREF//\// })
-        echo ::set-output name=version_nr::${versions[2]}
+        echo ##[set-output name=version_nr;]${versions[2]}
       env:
         GREF: ${{github.ref}}
 
@@ -47,6 +47,7 @@ jobs:
         NAME: thing-directory
     
     - name: Create DEB for Debian amd64
+      id: deb-linux-amd64
       if: success()
       run: |
         mkdir dpkg
@@ -67,6 +68,7 @@ jobs:
 
         cat logrotate-$NAME
 
+        mkdir Builds
         curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/build-deb.sh | bash
       env: 
         NAME: thing-directory
@@ -78,6 +80,14 @@ jobs:
         VERSION: ${{ steps.prepare_var.outputs.version_nr }}
         EXEPATH: thing-directory-linux-amd64
         EXEARGUMENTS: --conf /etc/thing-directory/thing-directory.json --schema /etc/thing-directory/wot_td_schema.json
+        COPYEXEC: ../bin/thing-directory-linux-amd64
+        COPYCONFIG: ../sample_conf/thing-directory.json ../wot/wot_td_schema.json
+
+    - name: Upload deb artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: test.deb
+        path: dpkg/Builds/${{ steps.deb-linux-amd64.outputs.debuilderfile }}
 
     - name: Create Release
       if: success()
