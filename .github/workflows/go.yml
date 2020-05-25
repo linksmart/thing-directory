@@ -23,7 +23,7 @@ jobs:
       id: prepare_var
       run: |
         versions=(${GREF//\// })
-        echo ##[set-output name=version_nr;]${versions[2]}
+        echo ::set-output name=version_nr::${versions[2]}
       env:
         GREF: ${{github.ref}}
 
