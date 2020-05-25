@@ -109,90 +109,90 @@ jobs:
           COPYEXEC: ../bin/thing-directory-linux-amd64
           COPYCONFIG: ../sample_conf/thing-directory.json ../wot/wot_td_schema.json
 
-    - name: Upload deb artifact
-      uses: actions/upload-artifact@v1
-      with:
-        name: test2.deb
-        path: dpkg/Builds/${{ steps.deb-linux-amd64.outputs.debuilderfile }}
+      - name: Upload deb artifact
+        uses: actions/upload-artifact@v1
+        with:
+          name: test2.deb
+          path: dpkg/Builds/${{ steps.deb-linux-amd64.outputs.debuilderfile }}
 
-    - name: Create Release
-      if: success()
-      id: nightly_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ steps.prepare_var.outputs.version_nr }}
-        release_name: Nightly ${{ steps.prepare_var.outputs.version_nr }}
-        body: This is a nightly release. It may be not working properly.
-        draft: false
-        prerelease: true
+      - name: Create Release
+        if: success()
+        id: nightly_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.prepare_var.outputs.version_nr }}
+          release_name: Nightly ${{ steps.prepare_var.outputs.version_nr }}
+          body: This is a nightly release. It may be not working properly.
+          draft: false
+          prerelease: true
 
-    - name: Upload release asset windows-amd64.exe
-      if: success()
-      uses: actions/upload-release-asset@v1.0.1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.nightly_release.outputs.upload_url }}
-        asset_path: bin/thing-directory-windows-amd64.exe
-        asset_name: thing-directory-windows-amd64.exe
-        asset_content_type: application/vnd.microsoft.portable-executable
+      - name: Upload release asset windows-amd64.exe
+        if: success()
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.nightly_release.outputs.upload_url }}
+          asset_path: bin/thing-directory-windows-amd64.exe
+          asset_name: thing-directory-windows-amd64.exe
+          asset_content_type: application/vnd.microsoft.portable-executable
 
-    - name: Upload release asset darwin-amd64
-      if: success()
-      uses: actions/upload-release-asset@v1.0.1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.nightly_release.outputs.upload_url }}
-        asset_path: bin/thing-directory-darwin-amd64
-        asset_name: thing-directory-darwin-amd64
-        asset_content_type: application/octet-stream
+      - name: Upload release asset darwin-amd64
+        if: success()
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.nightly_release.outputs.upload_url }}
+          asset_path: bin/thing-directory-darwin-amd64
+          asset_name: thing-directory-darwin-amd64
+          asset_content_type: application/octet-stream
 
-    - name: Upload release asset linux-amd64
-      if: success()
-      uses: actions/upload-release-asset@v1.0.1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.nightly_release.outputs.upload_url }}
-        asset_path: bin/thing-directory-linux-amd64
-        asset_name: thing-directory-linux-amd64
-        asset_content_type: application/octet-stream
-    
-    - name: Upload release asset linux-arm64
-      if: success()
-      uses: actions/upload-release-asset@v1.0.1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.nightly_release.outputs.upload_url }}
-        asset_path: bin/thing-directory-linux-arm64
-        asset_name: thing-directory-linux-arm64
-        asset_content_type: application/octet-stream
+      - name: Upload release asset linux-amd64
+        if: success()
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.nightly_release.outputs.upload_url }}
+          asset_path: bin/thing-directory-linux-amd64
+          asset_name: thing-directory-linux-amd64
+          asset_content_type: application/octet-stream
+      
+      - name: Upload release asset linux-arm64
+        if: success()
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.nightly_release.outputs.upload_url }}
+          asset_path: bin/thing-directory-linux-arm64
+          asset_name: thing-directory-linux-arm64
+          asset_content_type: application/octet-stream
 
-    - name: Upload release asset linux-arm
-      if: success()
-      uses: actions/upload-release-asset@v1.0.1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.nightly_release.outputs.upload_url }}
-        asset_path: bin/thing-directory-linux-arm
-        asset_name: thing-directory-linux-arm
-        asset_content_type: application/octet-stream
+      - name: Upload release asset linux-arm
+        if: success()
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.nightly_release.outputs.upload_url }}
+          asset_path: bin/thing-directory-linux-arm
+          asset_name: thing-directory-linux-arm
+          asset_content_type: application/octet-stream
 
-    - name: Upload release asset sample_conf
-      if: success()
-      uses: actions/upload-release-asset@v1.0.1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.nightly_release.outputs.upload_url }}
-        asset_path: sample_conf/thing-directory.json
-        asset_name: thing-directory.json
-        asset_content_type: application/json
+      - name: Upload release asset sample_conf
+        if: success()
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.nightly_release.outputs.upload_url }}
+          asset_path: sample_conf/thing-directory.json
+          asset_name: thing-directory.json
+          asset_content_type: application/json
 
   docker:
     name: Build Docker and Publish
