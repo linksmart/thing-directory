@@ -57,6 +57,9 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "LinkSmart Thing Directory"+
 		"\n\nhttps://github.com/linksmart/thing-directory")
 
+func optionsHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+}
 	if Version != "" {
 		fmt.Fprintf(w, "\n\nVersion: "+Version)
 	}

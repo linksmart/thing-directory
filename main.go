@@ -19,6 +19,7 @@ import (
 	"github.com/linksmart/go-sec/auth/validator"
 	"github.com/linksmart/thing-directory/catalog"
 	"github.com/linksmart/thing-directory/wot"
+	"github.com/rs/cors"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -137,6 +138,7 @@ func setupHTTPRouter(config *Config, api *catalog.HTTPAPI) (*negroni.Negroni, er
 
 	commonHandlers := alice.New(
 		context.ClearHandler,
+		cors.AllowAll().Handler,
 	)
 
 	// Append auth handler if enabled
@@ -158,6 +160,7 @@ func setupHTTPRouter(config *Config, api *catalog.HTTPAPI) (*negroni.Negroni, er
 	// Configure http api router
 	r := newRouter()
 	r.get("/", commonHandlers.ThenFunc(indexHandler))
+	r.options("/{path:.*}", commonHandlers.ThenFunc(optionsHandler))
 
 	r.get("/td", commonHandlers.ThenFunc(api.GetMany))
 	r.get("/td/filter/{path}/{op}/{value:.*}", commonHandlers.ThenFunc(api.Filter)) // deprecated

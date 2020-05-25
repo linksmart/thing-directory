@@ -62,6 +62,9 @@ github.com/miekg/dns
 ## explicit
 # github.com/onsi/gomega v1.9.0
 ## explicit
+# github.com/rs/cors v1.7.0
+## explicit
+github.com/rs/cors
 # github.com/satori/go.uuid v1.2.0
 ## explicit
 github.com/satori/go.uuid
