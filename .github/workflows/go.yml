@@ -3,14 +3,60 @@ name: Docker build and local releases
 on: [push, pull_request]
 
 jobs:
-  test: #Run this testing only for feature branches
+  go-build: #Run this testing only for feature branches
+    name: Test and build the code
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v1
+      - name: Prepare Variables
+        id: prepare_var
+        run: |
+          versions=(${GREF//\// })
+          echo ::set-output name=version_nr::${versions[2]}
+          echo ::set-output name=programname::$NAME
+        env:
+          GREF: ${{github.ref}}
+          NAME: thing-directory
+
+      - name: Set up Go 1.x
+        if: success()
+        uses: actions/setup-go@v2
+        with:
+          go-version: ^1.14
+        id: go
+
+      - name: Check out code
+        if: success()
+        uses: actions/checkout@v2
         
-      - name: Test code 
+      - name: Test code
+        if: success()
         run: go test -v ./...
+
+      - name: Cross Compile go
+        if: success()
+        run: curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/go/go-build.sh | bash
+        env:
+          VERSION: ${{ steps.prepare_var.outputs.version_nr }}
+          BUILDNUM: ${{github.run_number}}
+          NAME: ${{ steps.prepare_var.outputs.programname }}
+
+      - name: Upload binary result for job go-build
+        uses: actions/upload-artifact@v2
+        with: 
+          name: go-binary
+          path: bin/
+
+      - name: Upload config result for job go-build
+        uses: actions/upload-artifact@v2
+        with: 
+          name: sample_conf
+          path: sample_conf/
+
+      - name: Upload wot result for job go-build
+        uses: actions/upload-artifact@v2
+        with: 
+          name: wot
+          path: wot/wot_td_schema.json
 
   go-build:
     name: Build Binary and Release
@@ -19,69 +65,49 @@ jobs:
     needs: test
     steps:
 
-    - name: Prepare Variables
-      id: prepare_var
-      run: |
-        versions=(${GREF//\// })
-        echo ::set-output name=version_nr::${versions[2]}
-      env:
-        GREF: ${{github.ref}}
+      - name: Prepare Variables
+        id: prepare_var
+        run: |
+          versions=(${GREF//\// })
+          echo ::set-output name=version_nr::${versions[2]}
+          echo ::set-output name=programname::$NAME
+        env:
+          GREF: ${{github.ref}}
+          NAME: thing-directory
 
-    - name: Set up Go 1.x
-      if: success()
-      uses: actions/setup-go@v2
-      with:
-        go-version: ^1.14
-      id: go
+      - name: Download binary artifact
+        uses: actions/download-artifact@v2
+        with: 
+          name: go-binary
 
-    - name: Check out code into the Go module directory
-      if: success()
-      uses: actions/checkout@v2
+      - name: list
+        run: ls -R
 
-    - name: Cross Compile go
-      if: success()
-      run: curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/go/go-build.sh | bash
-      env:
-        VERSION: ${{ steps.prepare_var.outputs.version_nr }}
-        BUILDNUM: ${{github.run_number}}
-        NAME: thing-directory
-    
-    - name: Create DEB for Debian amd64
-      id: deb-linux-amd64
-      if: success()
-      run: |
-        mkdir dpkg
-        cd dpkg
-        curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/control-build.sh | bash
-        curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/pre-post-build.sh | bash
-        curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/service-build.sh | bash
-        curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/logrotate-build.sh | bash
-        
-        pwd
-        cat control
-
-        cat preinst
-        cat postinst
-        cat prerm
-
-        cat service-$NAME
-
-        cat logrotate-$NAME
-
-        mkdir Builds
-        curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/build-deb.sh | bash
-      env: 
-        NAME: thing-directory
-        PLATFORM: amd64
-        DEPENDENCIES: libc-bin (>= 2.19)
-        MAINAINER: Linksmart <dev@linksmart.net>
-        DESCRIPTION: Discovers Things
-        DEBBUILDPATH: $HOME/deb
-        VERSION: ${{ steps.prepare_var.outputs.version_nr }}
-        EXEPATH: thing-directory-linux-amd64
-        EXEARGUMENTS: --conf /etc/thing-directory/thing-directory.json --schema /etc/thing-directory/wot_td_schema.json
-        COPYEXEC: ../bin/thing-directory-linux-amd64
-        COPYCONFIG: ../sample_conf/thing-directory.json ../wot/wot_td_schema.json
+      - name: Create DEB for Debian amd64
+        id: deb-linux-amd64
+        if: success()
+        run: |
+          exit 1
+          mkdir dpkg
+          cd dpkg
+          mkdir Builds
+          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/control-build.sh | bash
+          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/pre-post-build.sh | bash
+          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/service-build.sh | bash
+          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/logrotate-build.sh | bash
+          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/build-deb.sh | bash
+        env: 
+          NAME: ${{ steps.prepare_var.outputs.programname }}
+          PLATFORM: amd64
+          DEPENDENCIES: libc-bin (>= 2.19)
+          MAINAINER: Linksmart <dev@linksmart.net>
+          DESCRIPTION: Discovers Things
+          DEBBUILDPATH: $HOME/deb
+          VERSION: ${{ steps.prepare_var.outputs.version_nr }}
+          EXEPATH: thing-directory-linux-amd64
+          EXEARGUMENTS: --conf /etc/thing-directory/thing-directory.json --schema /etc/thing-directory/wot_td_schema.json
+          COPYEXEC: ../bin/thing-directory-linux-amd64
+          COPYCONFIG: ../sample_conf/thing-directory.json ../wot/wot_td_schema.json
 
     - name: Upload deb artifact
       uses: actions/upload-artifact@v1
