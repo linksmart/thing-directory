@@ -214,8 +214,15 @@ jobs:
     runs-on: ubuntu-latest
     needs: go-build
     steps: 
-      - name: Check out code into the Go module directory
-        uses: actions/checkout@v2
+      - name: Prepare Variables
+        id: prepare_var
+        run: |
+          versions=(${GREF//\// })
+          echo ::set-output name=version_nr::${versions[2]}
+          echo ::set-output name=programname::$NAME
+        env:
+          GREF: ${{github.ref}}
+          NAME: thing-directory
 
 
 
