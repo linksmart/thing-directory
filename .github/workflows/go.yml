@@ -86,7 +86,7 @@ jobs:
     - name: Upload deb artifact
       uses: actions/upload-artifact@v1
       with:
-        name: test1.deb
+        name: test2.deb
         path: dpkg/Builds/${{ steps.deb-linux-amd64.outputs.debuilderfile }}
 
     - name: Create Release
