@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -52,17 +53,57 @@ func (r *router) options(path string, handler http.Handler) {
 	r.Methods("OPTIONS").Path(fmt.Sprintf("%s/", path)).Handler(handler)
 }
 
-func indexHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain")
-	fmt.Fprintf(w, "LinkSmart Thing Directory"+
-		"\n\nhttps://github.com/linksmart/thing-directory")
-
-func optionsHandler(w http.ResponseWriter, r *http.Request) {
+func optionsHandler(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
+
+func indexHandler(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+	fmt.Fprintf(w, `<html>`)
+	fmt.Fprintf(w, `<h1>LinkSmart Thing Directory</h1>`)
 	if Version != "" {
-		fmt.Fprintf(w, "\n\nVersion: "+Version)
+		fmt.Fprintf(w, `<p>Version: %s</p>`, Version)
+	}
+	fmt.Fprintf(w, `<p><a href="https://github.com/linksmart/thing-directory">https://github.com/linksmart/thing-directory</a></p>`)
+	fmt.Fprintf(w, `<p><a href="https://linksmart.github.io/swagger-ui/dist/?url=https://raw.githubusercontent.com/linksmart/thing-directory/master/apidoc/openapi-spec.yml">Swagger UI</a></p>`)
+	fmt.Fprintf(w, `
+<p><a href="" id="swagger">Interactive Swagger UI</a> (experimnental; requires internet connection on both server and client sides)</p>
+<script type="text/javascript">
+window.onload = function(){
+    document.getElementById("swagger").href = "//linksmart.github.io/swagger-ui/dist/?url=" + window.location.toString() + "openapi-spec-proxy";
+}
+</script>
+`)
+	fmt.Fprintf(w, `<html>`)
+}
+
+func apiSpecProxy(w http.ResponseWriter, _ *http.Request) {
+	var version = "master"
+	if Version != "" {
+		version = Version
 	}
 
-	fmt.Fprintf(w, "\n\n")
+	// get the spec
+	var openapiSpecs = "https://raw.githubusercontent.com/linksmart/thing-directory/" + version + "/apidoc/openapi-spec.yml"
+	res, err := http.Get(openapiSpecs)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "Error querying Open API specs: %s", err)
+		return
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		w.WriteHeader(res.StatusCode)
+		fmt.Fprintf(w, "GET %s: %s", openapiSpecs, res.Status)
+		return
+	}
+
+	// write the spec as response
+	_, err = io.Copy(w, res.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "Error responding Open API specs: %s", err)
+		return
+	}
 }

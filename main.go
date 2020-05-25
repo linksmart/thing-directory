@@ -160,6 +160,7 @@ func setupHTTPRouter(config *Config, api *catalog.HTTPAPI) (*negroni.Negroni, er
 	// Configure http api router
 	r := newRouter()
 	r.get("/", commonHandlers.ThenFunc(indexHandler))
+	r.get("/openapi-spec-proxy", commonHandlers.ThenFunc(apiSpecProxy))
 	r.options("/{path:.*}", commonHandlers.ThenFunc(optionsHandler))
 
 	r.get("/td", commonHandlers.ThenFunc(api.GetMany))
