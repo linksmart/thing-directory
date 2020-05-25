@@ -79,9 +79,19 @@ jobs:
         uses: actions/download-artifact@v2
         with: 
           name: go-binary
+          path: bin
 
-      - name: list
-        run: ls -R
+      - name: Download conf artifact
+        uses: actions/download-artifact@v2
+        with: 
+          name: sample_conf
+          path: conf
+
+      - name: Download wot artifact
+        uses: actions/download-artifact@v2
+        with: 
+          name: wot
+          path: wot
 
       - name: Create DEB for Debian amd64
         id: deb-linux-amd64
@@ -107,13 +117,7 @@ jobs:
           EXEPATH: thing-directory-linux-amd64
           EXEARGUMENTS: --conf /etc/thing-directory/thing-directory.json --schema /etc/thing-directory/wot_td_schema.json
           COPYEXEC: ../bin/thing-directory-linux-amd64
-          COPYCONFIG: ../sample_conf/thing-directory.json ../wot/wot_td_schema.json
-
-      - name: Upload deb artifact
-        uses: actions/upload-artifact@v1
-        with:
-          name: test2.deb
-          path: dpkg/Builds/${{ steps.deb-linux-amd64.outputs.debuilderfile }}
+          COPYCONFIG: ../conf/thing-directory.json ../wot/wot_td_schema.json
 
       - name: Create Release
         if: success()
@@ -193,6 +197,17 @@ jobs:
           asset_path: sample_conf/thing-directory.json
           asset_name: thing-directory.json
           asset_content_type: application/json
+
+      - name: Upload release asset linux-amd64.deb
+        if: success()
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.nightly_release.outputs.upload_url }}
+          asset_path: dpkg/Builds/${{ steps.deb-linux-amd64.outputs.debuilderfile }}
+          asset_name: ${{ steps.deb-linux-amd64.outputs.debuilderfile }}
+          asset_content_type: application/x-deb
 
   docker:
     name: Build Docker and Publish
