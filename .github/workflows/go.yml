@@ -97,7 +97,6 @@ jobs:
         id: deb-linux-amd64
         if: success()
         run: |
-          exit 1
           mkdir dpkg
           cd dpkg
           mkdir Builds
