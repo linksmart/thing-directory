@@ -1,4 +1,8 @@
 openapi: 3.0.0
+
+#servers:
+#  - url: http://localhost:8081
+
 info:
   version: "1.0.0-beta.4"
   title: LinkSmart Thing Directory
@@ -27,18 +31,18 @@ paths:
         - $ref: '#/components/parameters/ParamPerPage'
         - name: jsonpath
           in: query
-          description: JSONPath expression for fetching specific items
+          description: JSONPath expression for fetching specific items. E.g. `$[?(@.title=='Kitchen Lamp')].properties`
           required: false
           schema:
             type: string
-          example: $[?(@.title=='Kitchen Lamp')].properties
+          # example: $[?(@.title=='Kitchen Lamp')].properties
         - name: xpath
           in: query
-          description: xPath 3.0 expression for fetching specific items
+          description: xPath 3.0 expression for fetching specific items. E.g. `//*[title='Kitchen Lamp']/properties`
           required: false
           schema:
             type: string
-          example: //*[title='Kitchen Lamp']/properties
+          # example: //*[title='Kitchen Lamp']/properties
       responses:
         '200':
           description: Successful response
@@ -59,7 +63,11 @@ paths:
     post:
       tags:
         - td
-      summary: Creates new Thing Description
+      summary: Creates new Thing Description with system-generated ID
+      description: |
+        This is to create a TD and receive a unique system-generated `id` in response.
+        The server rejects the request if there is an `id` in the body.
+        For creating a TD with user-defined `id`, use the `PUT` method.
       responses:
         '201':
           description: Created successfully
@@ -122,7 +130,10 @@ paths:
     put:
       tags:
         - td
-      summary: Updates an existing Thing Description or creates a new one with the provided ID
+      summary: Creates a new Thing Description with the provided ID, or updates an existing one
+      description: |
+        The `id` in the path is the resource name. It is mandatory and must be a valid Thing Description ID.
+        The server ignores `id` in the body.
       parameters:
         - name: id
           in: path
@@ -230,7 +241,9 @@ paths:
       tags:
         - validation
       summary: Retrieves the validation result for a given Thing Description
-      description: The Thing Description should be provided as JSON in the request body.
+      description: |
+        The Thing Description should be provided as JSON in the request body.
+        Note: This is currently not supported using Swagger UI.
       responses:
         '200':
           description: Validation Result
