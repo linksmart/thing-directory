@@ -92,34 +92,8 @@ func (a *HTTPAPI) Post(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	w.Header().Add("Location", id)
+	w.Header().Set("Location", id)
 	w.WriteHeader(http.StatusCreated)
-}
-
-// Get handler get one item
-func (a *HTTPAPI) Get(w http.ResponseWriter, req *http.Request) {
-	params := mux.Vars(req)
-
-	td, err := a.controller.get(params["id"])
-	if err != nil {
-		switch err.(type) {
-		case *NotFoundError:
-			ErrorResponse(w, http.StatusNotFound, err.Error())
-			return
-		default:
-			ErrorResponse(w, http.StatusInternalServerError, "Error retrieving the registration:", err.Error())
-			return
-		}
-	}
-
-	b, err := json.Marshal(td)
-	if err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	w.Header().Set("Content-Type", a.contentType)
-	w.Write(b)
 }
 
 // Put handler updates an existing item (Response: StatusOK)
@@ -174,6 +148,32 @@ func (a *HTTPAPI) Put(w http.ResponseWriter, req *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+// Get handler get one item
+func (a *HTTPAPI) Get(w http.ResponseWriter, req *http.Request) {
+	params := mux.Vars(req)
+
+	td, err := a.controller.get(params["id"])
+	if err != nil {
+		switch err.(type) {
+		case *NotFoundError:
+			ErrorResponse(w, http.StatusNotFound, err.Error())
+			return
+		default:
+			ErrorResponse(w, http.StatusInternalServerError, "Error retrieving the registration:", err.Error())
+			return
+		}
+	}
+
+	b, err := json.Marshal(td)
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", a.contentType)
+	w.Write(b)
 }
 
 // Delete removes one item
@@ -255,7 +255,7 @@ func (a *HTTPAPI) GetMany(w http.ResponseWriter, req *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", a.contentType)
-	w.Header().Add("X-Request-URL", req.RequestURI)
+	w.Header().Set("X-Request-URL", req.RequestURI)
 	w.Write(b)
 }
 
@@ -340,7 +340,7 @@ func (a *HTTPAPI) GetValidation(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	w.Header().Add("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(b)
 }

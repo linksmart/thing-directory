@@ -19,7 +19,6 @@ tags:
     description: Validation API
 
 paths:
-
   /td:
     get:
       tags:
@@ -96,37 +95,6 @@ paths:
         description: Thing Description to be created
         required: true
   '/td/{id}':
-    get:
-      tags:
-        - td
-      summary: Retrieves a Thing Description object
-      parameters:
-        - name: id
-          in: path
-          description: ID of the Thing Description
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/ld+json:
-              schema:
-                type: object
-              examples:
-                response:
-                  $ref: '#/components/examples/ThingDescription'
-        '400':
-          $ref: '#/components/responses/RespBadRequest'
-        '401':
-          $ref: '#/components/responses/RespUnauthorized'
-        '403':
-          $ref: '#/components/responses/RespForbidden'
-        '404':
-          $ref: '#/components/responses/RespNotfound'
-        '500':
-          $ref: '#/components/responses/RespInternalServerError'
     put:
       tags:
         - td
@@ -166,6 +134,37 @@ paths:
                 $ref: '#/components/examples/ThingDescription'
         description: The Thing Description object
         required: true
+    get:
+      tags:
+        - td
+      summary: Retrieves a Thing Description object
+      parameters:
+        - name: id
+          in: path
+          description: ID of the Thing Description
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/ld+json:
+              schema:
+                type: object
+              examples:
+                response:
+                  $ref: '#/components/examples/ThingDescription'
+        '400':
+          $ref: '#/components/responses/RespBadRequest'
+        '401':
+          $ref: '#/components/responses/RespUnauthorized'
+        '403':
+          $ref: '#/components/responses/RespForbidden'
+        '404':
+          $ref: '#/components/responses/RespNotfound'
+        '500':
+          $ref: '#/components/responses/RespInternalServerError'
     delete:
       tags:
         - td
