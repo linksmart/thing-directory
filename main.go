@@ -136,9 +136,23 @@ func main() {
 
 func setupHTTPRouter(config *Config, api *catalog.HTTPAPI) (*negroni.Negroni, error) {
 
+	corsHandler := cors.New(cors.Options{
+		AllowedOrigins: []string{"*"},
+		AllowedMethods: []string{
+			http.MethodHead,
+			http.MethodGet,
+			http.MethodPost,
+			http.MethodPut,
+			http.MethodPatch,
+			http.MethodDelete,
+		},
+		AllowedHeaders:   []string{"*"},
+		AllowCredentials: false,
+		ExposedHeaders:   []string{"*"},
+	})
 	commonHandlers := alice.New(
 		context.ClearHandler,
-		cors.AllowAll().Handler,
+		corsHandler.Handler,
 	)
 
 	// Append auth handler if enabled
