@@ -64,8 +64,8 @@ paths:
         - td
       summary: Creates new Thing Description with system-generated ID
       description: |
-        This is to create a TD and receive a unique system-generated `id` in response.
-        The server rejects the request if there is an `id` in the body.
+        This is to create a TD and receive a unique system-generated `id` in response.<br>
+        The server rejects the request if there is an `id` in the body.<br>
         For creating a TD with user-defined `id`, use the `PUT` method.
       responses:
         '201':
@@ -100,7 +100,7 @@ paths:
         - td
       summary: Creates a new Thing Description with the provided ID, or updates an existing one
       description: |
-        The `id` in the path is the resource name. It is mandatory and must be a valid Thing Description ID.
+        The `id` in the path is the resource name. It is mandatory and must be a valid Thing Description ID.<br>
         The server ignores `id` in the body.
       parameters:
         - name: id
@@ -241,7 +241,7 @@ paths:
         - validation
       summary: Retrieves the validation result for a given Thing Description
       description: |
-        The Thing Description should be provided as JSON in the request body.
+        The Thing Description should be provided as JSON in the request body.<br>
         Note: This is currently not supported using Swagger UI.
       responses:
         '200':
