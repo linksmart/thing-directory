@@ -83,7 +83,7 @@ paths:
               type: object
             examples:
               ThingDescription:
-                $ref: '#/components/examples/ThingDescription'
+                $ref: '#/components/examples/ThingDescriptionWithoutID'
 
         description: Thing Description to be created
         required: true
@@ -346,6 +346,41 @@ components:
           items:
             type: string
   examples:
+    ThingDescriptionWithoutID:
+      summary: Example Thing Description
+      value:
+        {
+          "@context": "https://www.w3.org/2019/wot/td/v1",
+          "title": "MyTemperatureSensor",
+          "created": "2020-02-28T17:22:25.879568Z",
+          "modified": "2020-02-28T17:22:25.879568Z",
+          "properties": {
+            "status": {
+              "forms": [
+              {
+                "op": [
+                  "readproperty",
+                  "writeproperty"
+                ],
+                "href": "https://gw1.iot/status",
+                "contentType": "application/senml+json",
+                "security": [
+                  "basic_sc"
+                ]
+              }
+              ],
+              "type": "number"
+            }
+          },
+          "security": [
+            "basic_sc"
+          ],
+          "securityDefinitions": {
+            "basic_sc": {
+              "scheme": "basic"
+            }
+          }
+        }
     ThingDescription:
       summary: Example Thing Description
       value:
