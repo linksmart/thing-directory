@@ -8,10 +8,8 @@
     }
   },
   "publicEndpoint": "http://fqdn-of-the-host:8081",
-  "http": {
-    "bindAddr": "0.0.0.0",
-    "bindPort": 8081
-  },
+  "bindAddr": "0.0.0.0",
+  "bindPort": 8081,
   "storage": {
     "type": "leveldb",
     "dsn": "./data"
