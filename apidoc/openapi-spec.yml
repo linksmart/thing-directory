@@ -6,15 +6,14 @@ openapi: 3.0.0
 info:
   version: "1.0.0-beta.4"
   title: LinkSmart Thing Directory
-  description: >
-    API documetnation of the [LinkSmart Thing Directory](https://github.com/linksmart/thing-directory), an implementation of the [W3C Web of Things (WoT)](https://www.w3.org/WoT/) Thing Directory.
-
+  description: API documetnation of the [LinkSmart Thing Directory](https://github.com/linksmart/thing-directory)
   license:
     name: Apache 2.0
     url: https://github.com/linksmart/thing-directory/blob/master/LICENSE
+
 tags:
   - name: td
-    description: Thing Directory
+    description: Thing Directory API
   - name: validation
     description: Validation API
 
@@ -137,7 +136,7 @@ paths:
     get:
       tags:
         - td
-      summary: Retrieves a Thing Description object
+      summary: Retrieves a Thing Description
       parameters:
         - name: id
           in: path
