@@ -28,7 +28,7 @@ func registerDNSSDService(conf *Config) (func(), error) {
 		catalog.DNSSDServiceType+","+catalog.DNSSDServiceSubtype,
 		conf.DNSSD.Publish.Domain,
 		conf.BindPort,
-		[]string{"td-http=/td", "version=" + Version},
+		[]string{"td=/td", "version=" + Version},
 		nil,
 	)
 	if err != nil {
