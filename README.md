@@ -5,35 +5,28 @@
   
 This is a candidate implementation for the W3C [Web of Things (WoT) Thing Directory](https://www.w3.org/TR/wot-architecture/#dfn-thing-directory) service, a catalog of [Thing Descriptions](https://www.w3.org/TR/wot-thing-description/).
 
-The catalog currently supports XPath 3.0 and JSONPath as query languages.
-
 This is currently under development.
 
 ## Getting Started
+* [Deployment](https://github.com/linksmart/thing-directory/wiki/Deployment)
 * [Configuration](https://github.com/linksmart/thing-directory/wiki/Configuration)
-* [Query Language](https://github.com/linksmart/thing-directory/wiki/Query-Language)
-* [OpenAPI Specification](https://linksmart.eu/swagger-ui/dist/?url=https://raw.githubusercontent.com/linksmart/thing-directory/master/apidoc/openapi-spec.yml)
+* [API Documentation](https://linksmart.github.io/swagger-ui/dist/?url=https://raw.githubusercontent.com/linksmart/thing-directory/master/apidoc/openapi-spec.yml)
 
-## Installation
-### Binary Distribution
-1. Download the binary distribution and configuration file from [releases](https://github.com/linksmart/thing-directory/releases)
-2. Download the WoT Thing Description JSON Schema document. E.g. [wot_td_schema.json](https://raw.githubusercontent.com/linksmart/thing-directory/master/wot/wot_td_schema.json)
-3. Run, e.g. in Linux/AMD64:
-```
-./thing-directory-linux-amd64 --conf ./thing-directory.json --schema ./wot_td_schema.json
-```
-For more information about the CLI arguments, set `--help` flag.
+**Further documentation are available in the [wiki](https://github.com/linksmart/thing-directory/wiki)**.
 
-### Docker
-Run the latest build of Thing Directory with the default configuration file ([/conf/thing-directory.json](https://github.com/linksmart/thing-directory/blob/master/sample_conf/thing-directory.json)):
-```
-docker run -p 8081:8081 linksmart/td
-```
-The index of the RESTful API should now be accessible at: http://localhost:8081
-
-The configurations can be changes by mounting a directory and providing the paths in CLI arguments. For more information about the CLI arguments, set `--help` flag.
-
-Please refer to the API Documentation to learn about the different endpoints.
+## Features
+* Service Discovery
+  * [DNS-SD registration](https://github.com/linksmart/thing-directory/wiki/Discovery-with-DNS-SD)
+  * [LinkSmart Service Catalog](https://github.com/linksmart/service-catalog) registration
+* RESTful API
+  * [HTTP API](https://linksmart.github.io/swagger-ui/dist/?url=https://raw.githubusercontent.com/linksmart/thing-directory/master/apidoc/openapi-spec.yml)
+    * Thing Description CRUD and validation
+    * XPath 3.0 and JSONPath [query languages](https://github.com/linksmart/thing-directory/wiki/Query-Language)
+* Persistent Storage
+  * LevelDB
+* CI/CD ([TravisCI](https://travis-ci.com/linksmart/thing-directory))
+  * Automated testing
+  * Automated builds and releases ([Docker images](https://hub.docker.com/r/linksmart/td/tags?page=1&ordering=last_updated), [binaries](https://github.com/linksmart/thing-directory/releases))
 
 ## Development
 The dependencies of this package are managed by [Go Modules](https://github.com/golang/go/wiki/Modules).
