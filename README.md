@@ -20,7 +20,7 @@ This is currently under development.
   * [LinkSmart Service Catalog](https://github.com/linksmart/service-catalog) registration
 * RESTful API
   * [HTTP API](https://linksmart.github.io/swagger-ui/dist/?url=https://raw.githubusercontent.com/linksmart/thing-directory/master/apidoc/openapi-spec.yml)
-    * Thing Description CRUD and validation
+    * Thing Description (TD) CRUD, catalog, and validation
     * XPath 3.0 and JSONPath [query languages](https://github.com/linksmart/thing-directory/wiki/Query-Language)
 * Persistent Storage
   * LevelDB
