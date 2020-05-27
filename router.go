@@ -66,9 +66,10 @@ func indexHandler(w http.ResponseWriter, _ *http.Request) {
 		fmt.Fprintf(w, `<p>Version: %s</p>`, Version)
 	}
 	fmt.Fprintf(w, `<p><a href="https://github.com/linksmart/thing-directory">https://github.com/linksmart/thing-directory</a></p>`)
-	fmt.Fprintf(w, `<p><a href="https://linksmart.github.io/swagger-ui/dist/?url=https://raw.githubusercontent.com/linksmart/thing-directory/master/apidoc/openapi-spec.yml">Swagger UI</a></p>`)
+	fmt.Fprintf(w, `<p>RESTful directory endpoint: <a href="/td">/td</a></p>`)
+	fmt.Fprintf(w, `<p>API Documentation: <a href="https://linksmart.github.io/swagger-ui/dist/?url=https://raw.githubusercontent.com/linksmart/thing-directory/master/apidoc/openapi-spec.yml">Swagger UI</a></p>`)
 	fmt.Fprintf(w, `
-<p><a href="" id="swagger">Interactive Swagger UI</a> (experimnental; requires internet connection on both server and client sides)</p>
+<p><a href="" id="swagger">Try it out!</a> (experimnental; requires internet connection on both server and client sides)</p>
 <script type="text/javascript">
 window.onload = function(){
     document.getElementById("swagger").href = "//linksmart.github.io/swagger-ui/dist/?url=" + window.location.toString() + "openapi-spec-proxy" + window.location.pathname;
