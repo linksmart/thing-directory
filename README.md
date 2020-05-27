@@ -10,7 +10,7 @@ This is currently under development.
 ## Getting Started
 * [Deployment](https://github.com/linksmart/thing-directory/wiki/Deployment)
 * [Configuration](https://github.com/linksmart/thing-directory/wiki/Configuration)
-* [OpenAPI Specification](https://linksmart.github.io/swagger-ui/dist/?url=https://raw.githubusercontent.com/linksmart/thing-directory/master/apidoc/openapi-spec.yml)
+* [API Documentation](https://linksmart.github.io/swagger-ui/dist/?url=https://raw.githubusercontent.com/linksmart/thing-directory/master/apidoc/openapi-spec.yml)
 
 **Further documentation are available in the [wiki](https://github.com/linksmart/thing-directory/wiki)**.
 
