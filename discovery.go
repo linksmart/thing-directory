@@ -27,7 +27,7 @@ func registerDNSSDService(conf *Config) (func(), error) {
 		instance,
 		catalog.DNSSDServiceType+","+catalog.DNSSDServiceSubtype,
 		conf.DNSSD.Publish.Domain,
-		conf.BindPort,
+		conf.HTTP.BindPort,
 		[]string{"td=/td", "version=" + Version},
 		nil,
 	)
@@ -53,7 +53,7 @@ func registerInServiceCatalog(conf *Config) (func() error, error) {
 			Title: "Thing Directory API",
 			//Description: "API description",
 			Protocol: "HTTP",
-			URL:      conf.PublicEndpoint,
+			URL:      conf.HTTP.PublicEndpoint,
 			Spec: sc.Spec{
 				MediaType: "application/vnd.oai.swagger;version=3.0.0",
 				URL:       "https://raw.githubusercontent.com/linksmart/thing-directory/master/apidoc/openapi-spec.yml",

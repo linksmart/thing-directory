@@ -93,12 +93,12 @@ func main() {
 	// Create catalog API object
 	api := catalog.NewHTTPAPI(controller, Version)
 
-	nRouter, err := setupHTTPRouter(config, api)
+	nRouter, err := setupHTTPRouter(&config.HTTP, api)
 	if err != nil {
 		panic(err)
 	}
 	// Start listener
-	addr := fmt.Sprintf("%s:%d", config.BindAddr, config.BindPort)
+	addr := fmt.Sprintf("%s:%d", config.HTTP.BindAddr, config.HTTP.BindPort)
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		panic(err)
@@ -134,7 +134,7 @@ func main() {
 	log.Println("Shutting down...")
 }
 
-func setupHTTPRouter(config *Config, api *catalog.HTTPAPI) (*negroni.Negroni, error) {
+func setupHTTPRouter(config *HTTPConfig, api *catalog.HTTPAPI) (*negroni.Negroni, error) {
 
 	corsHandler := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"},

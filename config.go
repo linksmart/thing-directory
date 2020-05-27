@@ -17,12 +17,16 @@ import (
 type Config struct {
 	ServiceID      string         `json:"serviceID"`
 	Description    string         `json:"description"`
-	PublicEndpoint string         `json:"publicEndpoint"`
-	BindAddr       string         `json:"bindAddr"`
-	BindPort       int            `json:"bindPort"`
+	HTTP           HTTPConfig     `json:"http"`
 	DNSSD          DNSSDConfig    `json:"dnssd"`
 	Storage        StorageConfig  `json:"storage"`
 	ServiceCatalog ServiceCatalog `json:"serviceCatalog"`
+}
+
+type HTTPConfig struct {
+	PublicEndpoint string         `json:"publicEndpoint"`
+	BindAddr       string         `json:"bindAddr"`
+	BindPort       int            `json:"bindPort"`
 	Auth           validator.Conf `json:"auth"`
 }
 
@@ -53,13 +57,21 @@ var supportedBackends = map[string]bool{
 }
 
 func (c *Config) Validate() error {
-	if c.BindAddr == "" || c.BindPort == 0 || c.PublicEndpoint == "" {
+	if c.HTTP.BindAddr == "" || c.HTTP.BindPort == 0 || c.HTTP.PublicEndpoint == "" {
 		return fmt.Errorf("BindAddr, BindPort, and PublicEndpoint have to be defined")
 	}
-	_, err := url.Parse(c.PublicEndpoint)
+	_, err := url.Parse(c.HTTP.PublicEndpoint)
 	if err != nil {
 		return fmt.Errorf("PublicEndpoint should be a valid URL")
 	}
+	if c.HTTP.Auth.Enabled {
+		// Validate ticket validator config
+		err = c.HTTP.Auth.Validate()
+		if err != nil {
+			return fmt.Errorf("invalid auth: %s", err)
+		}
+	}
+
 	_, err = url.Parse(c.Storage.DSN)
 	if err != nil {
 		return fmt.Errorf("storage DSN should be a valid URL")
@@ -81,14 +93,6 @@ func (c *Config) Validate() error {
 			if err != nil {
 				return fmt.Errorf("invalid Service Catalog auth: %s", err)
 			}
-		}
-	}
-
-	if c.Auth.Enabled {
-		// Validate ticket validator config
-		err = c.Auth.Validate()
-		if err != nil {
-			return fmt.Errorf("invalid auth: %s", err)
 		}
 	}
 

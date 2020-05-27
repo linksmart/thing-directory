@@ -1,5 +1,9 @@
 {
   "description": "LinkSmart Thing Directory",
+  "storage": {
+    "type": "leveldb",
+    "dsn": "./data"
+  },
   "dnssd": {
     "publish": {
       "enabled": false,
@@ -7,36 +11,34 @@
       "domain": "local."
     }
   },
-  "publicEndpoint": "http://fqdn-of-the-host:8081",
-  "bindAddr": "0.0.0.0",
-  "bindPort": 8081,
-  "storage": {
-    "type": "leveldb",
-    "dsn": "./data"
-  },
   "serviceCatalog": null,
-  "auth": {
-    "enabled": false,
-    "provider": "keycloak",
-    "providerURL": "https://provider-url",
-    "clientID": "sampleTD",
-    "basicEnabled": false,
-    "authorization": {
-      "enabled": true,
-      "rules": [
-        {
-          "resources": ["/td"],
-          "methods": ["GET","POST", "PUT", "DELETE"],
-          "users": ["admin"],
-          "groups": []
-        },
-        {
-          "resources": ["/td"],
-          "methods": ["GET"],
-          "users": [],
-          "groups": ["fit"]
-        }
-      ]
+  "http": {
+    "publicEndpoint": "http://fqdn-of-the-host:8081",
+    "bindAddr": "0.0.0.0",
+    "bindPort": 8081,
+    "auth": {
+      "enabled": false,
+      "provider": "keycloak",
+      "providerURL": "https://provider-url",
+      "clientID": "sampleTD",
+      "basicEnabled": false,
+      "authorization": {
+        "enabled": true,
+        "rules": [
+          {
+            "resources": ["/td"],
+            "methods": ["GET","POST", "PUT", "DELETE"],
+            "users": ["admin"],
+            "groups": []
+          },
+          {
+            "resources": ["/td"],
+            "methods": ["GET"],
+            "users": [],
+            "groups": ["anonymous"]
+          }
+        ]
+      }
     }
   }
 }
