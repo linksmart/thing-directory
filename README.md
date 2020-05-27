@@ -17,11 +17,11 @@ This is currently under development.
 ## Features
 * Service Discovery
   * [DNS-SD registration](https://github.com/linksmart/thing-directory/wiki/Discovery-with-DNS-SD)
-  * LinkSmart Service Catalog registration
+  * [LinkSmart Service Catalog](https://github.com/linksmart/service-catalog) registration
 * RESTful API
   * [HTTP API](https://linksmart.github.io/swagger-ui/dist/?url=https://raw.githubusercontent.com/linksmart/thing-directory/master/apidoc/openapi-spec.yml)
     * Thing Description CRUD and validation
-    * [XPath 3.0 and JSONPath query languages](https://github.com/linksmart/thing-directory/wiki/Query-Language)
+    * XPath 3.0 and JSONPath [query languages](https://github.com/linksmart/thing-directory/wiki/Query-Language)
 * Persistent Storage
   * LevelDB
 * CI/CD ([TravisCI](https://travis-ci.com/linksmart/thing-directory))
