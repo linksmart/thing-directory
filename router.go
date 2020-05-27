@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/mux"
 )
@@ -70,14 +71,14 @@ func indexHandler(w http.ResponseWriter, _ *http.Request) {
 <p><a href="" id="swagger">Interactive Swagger UI</a> (experimnental; requires internet connection on both server and client sides)</p>
 <script type="text/javascript">
 window.onload = function(){
-    document.getElementById("swagger").href = "//linksmart.github.io/swagger-ui/dist/?url=" + window.location.toString() + "openapi-spec-proxy";
+    document.getElementById("swagger").href = "//linksmart.github.io/swagger-ui/dist/?url=" + window.location.toString() + "openapi-spec-proxy" + window.location.pathname;
 }
 </script>
 `)
 	fmt.Fprintf(w, `<html>`)
 }
 
-func apiSpecProxy(w http.ResponseWriter, _ *http.Request) {
+func apiSpecProxy(w http.ResponseWriter, req *http.Request) {
 	var version = "master"
 	if Version != "" {
 		version = Version
@@ -105,5 +106,15 @@ func apiSpecProxy(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Error responding Open API specs: %s", err)
 		return
+	}
+
+	// append basename as server URL to api specs
+	params := mux.Vars(req)
+	if params["basepath"] != "" {
+		basePath := strings.TrimSuffix(params["basepath"], "/")
+		if !strings.HasPrefix(basePath, "/") {
+			basePath = "/" + basePath
+		}
+		w.Write([]byte("\nservers: [url: " + basePath + "]"))
 	}
 }
