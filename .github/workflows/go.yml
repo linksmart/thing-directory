@@ -133,7 +133,7 @@ jobs:
           NAME: ${{ steps.prepare_var.outputs.programname }}
           MAINAINER: ${{ steps.prepare_var.outputs.maintainer }}
           DESCRIPTION: ${{ steps.prepare_var.outputs.description }}
-          VERSION: ${{ steps.prepare_var.outputs.version_nr }}
+          VERSION: 0.0.0-${{github.run_number}}
           EXEARGUMENTS: ${{ steps.prepare_var.outputs.arguments }}
           COPYCONFIG: ${{ steps.prepare_var.outputs.configcopy }}
           PLATFORM: amd64
@@ -157,7 +157,7 @@ jobs:
           NAME: ${{ steps.prepare_var.outputs.programname }}
           MAINAINER: ${{ steps.prepare_var.outputs.maintainer }}
           DESCRIPTION: ${{ steps.prepare_var.outputs.description }}
-          VERSION: ${{ steps.prepare_var.outputs.version_nr }}
+          VERSION: 0.0.0-${{github.run_number}}
           EXEARGUMENTS: ${{ steps.prepare_var.outputs.arguments }}
           COPYCONFIG: ${{ steps.prepare_var.outputs.configcopy }}
           PLATFORM: arm
@@ -181,7 +181,7 @@ jobs:
           NAME: ${{ steps.prepare_var.outputs.programname }}
           MAINAINER: ${{ steps.prepare_var.outputs.maintainer }}
           DESCRIPTION: ${{ steps.prepare_var.outputs.description }}
-          VERSION: ${{ steps.prepare_var.outputs.version_nr }}
+          VERSION: 0.0.0-${{github.run_number}}
           EXEARGUMENTS: ${{ steps.prepare_var.outputs.arguments }}
           COPYCONFIG: ${{ steps.prepare_var.outputs.configcopy }}
           PLATFORM: arm64
