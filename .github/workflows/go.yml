@@ -48,13 +48,6 @@ jobs:
           BUILDNUM: ${{github.run_number}}
           NAME: ${{ steps.prepare_var.outputs.programname }}
 
-      - name: Upload result for later use
-        if: success()
-        uses: actions/upload-artifact@v2
-        with: 
-          name: result-of-go-build
-          path: output/
-
       - name: Upload ${{ steps.prepare_var.outputs.programname }}-windows-amd64
         if: success()
         uses: actions/upload-artifact@v2
@@ -90,6 +83,13 @@ jobs:
           name: ${{ steps.prepare_var.outputs.programname }}-linux-arm64
           path: bin/${{ steps.prepare_var.outputs.programname }}-linux-arm64
 
+      - name: Upload result for later use
+        if: success()
+        uses: actions/upload-artifact@v2
+        with: 
+          name: result-of-go-build
+          path: output/
+
   build-binary:
     name: Build debian pakets and create release
     if: github.ref != 'refs/heads/master' && !startsWith(github.ref, 'refs/tags/')
@@ -120,8 +120,8 @@ jobs:
         if: success()
         run: |
           mkdir dpkg
-          cd dpkg
           mkdir Builds
+          cd dpkg
           curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/control-build.sh | bash
           curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/pre-post-build.sh | bash
           curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/service-build.sh | bash
@@ -146,7 +146,6 @@ jobs:
         run: |
           mkdir dpkg
           cd dpkg
-          mkdir Builds
           curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/control-build.sh | bash
           curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/pre-post-build.sh | bash
           curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/service-build.sh | bash
@@ -164,6 +163,30 @@ jobs:
           PLATFORM: arm
           EXEPATH: thing-directory-linux-arm
           COPYEXEC: ../bin/thing-directory-linux-arm
+
+      - name: Create DEB for Debian arm64
+        id: deb-linux-arm64
+        if: success()
+        run: |
+          mkdir dpkg
+          cd dpkg
+          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/control-build.sh | bash
+          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/pre-post-build.sh | bash
+          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/service-build.sh | bash
+          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/logrotate-build.sh | bash
+          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/build-deb.sh | bash
+          cd ..
+          rm -r dpkg
+        env: 
+          NAME: ${{ steps.prepare_var.outputs.programname }}
+          MAINAINER: ${{ steps.prepare_var.outputs.maintainer }}
+          DESCRIPTION: ${{ steps.prepare_var.outputs.description }}
+          VERSION: ${{ steps.prepare_var.outputs.version_nr }}
+          EXEARGUMENTS: ${{ steps.prepare_var.outputs.arguments }}
+          COPYCONFIG: ${{ steps.prepare_var.outputs.configcopy }}
+          PLATFORM: arm64
+          EXEPATH: thing-directory-linux-arm64
+          COPYEXEC: ../bin/thing-directory-linux-arm64
 
       - name: Create Release
         if: success()
@@ -253,6 +276,28 @@ jobs:
           upload_url: ${{ steps.nightly_release.outputs.upload_url }}
           asset_path: dpkg/Builds/${{ steps.deb-linux-amd64.outputs.debuilderfile }}
           asset_name: ${{ steps.deb-linux-amd64.outputs.debuilderfile }}
+          asset_content_type: application/x-deb
+
+      - name: Upload release asset linux-arm.deb
+        if: success()
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.nightly_release.outputs.upload_url }}
+          asset_path: dpkg/Builds/${{ steps.deb-linux-arm.outputs.debuilderfile }}
+          asset_name: ${{ steps.deb-linux-arm.outputs.debuilderfile }}
+          asset_content_type: application/x-deb
+
+      - name: Upload release asset linux-arm64.deb
+        if: success()
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.nightly_release.outputs.upload_url }}
+          asset_path: dpkg/Builds/${{ steps.deb-linux-arm64.outputs.debuilderfile }}
+          asset_name: ${{ steps.deb-linux-arm64.outputs.debuilderfile }}
           asset_content_type: application/x-deb
 
   docker:
