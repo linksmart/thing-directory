@@ -274,7 +274,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.nightly_release.outputs.upload_url }}
-          asset_path: dpkg/Builds/${{ steps.deb-linux-amd64.outputs.debuilderfile }}
+          asset_path: Builds/${{ steps.deb-linux-amd64.outputs.debuilderfile }}
           asset_name: ${{ steps.deb-linux-amd64.outputs.debuilderfile }}
           asset_content_type: application/x-deb
 
@@ -285,7 +285,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.nightly_release.outputs.upload_url }}
-          asset_path: dpkg/Builds/${{ steps.deb-linux-arm.outputs.debuilderfile }}
+          asset_path: Builds/${{ steps.deb-linux-arm.outputs.debuilderfile }}
           asset_name: ${{ steps.deb-linux-arm.outputs.debuilderfile }}
           asset_content_type: application/x-deb
 
@@ -296,7 +296,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.nightly_release.outputs.upload_url }}
-          asset_path: dpkg/Builds/${{ steps.deb-linux-arm64.outputs.debuilderfile }}
+          asset_path: Builds/${{ steps.deb-linux-arm64.outputs.debuilderfile }}
           asset_name: ${{ steps.deb-linux-arm64.outputs.debuilderfile }}
           asset_content_type: application/x-deb
 
