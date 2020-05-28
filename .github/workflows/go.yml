@@ -1,6 +1,6 @@
 name: Docker build and local releases
 
-on: [push, pull_request, create]
+on: [push, pull_request]
 
 jobs:
   go-build:
@@ -133,7 +133,8 @@ jobs:
           NAME: ${{ steps.prepare_var.outputs.programname }}
           MAINAINER: ${{ steps.prepare_var.outputs.maintainer }}
           DESCRIPTION: ${{ steps.prepare_var.outputs.description }}
-          VERSION: 0.0.0-${{github.run_number}}
+          VERSION: ${{ steps.prepare_var.outputs.version_nr }}
+          BUILDNUMBER: ${{github.run_number}}
           EXEARGUMENTS: ${{ steps.prepare_var.outputs.arguments }}
           COPYCONFIG: ${{ steps.prepare_var.outputs.configcopy }}
           PLATFORM: amd64
@@ -157,7 +158,8 @@ jobs:
           NAME: ${{ steps.prepare_var.outputs.programname }}
           MAINAINER: ${{ steps.prepare_var.outputs.maintainer }}
           DESCRIPTION: ${{ steps.prepare_var.outputs.description }}
-          VERSION: 0.0.0-${{github.run_number}}
+          VERSION: ${{ steps.prepare_var.outputs.version_nr }}
+          BUILDNUMBER: ${{github.run_number}}
           EXEARGUMENTS: ${{ steps.prepare_var.outputs.arguments }}
           COPYCONFIG: ${{ steps.prepare_var.outputs.configcopy }}
           PLATFORM: arm
@@ -181,7 +183,8 @@ jobs:
           NAME: ${{ steps.prepare_var.outputs.programname }}
           MAINAINER: ${{ steps.prepare_var.outputs.maintainer }}
           DESCRIPTION: ${{ steps.prepare_var.outputs.description }}
-          VERSION: 0.0.0-${{github.run_number}}
+          VERSION: ${{ steps.prepare_var.outputs.version_nr }}
+          BUILDNUMBER: ${{github.run_number}}
           EXEARGUMENTS: ${{ steps.prepare_var.outputs.arguments }}
           COPYCONFIG: ${{ steps.prepare_var.outputs.configcopy }}
           PLATFORM: arm64
