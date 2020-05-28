@@ -1,6 +1,6 @@
 name: Docker build and local releases
 
-on: [push, pull_request]
+on: [push, pull_request, create]
 
 jobs:
   go-build:
@@ -83,8 +83,8 @@ jobs:
           name: ${{ steps.prepare_var.outputs.programname }}-linux-arm64
           path: bin/${{ steps.prepare_var.outputs.programname }}-linux-arm64
 
-      - name: Upload result for later use
-        if: success()
+      - name: Upload result for build debian pakets and create release
+        if: success() && github.ref != 'refs/heads/master' && !startsWith(github.ref, 'refs/tags/')
         uses: actions/upload-artifact@v2
         with: 
           name: result-of-go-build
@@ -92,12 +92,12 @@ jobs:
 
   build-binary:
     name: Build debian pakets and create release
-    if: github.ref != 'refs/heads/master' && !startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     needs: go-build
     steps:
 
       - name: Prepare Variables
+        if: github.ref != 'refs/heads/master' && !startsWith(github.ref, 'refs/tags/')
         id: prepare_var
         run: |
           versions=(${GREF//\// })
@@ -312,10 +312,24 @@ jobs:
         run: |
           versions=(${GREF//\// })
           echo ::set-output name=version_nr::${versions[2]}
-          echo ::set-output name=programname::$NAME
+          echo ::set-output name=programname::thing-directory
         env:
           GREF: ${{github.ref}}
-          NAME: thing-directory
+
+      - name: Check out code
+        if: success()
+        uses: actions/checkout@v2
+
+      - name: Docker login
+        if: success()
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }} " | docker login -u "${{ secrets.DOCKERHUB_USER }}" --password-stdin
+
+      - name: build image
+        if: success()
+        run: docker build -t linksmart/td --build-arg version=${VERSION} --build-arg buildnum=${BUILDNUM} .
+        env:
+          VERSION: ${{ steps.prepare_var.outputs.version_nr }}
+          BUILDNUM: ${{github.run_number}}
 
 
 
