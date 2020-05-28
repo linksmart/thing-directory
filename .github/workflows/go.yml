@@ -84,7 +84,7 @@ jobs:
           path: bin/${{ steps.prepare_var.outputs.programname }}-linux-arm64
 
       - name: Upload result for build debian pakets and create release
-        if: success() && github.ref != 'refs/heads/master' && !startsWith(github.ref, 'refs/tags/')
+        if: success() && github.ref != 'refs/heads/master' && startsWith(github.ref, 'refs/tags/')
         uses: actions/upload-artifact@v2
         with: 
           name: result-of-go-build
@@ -97,7 +97,7 @@ jobs:
     steps:
 
       - name: Prepare Variables
-        if: github.ref != 'refs/heads/master' && !startsWith(github.ref, 'refs/tags/')
+        if: github.ref != 'refs/heads/master' && startsWith(github.ref, 'refs/tags/')
         id: prepare_var
         run: |
           versions=(${GREF//\// })
@@ -322,7 +322,7 @@ jobs:
 
       - name: Docker login
         if: success()
-        run: echo "${{ secrets.DOCKERHUB_TOKEN }} " | docker login -u "${{ secrets.DOCKERHUB_USER }}" --password-stdin
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USER }}" --password-stdin
 
       - name: build image
         if: success()
