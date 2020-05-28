@@ -7,15 +7,15 @@ jobs:
     name: Test and build the code
     runs-on: ubuntu-latest
     steps:
+
       - name: Prepare Variables
         id: prepare_var
         run: |
           versions=(${GREF//\// })
           echo ::set-output name=version_nr::${versions[2]}
-          echo ::set-output name=programname::$NAME
+          echo ::set-output name=programname::thing-directory
         env:
           GREF: ${{github.ref}}
-          NAME: thing-directory
 
       - name: Set up Go 1.x
         if: success()
@@ -49,34 +49,46 @@ jobs:
           NAME: ${{ steps.prepare_var.outputs.programname }}
 
       - name: Upload result for later use
+        if: success()
         uses: actions/upload-artifact@v2
         with: 
           name: result-of-go-build
           path: output/
 
       - name: Upload ${{ steps.prepare_var.outputs.programname }}-windows-amd64
+        if: success()
         uses: actions/upload-artifact@v2
         with: 
           name: ${{ steps.prepare_var.outputs.programname }}-windows-amd64.exe
           path: bin/${{ steps.prepare_var.outputs.programname }}-windows-amd64.exe
 
       - name: Upload ${{ steps.prepare_var.outputs.programname }}-darwin-amd64
+        if: success()
         uses: actions/upload-artifact@v2
         with: 
           name: ${{ steps.prepare_var.outputs.programname }}-darwin-amd64
           path: bin/${{ steps.prepare_var.outputs.programname }}-darwin-amd64
 
       - name: Upload ${{ steps.prepare_var.outputs.programname }}-linux-amd64
+        if: success()
         uses: actions/upload-artifact@v2
         with: 
           name: ${{ steps.prepare_var.outputs.programname }}-linux-amd64
           path: bin/${{ steps.prepare_var.outputs.programname }}-linux-amd64
 
       - name: Upload ${{ steps.prepare_var.outputs.programname }}-linux-arm
+        if: success()
         uses: actions/upload-artifact@v2
         with: 
           name: ${{ steps.prepare_var.outputs.programname }}-linux-arm
           path: bin/${{ steps.prepare_var.outputs.programname }}-linux-arm
+
+      - name: Upload ${{ steps.prepare_var.outputs.programname }}-linux-arm64
+        if: success()
+        uses: actions/upload-artifact@v2
+        with: 
+          name: ${{ steps.prepare_var.outputs.programname }}-linux-arm64
+          path: bin/${{ steps.prepare_var.outputs.programname }}-linux-arm64
 
   build-binary:
     name: Build debian pakets and create release
@@ -90,10 +102,13 @@ jobs:
         run: |
           versions=(${GREF//\// })
           echo ::set-output name=version_nr::${versions[2]}
-          echo ::set-output name=programname::$NAME
+          echo ::set-output name=programname::thing-directory
+          echo "::set-output name=maintainer::Linksmart <dev@linksmart.net>"
+          echo "::set-output name=description::Discovers Things"
+          echo "::set-output name=arguments::--conf /etc/thing-directory/thing-directory.json --schema /etc/thing-directory/wot_td_schema.json"
+          echo "::set-output name=configcopy::../conf/thing-directory.json ../wot/wot_td_schema.json"
         env:
           GREF: ${{github.ref}}
-          NAME: thing-directory
 
       - name: Download binary artifact
         uses: actions/download-artifact@v2
@@ -112,18 +127,43 @@ jobs:
           curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/service-build.sh | bash
           curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/logrotate-build.sh | bash
           curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/build-deb.sh | bash
+          cd ..
+          rm -r dpkg
         env: 
           NAME: ${{ steps.prepare_var.outputs.programname }}
-          PLATFORM: amd64
-          DEPENDENCIES: libc-bin (>= 2.19)
-          MAINAINER: Linksmart <dev@linksmart.net>
-          DESCRIPTION: Discovers Things
-          DEBBUILDPATH: $HOME/deb
+          MAINAINER: ${{ steps.prepare_var.outputs.maintainer }}
+          DESCRIPTION: ${{ steps.prepare_var.outputs.description }}
           VERSION: ${{ steps.prepare_var.outputs.version_nr }}
+          EXEARGUMENTS: ${{ steps.prepare_var.outputs.arguments }}
+          COPYCONFIG: ${{ steps.prepare_var.outputs.configcopy }}
+          PLATFORM: amd64
           EXEPATH: thing-directory-linux-amd64
-          EXEARGUMENTS: --conf /etc/thing-directory/thing-directory.json --schema /etc/thing-directory/wot_td_schema.json
           COPYEXEC: ../bin/thing-directory-linux-amd64
-          COPYCONFIG: ../conf/thing-directory.json ../wot/wot_td_schema.json
+
+      - name: Create DEB for Debian arm
+        id: deb-linux-arm
+        if: success()
+        run: |
+          mkdir dpkg
+          cd dpkg
+          mkdir Builds
+          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/control-build.sh | bash
+          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/pre-post-build.sh | bash
+          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/service-build.sh | bash
+          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/logrotate-build.sh | bash
+          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/build-deb.sh | bash
+          cd ..
+          rm -r dpkg
+        env: 
+          NAME: ${{ steps.prepare_var.outputs.programname }}
+          MAINAINER: ${{ steps.prepare_var.outputs.maintainer }}
+          DESCRIPTION: ${{ steps.prepare_var.outputs.description }}
+          VERSION: ${{ steps.prepare_var.outputs.version_nr }}
+          EXEARGUMENTS: ${{ steps.prepare_var.outputs.arguments }}
+          COPYCONFIG: ${{ steps.prepare_var.outputs.configcopy }}
+          PLATFORM: arm
+          EXEPATH: thing-directory-linux-arm
+          COPYEXEC: ../bin/thing-directory-linux-arm
 
       - name: Create Release
         if: success()
