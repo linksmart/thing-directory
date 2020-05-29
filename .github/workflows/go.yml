@@ -23,7 +23,7 @@ jobs:
         run: go test -v ./...
 
   build:
-    name: Build the code
+    name: Build and upload snapshots
     runs-on: ubuntu-latest
     needs: test
     steps:
@@ -51,13 +51,9 @@ jobs:
         if: success()
         run: |
           curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/go/go-build.sh | bash
-          mkdir output
-          mkdir output/bin
+          mkdir -p output/bin output/conf
           cp bin/* output/bin
-          mkdir output/conf
-          cp sample_conf/* output/conf
-          mkdir output/wot
-          cp wot/wot_td_schema.json output/wot
+          cp sample_conf/* wot/wot_td_schema.json output/conf
         env:
           VERSION: ${{ steps.prepare_var.outputs.version_nr }}
           BUILDNUM: ${{github.run_number}}
@@ -121,7 +117,7 @@ jobs:
           echo "::set-output name=maintainer::Linksmart <info@linksmart.eu>"
           echo "::set-output name=description::WoT Thing Directory by LinkSmart"
           echo "::set-output name=arguments::--conf /etc/thing-directory/thing-directory.json --schema /etc/thing-directory/wot_td_schema.json"
-          echo "::set-output name=configcopy::../conf/thing-directory.json ../wot/wot_td_schema.json"
+          echo "::set-output name=configcopy::../conf/thing-directory.json ../conf/wot_td_schema.json"
         env:
           GREF: ${{github.ref}}
 
@@ -306,7 +302,7 @@ jobs:
           asset_content_type: application/x-deb
 
   docker:
-    name: Build Docker and Publish
+    name: Build and push docker image
     runs-on: ubuntu-latest
     needs: test
     steps: 
