@@ -22,6 +22,7 @@ This is currently under development.
   * [HTTP API](https://linksmart.github.io/swagger-ui/dist/?url=https://raw.githubusercontent.com/linksmart/thing-directory/master/apidoc/openapi-spec.yml)
     * Thing Description (TD) CRUD, catalog, and validation
     * XPath 3.0 and JSONPath [query languages](https://github.com/linksmart/thing-directory/wiki/Query-Language)
+    * TD validation with JSON Schema ([default](https://github.com/linksmart/thing-directory/blob/master/wot/wot_td_schema.json))
 * Persistent Storage
   * LevelDB
 * CI/CD ([TravisCI](https://travis-ci.com/linksmart/thing-directory))
