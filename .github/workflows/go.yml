@@ -3,7 +3,7 @@ name: Docker build and local releases
 on: [push, pull_request]
 
 jobs:
-  go-build:
+  test-and-build:
     name: Test and build the code
     runs-on: ubuntu-latest
     steps:
@@ -48,53 +48,53 @@ jobs:
           BUILDNUM: ${{github.run_number}}
           NAME: ${{ steps.prepare_var.outputs.programname }}
 
-      - name: Upload ${{ steps.prepare_var.outputs.programname }}-windows-amd64
+      - name: Upload snapshot ${{ steps.prepare_var.outputs.programname }}-windows-amd64
         if: success()
         uses: actions/upload-artifact@v2
         with: 
-          name: ${{ steps.prepare_var.outputs.programname }}-windows-amd64.exe
+          name: ${{ steps.prepare_var.outputs.programname }}-windows-amd64
           path: bin/${{ steps.prepare_var.outputs.programname }}-windows-amd64.exe
 
-      - name: Upload ${{ steps.prepare_var.outputs.programname }}-darwin-amd64
+      - name: Upload snapshot ${{ steps.prepare_var.outputs.programname }}-darwin-amd64
         if: success()
         uses: actions/upload-artifact@v2
         with: 
           name: ${{ steps.prepare_var.outputs.programname }}-darwin-amd64
           path: bin/${{ steps.prepare_var.outputs.programname }}-darwin-amd64
 
-      - name: Upload ${{ steps.prepare_var.outputs.programname }}-linux-amd64
+      - name: Upload snapshot ${{ steps.prepare_var.outputs.programname }}-linux-amd64
         if: success()
         uses: actions/upload-artifact@v2
         with: 
           name: ${{ steps.prepare_var.outputs.programname }}-linux-amd64
           path: bin/${{ steps.prepare_var.outputs.programname }}-linux-amd64
 
-      - name: Upload ${{ steps.prepare_var.outputs.programname }}-linux-arm
+      - name: Upload snapshot ${{ steps.prepare_var.outputs.programname }}-linux-arm
         if: success()
         uses: actions/upload-artifact@v2
         with: 
           name: ${{ steps.prepare_var.outputs.programname }}-linux-arm
           path: bin/${{ steps.prepare_var.outputs.programname }}-linux-arm
 
-      - name: Upload ${{ steps.prepare_var.outputs.programname }}-linux-arm64
+      - name: Upload snapshot ${{ steps.prepare_var.outputs.programname }}-linux-arm64
         if: success()
         uses: actions/upload-artifact@v2
         with: 
           name: ${{ steps.prepare_var.outputs.programname }}-linux-arm64
           path: bin/${{ steps.prepare_var.outputs.programname }}-linux-arm64
 
-      - name: Upload result for build debian pakets and create release
+      - name: Upload all snapshots for building debian packages and releasing
         if: success() && github.ref != 'refs/heads/master' && startsWith(github.ref, 'refs/tags/')
         uses: actions/upload-artifact@v2
         with: 
-          name: result-of-go-build
+          name: snapshots
           path: output/
 
-  build-binary:
-    name: Build debian pakets and create release
+  package-and-release:
+    name: Build debian packages and upload release assets
     if: github.ref != 'refs/heads/master' && startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
-    needs: go-build
+    needs: test-and-build
     steps:
 
       - name: Prepare Variables
@@ -103,17 +103,17 @@ jobs:
           versions=(${GREF//\// })
           echo ::set-output name=version_nr::${versions[2]}
           echo ::set-output name=programname::thing-directory
-          echo "::set-output name=maintainer::Linksmart <dev@linksmart.net>"
-          echo "::set-output name=description::Discovers Things"
+          echo "::set-output name=maintainer::Linksmart <info@linksmart.eu>"
+          echo "::set-output name=description::WoT Thing Directory by LinkSmart"
           echo "::set-output name=arguments::--conf /etc/thing-directory/thing-directory.json --schema /etc/thing-directory/wot_td_schema.json"
           echo "::set-output name=configcopy::../conf/thing-directory.json ../wot/wot_td_schema.json"
         env:
           GREF: ${{github.ref}}
 
-      - name: Download binary artifact
+      - name: Download snapshot artifacts
         uses: actions/download-artifact@v2
         with: 
-          name: result-of-go-build
+          name: snapshots
 
       - name: Create DEB for Debian amd64
         id: deb-linux-amd64
@@ -190,19 +190,6 @@ jobs:
           PLATFORM: arm64
           EXEPATH: thing-directory-linux-arm64
           COPYEXEC: ../bin/thing-directory-linux-arm64
-
-      - name: Create Release
-        if: success()
-        id: nightly_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.prepare_var.outputs.version_nr }}
-          release_name: Nightly ${{ steps.prepare_var.outputs.version_nr }}
-          body: This is a nightly release. It may be not working properly.
-          draft: false
-          prerelease: true
 
       - name: Upload release asset windows-amd64.exe
         if: success()
@@ -306,7 +293,7 @@ jobs:
   docker:
     name: Build Docker and Publish
     runs-on: ubuntu-latest
-    needs: go-build
+    needs: test-and-build
     steps: 
 
       - name: Prepare Variables
