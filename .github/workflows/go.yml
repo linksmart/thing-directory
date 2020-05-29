@@ -59,43 +59,8 @@ jobs:
           VERSION: ${{ steps.prepare.outputs.version }}
           BUILDNUM: ${{github.run_number}}
 
-      - name: Upload windows-amd64 snapshot
+      - name: Upload snapshots
         if: success()
-        uses: actions/upload-artifact@v2
-        with: 
-          name: thing-directory-windows-amd64
-          path: bin/thing-directory-windows-amd64.exe
-
-      - name: Upload darwin-amd64 snapshot
-        if: success()
-        uses: actions/upload-artifact@v2
-        with: 
-          name: thing-directory-darwin-amd64
-          path: bin/thing-directory-darwin-amd64
-
-      - name: Upload linux-amd64 snapshot
-        if: success()
-        uses: actions/upload-artifact@v2
-        with: 
-          name: thing-directory-linux-amd64
-          path: bin/thing-directory-linux-amd64
-
-      - name: Upload linux-arm snapshot
-        if: success()
-        uses: actions/upload-artifact@v2
-        with: 
-          name: thing-directory-linux-arm
-          path: bin/thing-directory-linux-arm
-
-      - name: Upload linux-arm64 snapshot
-        if: success()
-        uses: actions/upload-artifact@v2
-        with: 
-          name: thing-directory-linux-arm64
-          path: bin/thing-directory-linux-arm64
-
-      - name: Upload all snapshots for building debian packages and releasing
-        if: success() && github.ref != 'refs/heads/master' && startsWith(github.ref, 'refs/tags/')
         uses: actions/upload-artifact@v2
         with: 
           name: snapshots
