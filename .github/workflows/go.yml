@@ -1,0 +1,344 @@
+name: Docker build and local releases
+
+on: [push, pull_request]
+
+jobs:
+  go-build:
+    name: Test and build the code
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Prepare Variables
+        id: prepare_var
+        run: |
+          versions=(${GREF//\// })
+          echo ::set-output name=version_nr::${versions[2]}
+          echo ::set-output name=programname::thing-directory
+        env:
+          GREF: ${{github.ref}}
+
+      - name: Set up Go 1.x
+        if: success()
+        uses: actions/setup-go@v2
+        with:
+          go-version: ^1.14
+        id: go
+
+      - name: Check out code
+        if: success()
+        uses: actions/checkout@v2
+        
+      - name: Test code
+        if: success()
+        run: go test -v ./...
+
+      - name: Cross Compile go
+        if: success()
+        run: |
+          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/go/go-build.sh | bash
+          mkdir output
+          mkdir output/bin
+          cp bin/* output/bin
+          mkdir output/conf
+          cp sample_conf/* output/conf
+          mkdir output/wot
+          cp wot/wot_td_schema.json output/wot
+        env:
+          VERSION: ${{ steps.prepare_var.outputs.version_nr }}
+          BUILDNUM: ${{github.run_number}}
+          NAME: ${{ steps.prepare_var.outputs.programname }}
+
+      - name: Upload ${{ steps.prepare_var.outputs.programname }}-windows-amd64
+        if: success()
+        uses: actions/upload-artifact@v2
+        with: 
+          name: ${{ steps.prepare_var.outputs.programname }}-windows-amd64.exe
+          path: bin/${{ steps.prepare_var.outputs.programname }}-windows-amd64.exe
+
+      - name: Upload ${{ steps.prepare_var.outputs.programname }}-darwin-amd64
+        if: success()
+        uses: actions/upload-artifact@v2
+        with: 
+          name: ${{ steps.prepare_var.outputs.programname }}-darwin-amd64
+          path: bin/${{ steps.prepare_var.outputs.programname }}-darwin-amd64
+
+      - name: Upload ${{ steps.prepare_var.outputs.programname }}-linux-amd64
+        if: success()
+        uses: actions/upload-artifact@v2
+        with: 
+          name: ${{ steps.prepare_var.outputs.programname }}-linux-amd64
+          path: bin/${{ steps.prepare_var.outputs.programname }}-linux-amd64
+
+      - name: Upload ${{ steps.prepare_var.outputs.programname }}-linux-arm
+        if: success()
+        uses: actions/upload-artifact@v2
+        with: 
+          name: ${{ steps.prepare_var.outputs.programname }}-linux-arm
+          path: bin/${{ steps.prepare_var.outputs.programname }}-linux-arm
+
+      - name: Upload ${{ steps.prepare_var.outputs.programname }}-linux-arm64
+        if: success()
+        uses: actions/upload-artifact@v2
+        with: 
+          name: ${{ steps.prepare_var.outputs.programname }}-linux-arm64
+          path: bin/${{ steps.prepare_var.outputs.programname }}-linux-arm64
+
+      - name: Upload result for build debian pakets and create release
+        if: success() && github.ref != 'refs/heads/master' && startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@v2
+        with: 
+          name: result-of-go-build
+          path: output/
+
+  build-binary:
+    name: Build debian pakets and create release
+    if: github.ref != 'refs/heads/master' && startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    needs: go-build
+    steps:
+
+      - name: Prepare Variables
+        id: prepare_var
+        run: |
+          versions=(${GREF//\// })
+          echo ::set-output name=version_nr::${versions[2]}
+          echo ::set-output name=programname::thing-directory
+          echo "::set-output name=maintainer::Linksmart <dev@linksmart.net>"
+          echo "::set-output name=description::Discovers Things"
+          echo "::set-output name=arguments::--conf /etc/thing-directory/thing-directory.json --schema /etc/thing-directory/wot_td_schema.json"
+          echo "::set-output name=configcopy::../conf/thing-directory.json ../wot/wot_td_schema.json"
+        env:
+          GREF: ${{github.ref}}
+
+      - name: Download binary artifact
+        uses: actions/download-artifact@v2
+        with: 
+          name: result-of-go-build
+
+      - name: Create DEB for Debian amd64
+        id: deb-linux-amd64
+        if: success()
+        run: |
+          mkdir dpkg
+          mkdir Builds
+          cd dpkg
+          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/control-build.sh | bash
+          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/pre-post-build.sh | bash
+          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/service-build.sh | bash
+          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/logrotate-build.sh | bash
+          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/build-deb.sh | bash
+          cd ..
+          rm -r dpkg
+        env: 
+          NAME: ${{ steps.prepare_var.outputs.programname }}
+          MAINAINER: ${{ steps.prepare_var.outputs.maintainer }}
+          DESCRIPTION: ${{ steps.prepare_var.outputs.description }}
+          VERSION: ${{ steps.prepare_var.outputs.version_nr }}
+          BUILDNUMBER: ${{github.run_number}}
+          EXEARGUMENTS: ${{ steps.prepare_var.outputs.arguments }}
+          COPYCONFIG: ${{ steps.prepare_var.outputs.configcopy }}
+          PLATFORM: amd64
+          EXEPATH: thing-directory-linux-amd64
+          COPYEXEC: ../bin/thing-directory-linux-amd64
+
+      - name: Create DEB for Debian arm
+        id: deb-linux-arm
+        if: success()
+        run: |
+          mkdir dpkg
+          cd dpkg
+          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/control-build.sh | bash
+          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/pre-post-build.sh | bash
+          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/service-build.sh | bash
+          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/logrotate-build.sh | bash
+          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/build-deb.sh | bash
+          cd ..
+          rm -r dpkg
+        env: 
+          NAME: ${{ steps.prepare_var.outputs.programname }}
+          MAINAINER: ${{ steps.prepare_var.outputs.maintainer }}
+          DESCRIPTION: ${{ steps.prepare_var.outputs.description }}
+          VERSION: ${{ steps.prepare_var.outputs.version_nr }}
+          BUILDNUMBER: ${{github.run_number}}
+          EXEARGUMENTS: ${{ steps.prepare_var.outputs.arguments }}
+          COPYCONFIG: ${{ steps.prepare_var.outputs.configcopy }}
+          PLATFORM: arm
+          EXEPATH: thing-directory-linux-arm
+          COPYEXEC: ../bin/thing-directory-linux-arm
+
+      - name: Create DEB for Debian arm64
+        id: deb-linux-arm64
+        if: success()
+        run: |
+          mkdir dpkg
+          cd dpkg
+          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/control-build.sh | bash
+          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/pre-post-build.sh | bash
+          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/service-build.sh | bash
+          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/logrotate-build.sh | bash
+          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/build-deb.sh | bash
+          cd ..
+          rm -r dpkg
+        env: 
+          NAME: ${{ steps.prepare_var.outputs.programname }}
+          MAINAINER: ${{ steps.prepare_var.outputs.maintainer }}
+          DESCRIPTION: ${{ steps.prepare_var.outputs.description }}
+          VERSION: ${{ steps.prepare_var.outputs.version_nr }}
+          BUILDNUMBER: ${{github.run_number}}
+          EXEARGUMENTS: ${{ steps.prepare_var.outputs.arguments }}
+          COPYCONFIG: ${{ steps.prepare_var.outputs.configcopy }}
+          PLATFORM: arm64
+          EXEPATH: thing-directory-linux-arm64
+          COPYEXEC: ../bin/thing-directory-linux-arm64
+
+      - name: Create Release
+        if: success()
+        id: nightly_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.prepare_var.outputs.version_nr }}
+          release_name: Nightly ${{ steps.prepare_var.outputs.version_nr }}
+          body: This is a nightly release. It may be not working properly.
+          draft: false
+          prerelease: true
+
+      - name: Upload release asset windows-amd64.exe
+        if: success()
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.nightly_release.outputs.upload_url }}
+          asset_path: bin/thing-directory-windows-amd64.exe
+          asset_name: thing-directory-windows-amd64.exe
+          asset_content_type: application/vnd.microsoft.portable-executable
+
+      - name: Upload release asset darwin-amd64
+        if: success()
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.nightly_release.outputs.upload_url }}
+          asset_path: bin/thing-directory-darwin-amd64
+          asset_name: thing-directory-darwin-amd64
+          asset_content_type: application/octet-stream
+
+      - name: Upload release asset linux-amd64
+        if: success()
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.nightly_release.outputs.upload_url }}
+          asset_path: bin/thing-directory-linux-amd64
+          asset_name: thing-directory-linux-amd64
+          asset_content_type: application/octet-stream
+      
+      - name: Upload release asset linux-arm64
+        if: success()
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.nightly_release.outputs.upload_url }}
+          asset_path: bin/thing-directory-linux-arm64
+          asset_name: thing-directory-linux-arm64
+          asset_content_type: application/octet-stream
+
+      - name: Upload release asset linux-arm
+        if: success()
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.nightly_release.outputs.upload_url }}
+          asset_path: bin/thing-directory-linux-arm
+          asset_name: thing-directory-linux-arm
+          asset_content_type: application/octet-stream
+
+      - name: Upload release asset sample_conf
+        if: success()
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.nightly_release.outputs.upload_url }}
+          asset_path: conf/thing-directory.json
+          asset_name: thing-directory.json
+          asset_content_type: application/json
+
+      - name: Upload release asset linux-amd64.deb
+        if: success()
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.nightly_release.outputs.upload_url }}
+          asset_path: Builds/${{ steps.deb-linux-amd64.outputs.debuilderfile }}
+          asset_name: ${{ steps.deb-linux-amd64.outputs.debuilderfile }}
+          asset_content_type: application/x-deb
+
+      - name: Upload release asset linux-arm.deb
+        if: success()
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.nightly_release.outputs.upload_url }}
+          asset_path: Builds/${{ steps.deb-linux-arm.outputs.debuilderfile }}
+          asset_name: ${{ steps.deb-linux-arm.outputs.debuilderfile }}
+          asset_content_type: application/x-deb
+
+      - name: Upload release asset linux-arm64.deb
+        if: success()
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.nightly_release.outputs.upload_url }}
+          asset_path: Builds/${{ steps.deb-linux-arm64.outputs.debuilderfile }}
+          asset_name: ${{ steps.deb-linux-arm64.outputs.debuilderfile }}
+          asset_content_type: application/x-deb
+
+  docker:
+    name: Build Docker and Publish
+    runs-on: ubuntu-latest
+    needs: go-build
+    steps: 
+
+      - name: Prepare Variables
+        id: prepare_var
+        run: |
+          versions=(${GREF//\// })
+          echo ::set-output name=version_nr::${versions[2]}
+          echo ::set-output name=programname::thing-directory
+        env:
+          GREF: ${{github.ref}}
+
+      - name: Check out code
+        if: success()
+        uses: actions/checkout@v2
+
+      - name: Docker login
+        if: success()
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USER }}" --password-stdin
+
+      - name: Build image
+        if: success()
+        run: docker build -t linksmart/td --build-arg version=${VERSION} --build-arg buildnum=${BUILDNUM} .
+        env:
+          VERSION: ${{ steps.prepare_var.outputs.version_nr }}
+          BUILDNUM: ${{github.run_number}}
+
+      - name: Push latest docker image
+        if: success() && github.ref == 'refs/heads/master'
+        run: docker push linksmart/td:latest
+
+      - name: Push tagged docker image
+        if: success() && github.ref != 'refs/heads/master' && startsWith(github.ref, 'refs/tags/')
+        run: |
+          docker tag linksmart/td linksmart/td:${{ steps.prepare_var.outputs.version_nr }}
+          docker push linksmart/td:${{ steps.prepare_var.outputs.version_nr }}
