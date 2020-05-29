@@ -1,4 +1,4 @@
-name: Docker build and local releases
+name: CICD
 
 on: [push, pull_request]
 
@@ -28,13 +28,10 @@ jobs:
     needs: test
     steps:
       - name: Prepare Variables
-        id: prepare_var
+        id: prepare
         run: |
-          versions=(${GREF//\// })
-          echo ::set-output name=version_nr::${versions[2]}
+          echo ::set-output name=version::${GITHUB_REF##*/}
           echo ::set-output name=programname::thing-directory
-        env:
-          GREF: ${{github.ref}}
 
       - name: Set up Go 1.x
         if: success()
@@ -55,44 +52,44 @@ jobs:
           cp bin/* output/bin
           cp sample_conf/* wot/wot_td_schema.json output/conf
         env:
-          VERSION: ${{ steps.prepare_var.outputs.version_nr }}
+          VERSION: ${{ steps.prepare.outputs.version }}
           BUILDNUM: ${{github.run_number}}
-          NAME: ${{ steps.prepare_var.outputs.programname }}
+          NAME: ${{ steps.prepare.outputs.programname }}
 
-      - name: Upload snapshot ${{ steps.prepare_var.outputs.programname }}-windows-amd64
+      - name: Upload snapshot ${{ steps.prepare.outputs.programname }}-windows-amd64
         if: success()
         uses: actions/upload-artifact@v2
         with: 
-          name: ${{ steps.prepare_var.outputs.programname }}-windows-amd64
-          path: bin/${{ steps.prepare_var.outputs.programname }}-windows-amd64.exe
+          name: ${{ steps.prepare.outputs.programname }}-windows-amd64
+          path: bin/${{ steps.prepare.outputs.programname }}-windows-amd64.exe
 
-      - name: Upload snapshot ${{ steps.prepare_var.outputs.programname }}-darwin-amd64
+      - name: Upload snapshot ${{ steps.prepare.outputs.programname }}-darwin-amd64
         if: success()
         uses: actions/upload-artifact@v2
         with: 
-          name: ${{ steps.prepare_var.outputs.programname }}-darwin-amd64
-          path: bin/${{ steps.prepare_var.outputs.programname }}-darwin-amd64
+          name: ${{ steps.prepare.outputs.programname }}-darwin-amd64
+          path: bin/${{ steps.prepare.outputs.programname }}-darwin-amd64
 
-      - name: Upload snapshot ${{ steps.prepare_var.outputs.programname }}-linux-amd64
+      - name: Upload snapshot ${{ steps.prepare.outputs.programname }}-linux-amd64
         if: success()
         uses: actions/upload-artifact@v2
         with: 
-          name: ${{ steps.prepare_var.outputs.programname }}-linux-amd64
-          path: bin/${{ steps.prepare_var.outputs.programname }}-linux-amd64
+          name: ${{ steps.prepare.outputs.programname }}-linux-amd64
+          path: bin/${{ steps.prepare.outputs.programname }}-linux-amd64
 
-      - name: Upload snapshot ${{ steps.prepare_var.outputs.programname }}-linux-arm
+      - name: Upload snapshot ${{ steps.prepare.outputs.programname }}-linux-arm
         if: success()
         uses: actions/upload-artifact@v2
         with: 
-          name: ${{ steps.prepare_var.outputs.programname }}-linux-arm
-          path: bin/${{ steps.prepare_var.outputs.programname }}-linux-arm
+          name: ${{ steps.prepare.outputs.programname }}-linux-arm
+          path: bin/${{ steps.prepare.outputs.programname }}-linux-arm
 
-      - name: Upload snapshot ${{ steps.prepare_var.outputs.programname }}-linux-arm64
+      - name: Upload snapshot ${{ steps.prepare.outputs.programname }}-linux-arm64
         if: success()
         uses: actions/upload-artifact@v2
         with: 
-          name: ${{ steps.prepare_var.outputs.programname }}-linux-arm64
-          path: bin/${{ steps.prepare_var.outputs.programname }}-linux-arm64
+          name: ${{ steps.prepare.outputs.programname }}-linux-arm64
+          path: bin/${{ steps.prepare.outputs.programname }}-linux-arm64
 
       - name: Upload all snapshots for building debian packages and releasing
         if: success() && github.ref != 'refs/heads/master' && startsWith(github.ref, 'refs/tags/')
@@ -109,17 +106,14 @@ jobs:
     steps:
 
       - name: Prepare Variables
-        id: prepare_var
+        id: prepare
         run: |
-          versions=(${GREF//\// })
-          echo ::set-output name=version_nr::${versions[2]}
+          echo ::set-output name=version::${GITHUB_REF##*/}
           echo ::set-output name=programname::thing-directory
           echo "::set-output name=maintainer::Linksmart <info@linksmart.eu>"
           echo "::set-output name=description::WoT Thing Directory by LinkSmart"
           echo "::set-output name=arguments::--conf /etc/thing-directory/thing-directory.json --schema /etc/thing-directory/wot_td_schema.json"
           echo "::set-output name=configcopy::../conf/thing-directory.json ../conf/wot_td_schema.json"
-        env:
-          GREF: ${{github.ref}}
 
       - name: Download snapshot artifacts
         uses: actions/download-artifact@v2
@@ -141,13 +135,13 @@ jobs:
           cd ..
           rm -r dpkg
         env: 
-          NAME: ${{ steps.prepare_var.outputs.programname }}
-          MAINAINER: ${{ steps.prepare_var.outputs.maintainer }}
-          DESCRIPTION: ${{ steps.prepare_var.outputs.description }}
-          VERSION: ${{ steps.prepare_var.outputs.version_nr }}
+          NAME: ${{ steps.prepare.outputs.programname }}
+          MAINAINER: ${{ steps.prepare.outputs.maintainer }}
+          DESCRIPTION: ${{ steps.prepare.outputs.description }}
+          VERSION: ${{ steps.prepare.outputs.version }}
           BUILDNUMBER: ${{github.run_number}}
-          EXEARGUMENTS: ${{ steps.prepare_var.outputs.arguments }}
-          COPYCONFIG: ${{ steps.prepare_var.outputs.configcopy }}
+          EXEARGUMENTS: ${{ steps.prepare.outputs.arguments }}
+          COPYCONFIG: ${{ steps.prepare.outputs.configcopy }}
           PLATFORM: amd64
           EXEPATH: thing-directory-linux-amd64
           COPYEXEC: ../bin/thing-directory-linux-amd64
@@ -166,13 +160,13 @@ jobs:
           cd ..
           rm -r dpkg
         env: 
-          NAME: ${{ steps.prepare_var.outputs.programname }}
-          MAINAINER: ${{ steps.prepare_var.outputs.maintainer }}
-          DESCRIPTION: ${{ steps.prepare_var.outputs.description }}
-          VERSION: ${{ steps.prepare_var.outputs.version_nr }}
+          NAME: ${{ steps.prepare.outputs.programname }}
+          MAINAINER: ${{ steps.prepare.outputs.maintainer }}
+          DESCRIPTION: ${{ steps.prepare.outputs.description }}
+          VERSION: ${{ steps.prepare.outputs.version }}
           BUILDNUMBER: ${{github.run_number}}
-          EXEARGUMENTS: ${{ steps.prepare_var.outputs.arguments }}
-          COPYCONFIG: ${{ steps.prepare_var.outputs.configcopy }}
+          EXEARGUMENTS: ${{ steps.prepare.outputs.arguments }}
+          COPYCONFIG: ${{ steps.prepare.outputs.configcopy }}
           PLATFORM: arm
           EXEPATH: thing-directory-linux-arm
           COPYEXEC: ../bin/thing-directory-linux-arm
@@ -191,13 +185,13 @@ jobs:
           cd ..
           rm -r dpkg
         env: 
-          NAME: ${{ steps.prepare_var.outputs.programname }}
-          MAINAINER: ${{ steps.prepare_var.outputs.maintainer }}
-          DESCRIPTION: ${{ steps.prepare_var.outputs.description }}
-          VERSION: ${{ steps.prepare_var.outputs.version_nr }}
+          NAME: ${{ steps.prepare.outputs.programname }}
+          MAINAINER: ${{ steps.prepare.outputs.maintainer }}
+          DESCRIPTION: ${{ steps.prepare.outputs.description }}
+          VERSION: ${{ steps.prepare.outputs.version }}
           BUILDNUMBER: ${{github.run_number}}
-          EXEARGUMENTS: ${{ steps.prepare_var.outputs.arguments }}
-          COPYCONFIG: ${{ steps.prepare_var.outputs.configcopy }}
+          EXEARGUMENTS: ${{ steps.prepare.outputs.arguments }}
+          COPYCONFIG: ${{ steps.prepare.outputs.configcopy }}
           PLATFORM: arm64
           EXEPATH: thing-directory-linux-arm64
           COPYEXEC: ../bin/thing-directory-linux-arm64
@@ -209,8 +203,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ steps.prepare_var.outputs.version_nr }}
-          release_name: Release ${{ steps.prepare_var.outputs.version_nr }}
+          tag_name: ${{ steps.prepare.outputs.version }}
+          release_name: ${{ steps.prepare.outputs.version }}
+          body: "Docker image: `linksmart/td:${{ steps.prepare.outputs.version }}`"
           draft: false
           prerelease: true
 
@@ -320,13 +315,9 @@ jobs:
     steps:
 
       - name: Prepare Variables
-        id: prepare_var
+        id: prepare
         run: |
-          versions=(${GREF//\// })
-          echo ::set-output name=version_nr::${versions[2]}
-          echo ::set-output name=programname::thing-directory
-        env:
-          GREF: ${{github.ref}}
+          echo ::set-output name=version::${GITHUB_REF##*/}
 
       - name: Check out code
         if: success()
@@ -338,10 +329,7 @@ jobs:
 
       - name: Build image
         if: success()
-        run: docker build -t linksmart/td --build-arg version=${VERSION} --build-arg buildnum=${BUILDNUM} .
-        env:
-          VERSION: ${{ steps.prepare_var.outputs.version_nr }}
-          BUILDNUM: ${{github.run_number}}
+        run: docker build -t linksmart/td --build-arg version="${{ steps.prepare.outputs.version }}" --build-arg buildnum="${{github.run_number}}" .
 
       - name: Push latest docker image
         if: success() && github.ref == 'refs/heads/master'
@@ -350,5 +338,5 @@ jobs:
       - name: Push tagged docker image
         if: success() && github.ref != 'refs/heads/master' && startsWith(github.ref, 'refs/tags/')
         run: |
-          docker tag linksmart/td linksmart/td:${{ steps.prepare_var.outputs.version_nr }}
-          docker push linksmart/td:${{ steps.prepare_var.outputs.version_nr }}
+          docker tag linksmart/td linksmart/td:${{ steps.prepare.outputs.version }}
+          docker push linksmart/td:${{ steps.prepare.outputs.version }}
