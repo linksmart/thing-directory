@@ -118,7 +118,6 @@ jobs:
           echo "::set-output name=description::WoT Thing Directory by LinkSmart"
           echo "::set-output name=arguments::--conf /etc/thing-directory/thing-directory.json --schema /etc/thing-directory/wot_td_schema.json"
           echo "::set-output name=configcopy::../conf/thing-directory.json ../conf/wot_td_schema.json"
-          echo "::set-output name=upload_url::https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/${versions[2]}/assets{?name,label}"
         env:
           GREF: ${{github.ref}}
 
@@ -203,13 +202,25 @@ jobs:
           EXEPATH: thing-directory-linux-arm64
           COPYEXEC: ../bin/thing-directory-linux-arm64
 
+      - name: Create Release
+        if: success()
+        id: release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.prepare_var.outputs.version_nr }}
+          release_name: Release ${{ steps.prepare_var.outputs.version_nr }}
+          draft: false
+          prerelease: true
+
       - name: Upload release asset windows-amd64.exe
         if: success()
         uses: actions/upload-release-asset@v1.0.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.prepare_var.outputs.upload_url }}
+          upload_url: ${{ steps.release.outputs.upload_url }}
           asset_path: bin/thing-directory-windows-amd64.exe
           asset_name: thing-directory-windows-amd64.exe
           asset_content_type: application/vnd.microsoft.portable-executable
@@ -220,7 +231,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.prepare_var.outputs.upload_url }}
+          upload_url: ${{ steps.release.outputs.upload_url }}
           asset_path: bin/thing-directory-darwin-amd64
           asset_name: thing-directory-darwin-amd64
           asset_content_type: application/octet-stream
@@ -231,7 +242,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.prepare_var.outputs.upload_url }}
+          upload_url: ${{ steps.release.outputs.upload_url }}
           asset_path: bin/thing-directory-linux-amd64
           asset_name: thing-directory-linux-amd64
           asset_content_type: application/octet-stream
@@ -242,7 +253,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.prepare_var.outputs.upload_url }}
+          upload_url: ${{ steps.release.outputs.upload_url }}
           asset_path: bin/thing-directory-linux-arm64
           asset_name: thing-directory-linux-arm64
           asset_content_type: application/octet-stream
@@ -253,7 +264,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.prepare_var.outputs.upload_url }}
+          upload_url: ${{ steps.release.outputs.upload_url }}
           asset_path: bin/thing-directory-linux-arm
           asset_name: thing-directory-linux-arm
           asset_content_type: application/octet-stream
@@ -264,7 +275,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.prepare_var.outputs.upload_url }}
+          upload_url: ${{ steps.release.outputs.upload_url }}
           asset_path: conf/thing-directory.json
           asset_name: thing-directory.json
           asset_content_type: application/json
@@ -275,7 +286,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.prepare_var.outputs.upload_url }}
+          upload_url: ${{ steps.release.outputs.upload_url }}
           asset_path: Builds/${{ steps.deb-linux-amd64.outputs.debuilderfile }}
           asset_name: ${{ steps.deb-linux-amd64.outputs.debuilderfile }}
           asset_content_type: application/x-deb
@@ -286,7 +297,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.prepare_var.outputs.upload_url }}
+          upload_url: ${{ steps.release.outputs.upload_url }}
           asset_path: Builds/${{ steps.deb-linux-arm.outputs.debuilderfile }}
           asset_name: ${{ steps.deb-linux-arm.outputs.debuilderfile }}
           asset_content_type: application/x-deb
@@ -297,7 +308,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.prepare_var.outputs.upload_url }}
+          upload_url: ${{ steps.release.outputs.upload_url }}
           asset_path: Builds/${{ steps.deb-linux-arm64.outputs.debuilderfile }}
           asset_name: ${{ steps.deb-linux-arm64.outputs.debuilderfile }}
           asset_content_type: application/x-deb
