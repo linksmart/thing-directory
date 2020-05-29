@@ -2,6 +2,9 @@ name: CICD
 
 on: [push, pull_request]
 
+env:
+  NAME: thing-directory
+
 jobs:
   test:
     name: Test the code
@@ -27,11 +30,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     steps:
-      - name: Prepare Variables
-        id: prepare
-        run: |
-          echo ::set-output name=version::${GITHUB_REF##*/}
-          echo ::set-output name=programname::thing-directory
 
       - name: Set up Go 1.x
         if: success()
@@ -44,6 +42,11 @@ jobs:
         if: success()
         uses: actions/checkout@v2
 
+      - name: Prepare Variables
+        id: prepare
+        run: |
+          echo ::set-output name=version::${GITHUB_REF##*/}
+
       - name: Cross Compile go
         if: success()
         run: |
@@ -52,44 +55,44 @@ jobs:
           cp bin/* output/bin
           cp sample_conf/* wot/wot_td_schema.json output/conf
         env:
+          # NAME: global
           VERSION: ${{ steps.prepare.outputs.version }}
           BUILDNUM: ${{github.run_number}}
-          NAME: ${{ steps.prepare.outputs.programname }}
 
-      - name: Upload snapshot ${{ steps.prepare.outputs.programname }}-windows-amd64
+      - name: Upload windows-amd64 snapshot
         if: success()
         uses: actions/upload-artifact@v2
         with: 
-          name: ${{ steps.prepare.outputs.programname }}-windows-amd64
-          path: bin/${{ steps.prepare.outputs.programname }}-windows-amd64.exe
+          name: thing-directory-windows-amd64
+          path: bin/thing-directory-windows-amd64.exe
 
-      - name: Upload snapshot ${{ steps.prepare.outputs.programname }}-darwin-amd64
+      - name: Upload darwin-amd64 snapshot
         if: success()
         uses: actions/upload-artifact@v2
         with: 
-          name: ${{ steps.prepare.outputs.programname }}-darwin-amd64
-          path: bin/${{ steps.prepare.outputs.programname }}-darwin-amd64
+          name: thing-directory-darwin-amd64
+          path: bin/thing-directory-darwin-amd64
 
-      - name: Upload snapshot ${{ steps.prepare.outputs.programname }}-linux-amd64
+      - name: Upload linux-amd64 snapshot
         if: success()
         uses: actions/upload-artifact@v2
         with: 
-          name: ${{ steps.prepare.outputs.programname }}-linux-amd64
-          path: bin/${{ steps.prepare.outputs.programname }}-linux-amd64
+          name: thing-directory-linux-amd64
+          path: bin/thing-directory-linux-amd64
 
-      - name: Upload snapshot ${{ steps.prepare.outputs.programname }}-linux-arm
+      - name: Upload linux-arm snapshot
         if: success()
         uses: actions/upload-artifact@v2
         with: 
-          name: ${{ steps.prepare.outputs.programname }}-linux-arm
-          path: bin/${{ steps.prepare.outputs.programname }}-linux-arm
+          name: thing-directory-linux-arm
+          path: bin/thing-directory-linux-arm
 
-      - name: Upload snapshot ${{ steps.prepare.outputs.programname }}-linux-arm64
+      - name: Upload linux-arm64 snapshot
         if: success()
         uses: actions/upload-artifact@v2
         with: 
-          name: ${{ steps.prepare.outputs.programname }}-linux-arm64
-          path: bin/${{ steps.prepare.outputs.programname }}-linux-arm64
+          name: thing-directory-linux-arm64
+          path: bin/thing-directory-linux-arm64
 
       - name: Upload all snapshots for building debian packages and releasing
         if: success() && github.ref != 'refs/heads/master' && startsWith(github.ref, 'refs/tags/')
@@ -103,17 +106,19 @@ jobs:
     if: github.ref != 'refs/heads/master' && startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     needs: build
+    env:
+      # NAME: global
+      MAINAINER: LinkSmart <info@linksmart.eu>
+      DESCRIPTION: WoT Thing Directory by LinkSmart
+      EXEARGUMENTS: --conf /etc/thing-directory/thing-directory.json --schema /etc/thing-directory/wot_td_schema.json
+      COPYCONFIG: ../conf/thing-directory.json ../conf/wot_td_schema.json
+
     steps:
 
       - name: Prepare Variables
         id: prepare
         run: |
           echo ::set-output name=version::${GITHUB_REF##*/}
-          echo ::set-output name=programname::thing-directory
-          echo "::set-output name=maintainer::Linksmart <info@linksmart.eu>"
-          echo "::set-output name=description::WoT Thing Directory by LinkSmart"
-          echo "::set-output name=arguments::--conf /etc/thing-directory/thing-directory.json --schema /etc/thing-directory/wot_td_schema.json"
-          echo "::set-output name=configcopy::../conf/thing-directory.json ../conf/wot_td_schema.json"
 
       - name: Download snapshot artifacts
         uses: actions/download-artifact@v2
@@ -134,14 +139,9 @@ jobs:
           curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/build-deb.sh | bash
           cd ..
           rm -r dpkg
-        env: 
-          NAME: ${{ steps.prepare.outputs.programname }}
-          MAINAINER: ${{ steps.prepare.outputs.maintainer }}
-          DESCRIPTION: ${{ steps.prepare.outputs.description }}
+        env:
           VERSION: ${{ steps.prepare.outputs.version }}
           BUILDNUMBER: ${{github.run_number}}
-          EXEARGUMENTS: ${{ steps.prepare.outputs.arguments }}
-          COPYCONFIG: ${{ steps.prepare.outputs.configcopy }}
           PLATFORM: amd64
           EXEPATH: thing-directory-linux-amd64
           COPYEXEC: ../bin/thing-directory-linux-amd64
@@ -159,14 +159,9 @@ jobs:
           curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/build-deb.sh | bash
           cd ..
           rm -r dpkg
-        env: 
-          NAME: ${{ steps.prepare.outputs.programname }}
-          MAINAINER: ${{ steps.prepare.outputs.maintainer }}
-          DESCRIPTION: ${{ steps.prepare.outputs.description }}
+        env:
           VERSION: ${{ steps.prepare.outputs.version }}
           BUILDNUMBER: ${{github.run_number}}
-          EXEARGUMENTS: ${{ steps.prepare.outputs.arguments }}
-          COPYCONFIG: ${{ steps.prepare.outputs.configcopy }}
           PLATFORM: arm
           EXEPATH: thing-directory-linux-arm
           COPYEXEC: ../bin/thing-directory-linux-arm
@@ -184,14 +179,9 @@ jobs:
           curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/build-deb.sh | bash
           cd ..
           rm -r dpkg
-        env: 
-          NAME: ${{ steps.prepare.outputs.programname }}
-          MAINAINER: ${{ steps.prepare.outputs.maintainer }}
-          DESCRIPTION: ${{ steps.prepare.outputs.description }}
+        env:
           VERSION: ${{ steps.prepare.outputs.version }}
           BUILDNUMBER: ${{github.run_number}}
-          EXEARGUMENTS: ${{ steps.prepare.outputs.arguments }}
-          COPYCONFIG: ${{ steps.prepare.outputs.configcopy }}
           PLATFORM: arm64
           EXEPATH: thing-directory-linux-arm64
           COPYEXEC: ../bin/thing-directory-linux-arm64
