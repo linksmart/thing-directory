@@ -3,11 +3,30 @@ name: Docker build and local releases
 on: [push, pull_request]
 
 jobs:
-  test-and-build:
-    name: Test and build the code
+  test:
+    name: Test the code
     runs-on: ubuntu-latest
     steps:
+      - name: Set up Go 1.x
+        if: success()
+        uses: actions/setup-go@v2
+        with:
+          go-version: ^1.14
+        id: go
 
+      - name: Check out code
+        if: success()
+        uses: actions/checkout@v2
+
+      - name: Run tests
+        if: success()
+        run: go test -v ./...
+
+  build:
+    name: Build the code
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
       - name: Prepare Variables
         id: prepare_var
         run: |
@@ -27,10 +46,6 @@ jobs:
       - name: Check out code
         if: success()
         uses: actions/checkout@v2
-        
-      - name: Test code
-        if: success()
-        run: go test -v ./...
 
       - name: Cross Compile go
         if: success()
@@ -94,7 +109,7 @@ jobs:
     name: Build debian packages and upload release assets
     if: github.ref != 'refs/heads/master' && startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
-    needs: test-and-build
+    needs: build
     steps:
 
       - name: Prepare Variables
@@ -293,7 +308,7 @@ jobs:
   docker:
     name: Build Docker and Publish
     runs-on: ubuntu-latest
-    needs: test-and-build
+    needs: test
     steps: 
 
       - name: Prepare Variables
