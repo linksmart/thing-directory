@@ -76,6 +76,7 @@ jobs:
       EXEARGUMENTS: --conf /etc/thing-directory/thing-directory.json --schema /etc/thing-directory/wot_td_schema.json
       COPYCONFIG: ../conf/thing-directory.json ../conf/wot_td_schema.json
       BUILDNUMBER: ${{github.run_number}}
+      DATADIR: /var/lib/thing-directory
 
     steps:
 
@@ -89,12 +90,17 @@ jobs:
         with: 
           name: snapshots
 
+      - name: Prepare for creating deb
+        if: success()
+        run: |
+          mkdir Builds
+          sed -i 's|\"dsn\": \"./data\"|\"dsn\": \"${DATADIR}\"|' conf/thing-directory.json
+
       - name: Create DEB for Debian amd64
         id: deb-linux-amd64
         if: success()
         run: |
           mkdir dpkg
-          mkdir Builds
           cd dpkg
           curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/control-build.sh | bash
           curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/pre-post-build.sh | bash
@@ -124,7 +130,7 @@ jobs:
           rm -r dpkg
         env:
           VERSION: ${{ steps.prepare.outputs.version }}
-          PLATFORM: arm
+          PLATFORM: armhf
           EXEPATH: thing-directory-linux-arm
           COPYEXEC: ../bin/thing-directory-linux-arm
 
