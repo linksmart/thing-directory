@@ -36,7 +36,7 @@ func registerDNSSDService(conf *Config) (func(), error) {
 			return nil, fmt.Errorf("interface %s does not support multicast", conf.DNSSD.Publish.Interface)
 		}
 	} else {
-		log.Println("DNS-SD publish interface is not set. Will register to all interfaces will multicast support.")
+		log.Println("DNS-SD publish interface is not set. Will register to all interfaces with multicast support.")
 	}
 
 	sd, err := zeroconf.Register(
