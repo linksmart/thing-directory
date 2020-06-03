@@ -73,8 +73,8 @@ jobs:
       NAME: thing-directory
       MAINAINER: LinkSmart <info@linksmart.eu>
       DESCRIPTION: WoT Thing Directory by LinkSmart
-      EXEARGUMENTS: --conf /etc/thing-directory/thing-directory.json --schema /etc/thing-directory/wot_td_schema.json
-      COPYCONFIG: ../conf/thing-directory.json ../conf/wot_td_schema.json
+      EXEARGUMENTS: --conf /etc/thing-directory/settings.json --schema /etc/thing-directory/wot_td_schema.json
+      COPYCONFIG: ../conf/settings.json ../conf/wot_td_schema.json
       BUILDNUMBER: ${{github.run_number}}
       DATADIR: /var/lib/thing-directory
 
@@ -94,7 +94,7 @@ jobs:
         if: success()
         run: |
           mkdir Builds
-          jq '.storage.dsn = "$DATADIR"' conf/thing-directory.json > conf/thing-directory.json
+          echo "jq '.storage.dsn = \"$DATADIR\"' conf/thing-directory.json > conf/settings.json" | bash
 
       - name: Create DEB for Debian amd64
         id: deb-linux-amd64
