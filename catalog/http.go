@@ -13,20 +13,19 @@ import (
 )
 
 const (
-	ContextURL        = ""
-	MaxPerPage        = 100
-	ResponseMediaType = "application/ld+json"
+	MaxPerPage = 100
 	// query parameters
-	QueryParamPage    = "page"
-	QueryParamPerPage = "perPage"
+	QueryParamPage     = "page"
+	QueryParamPerPage  = "perPage"
+	QueryParamJSONPath = "jsonpath"
+	QueryParamXPath    = "xpath"
 	// Deprecated
 	QueryParamFetchPath = "fetch"
-	QueryParamJSONPath  = "jsonpath"
-	QueryParamXPath     = "xpath"
 )
 
 type ThingDescriptionPage struct {
-	Context string      `json:"@context,omitempty"`
+	Context string      `json:"@context"`
+	Type    string      `json:"@type"`
 	Items   interface{} `json:"items"`
 	Page    int         `json:"page"`
 	PerPage int         `json:"perPage"`
@@ -241,7 +240,8 @@ func (a *HTTPAPI) GetMany(w http.ResponseWriter, req *http.Request) {
 	}
 
 	coll := &ThingDescriptionPage{
-		Context: ContextURL,
+		Context: ResponseContextURL,
+		Type:    ResponseType,
 		Items:   items,
 		Page:    page,
 		PerPage: perPage,
@@ -286,7 +286,8 @@ func (a *HTTPAPI) Filter(w http.ResponseWriter, req *http.Request) {
 	}
 
 	coll := &ThingDescriptionPage{
-		Context: ContextURL,
+		Context: ResponseContextURL,
+		Type:    ResponseType,
 		Items:   items,
 		Page:    page,
 		PerPage: perPage,
