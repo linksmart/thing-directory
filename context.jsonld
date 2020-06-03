@@ -4,24 +4,23 @@
 		"as": "https://www.w3.org/ns/activitystreams#",
 		"xsd": "http://www.w3.org/2001/XMLSchema#",
 		"page": {
-			"@id": "lstd:page",
-			"@type": "xsd:integer"
+			"@id": "lstd:page"
 		},
 		"perPage": {
-			"@id": "lstd:perPage",
-			"@type": "xsd:integer"
+			"@id": "lstd:perPage"
 		},
 		"items": {
-			"@id": "as:items",
-			"@type": "@id"
+			"@id": "as:items"
 		},
 		"total": {
-			"@id": "as:totalItems",
-			"@type": "xsd:integer"
+			"@id": "as:totalItems"
 		},
 		"ttl": {
-			"@id": "lstd:ttl",
-			"@type": "xsd:integer"
+			"@id": "lstd:ttl"
+		},
+		"Catalog": {
+			"@id": "lstd:Catalog",
+			"@type": "lstd:Catalog"
 		}
 	}
 }
