@@ -1,0 +1,27 @@
+{
+	"@context": {
+		"lstd": "https://linksmart.eu/thing-directory#",
+		"as": "https://www.w3.org/ns/activitystreams#",
+		"xsd": "http://www.w3.org/2001/XMLSchema#",
+		"page": {
+			"@id": "lstd:page",
+			"@type": "xsd:integer"
+		},
+		"perPage": {
+			"@id": "lstd:perPage",
+			"@type": "xsd:integer"
+		},
+		"items": {
+			"@id": "as:items",
+			"@type": "@id"
+		},
+		"total": {
+			"@id": "as:totalItems",
+			"@type": "xsd:integer"
+		},
+		"ttl": {
+			"@id": "lstd:ttl",
+			"@type": "xsd:integer"
+		}
+	}
+}
