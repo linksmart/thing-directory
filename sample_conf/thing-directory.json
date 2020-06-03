@@ -8,7 +8,8 @@
     "publish": {
       "enabled": false,
       "instance": "LinkSmart Thing Directory",
-      "domain": "local."
+      "domain": "local.",
+      "interface": ""
     }
   },
   "serviceCatalog": null,

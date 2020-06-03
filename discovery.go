@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"net"
 	"strings"
 
 	"github.com/farshidtz/zeroconf" // switch to upstream when PR merged (https://github.com/grandcat/zeroconf/pull/73)
@@ -23,13 +24,28 @@ func registerDNSSDService(conf *Config) (func(), error) {
 	log.Printf("Registering DNS-SD service with Service Instance Name: %s.%s.%s Subtype: %s",
 		instance, catalog.DNSSDServiceType, conf.DNSSD.Publish.Domain, catalog.DNSSDServiceSubtype)
 
+	var ifs []net.Interface
+	if conf.DNSSD.Publish.Interface != "" {
+		iface, err := net.InterfaceByName(conf.DNSSD.Publish.Interface)
+		if err != nil {
+			return nil, fmt.Errorf("error finding interface %s: %s", conf.DNSSD.Publish.Interface, err)
+		}
+		if (iface.Flags & net.FlagMulticast) > 0 {
+			ifs = append(ifs, *iface)
+		} else {
+			return nil, fmt.Errorf("interface %s does not support multicast", conf.DNSSD.Publish.Interface)
+		}
+	} else {
+		log.Println("DNS-SD publish interface is not set. Will register to all interfaces will multicast support.")
+	}
+
 	sd, err := zeroconf.Register(
 		instance,
 		catalog.DNSSDServiceType+","+catalog.DNSSDServiceSubtype,
 		conf.DNSSD.Publish.Domain,
 		conf.HTTP.BindPort,
 		[]string{"td=/td", "version=" + Version},
-		nil,
+		ifs,
 	)
 	if err != nil {
 		return sd.Shutdown, err
