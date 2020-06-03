@@ -90,11 +90,11 @@ jobs:
         with: 
           name: snapshots
 
-      - name: Prepare for creating deb
+      - name: Prepare for creating debian packages
         if: success()
         run: |
           mkdir Builds
-          sed -i 's|\"dsn\": \"./data\"|\"dsn\": \"${DATADIR}\"|' conf/thing-directory.json
+          jq '.storage.dsn = "$DATADIR"' conf/thing-directory.json > conf/thing-directory.json
 
       - name: Create DEB for Debian amd64
         id: deb-linux-amd64
