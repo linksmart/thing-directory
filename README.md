@@ -23,6 +23,8 @@ This is currently under development.
     * Thing Description (TD) CRUD, catalog, and validation
     * XPath 3.0 and JSONPath [query languages](https://github.com/linksmart/thing-directory/wiki/Query-Language)
     * TD validation with JSON Schema ([default](https://github.com/linksmart/thing-directory/blob/master/wot/wot_td_schema.json))
+    * Request [authentication](https://github.com/linksmart/go-sec/wiki/Authentication) and [authorization](https://github.com/linksmart/go-sec/wiki/Authorization)
+    * JSON-LD response format
 * Persistent Storage
   * LevelDB
 * CI/CD ([Github Actions](https://github.com/linksmart/thing-directory/actions?query=workflow:CICD))
