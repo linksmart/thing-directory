@@ -4,38 +4,24 @@
 package obtainer
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
-	"os"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/linksmart/go-sec/auth/obtainer"
 )
 
 const (
-	TicketPath = "/protocol/openid-connect/token"
-	DriverName = "keycloak"
+	TokenEndpoint = "/protocol/openid-connect/token"
+	DriverName    = "keycloak"
 )
 
 type KeycloakObtainer struct{}
 
-var logger *log.Logger
-
 func init() {
-	// Initialize the logger
-	logger = log.New(os.Stdout, fmt.Sprintf("[%s] ", DriverName), 0)
-	v, err := strconv.Atoi(os.Getenv("DEBUG"))
-	if err == nil && v == 1 {
-		logger.SetFlags(log.Ltime | log.Lshortfile)
-	}
-
 	// Register the driver as a auth/obtainer
 	obtainer.Register(DriverName, &KeycloakObtainer{})
 }
@@ -45,10 +31,12 @@ type Token struct {
 	IdToken      string `json:"id_token"`
 }
 
-// Login queries and returns the token object
-func (o *KeycloakObtainer) Login(serverAddr, username, password, clientID string) (string, error) {
+// ObtainToken requests a token in exchange for user credentials.
+// This follows the OAuth 2.0 Resource Owner Password Credentials Grant.
+// For this flow, the client in Keycloak must have Direct Grant enabled.
+func (o *KeycloakObtainer) ObtainToken(serverAddr, username, password, clientID string) (token interface{}, err error) {
 
-	res, err := http.PostForm(serverAddr+TicketPath, url.Values{
+	res, err := http.PostForm(serverAddr+TokenEndpoint, url.Values{
 		"grant_type": {"password"},
 		"client_id":  {clientID},
 		"username":   {username},
@@ -56,81 +44,100 @@ func (o *KeycloakObtainer) Login(serverAddr, username, password, clientID string
 		"scope":      {"openid"},
 	})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer res.Body.Close()
-	logger.Println("Login()", res.Status)
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if res.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("unable to login with username `%s`: %s", username, string(body))
+		return nil, fmt.Errorf("error getting a token: %s", stringifyError(res.StatusCode, body))
 	}
 
-	var token Token
-	err = json.Unmarshal(body, &token)
+	var keycloakToken Token
+	err = json.Unmarshal(body, &keycloakToken)
 	if err != nil {
-		return "", fmt.Errorf("error getting the token: %s", err)
-	}
-	if len(strings.Split(token.RefreshToken, ".")) != 3 {
-		return "", fmt.Errorf("invalid format for refresh_token")
+		return nil, fmt.Errorf("error decoding the token: %s", err)
 	}
 
-	serialized, _ := json.Marshal(&token)
-	return string(serialized), nil
+	return keycloakToken, nil
 }
 
-// RequestTicket returns the id_token
-//  acquired either from the token object given in the parameter sToken or by requesting it from the server
-func (o *KeycloakObtainer) RequestTicket(serverAddr, sToken, clientID string) (string, error) {
-	// deserialize the token
-	var token Token
-	json.Unmarshal([]byte(sToken), &token)
-
-	// decode the id_token acquired on Login()
-	decoded, err := base64.RawStdEncoding.DecodeString(strings.Split(token.IdToken, ".")[1])
-	if err != nil {
-		return "", fmt.Errorf("error decoding the id_token: %s", err)
-	}
-	var idToken map[string]interface{}
-	json.Unmarshal(decoded, &idToken)
-	// if id_token is still valid, no need to request a new one
-	if int64(idToken["exp"].(float64)) > time.Now().Unix() {
-		logger.Println("RequestTicket() Using the newly acquired token.")
+// TokenString returns the ID Token part of token object
+func (o *KeycloakObtainer) TokenString(token interface{}) (tokenString string, err error) {
+	if token, ok := token.(Token); ok {
 		return token.IdToken, nil
 	}
+	return "", fmt.Errorf("invalid input token: assertion error")
+}
 
-	// get a new id_token using the refresh_token
-	res, err := http.PostForm(serverAddr+TicketPath, url.Values{
+// RenewToken returns the token
+//  acquired either from the token object or by requesting a new one using refresh token
+func (o *KeycloakObtainer) RenewToken(serverAddr string, oldToken interface{}, clientID string) (newToken interface{}, err error) {
+	token, ok := oldToken.(Token)
+	if !ok {
+		return nil, fmt.Errorf("invalid input token: assertion error")
+	}
+
+	// get a new token using the refresh_token
+	res, err := http.PostForm(serverAddr+TokenEndpoint, url.Values{
 		"grant_type":    {"refresh_token"},
 		"client_id":     {clientID},
 		"refresh_token": {token.RefreshToken},
 	})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer res.Body.Close()
-	logger.Println("RequestTicket()", res.Status)
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if res.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("error getting a new token: %s", string(body))
+		return nil, fmt.Errorf("error getting a new token: %s", stringifyError(res.StatusCode, body))
 	}
 
-	err = json.Unmarshal(body, &token)
+	var keycloakToken Token
+	err = json.Unmarshal(body, &keycloakToken)
 	if err != nil {
-		return "", fmt.Errorf("error parsing the new token: %s", err)
+		return nil, fmt.Errorf("error decoding the new token: %s", err)
 	}
 
-	return token.IdToken, nil
+	return keycloakToken, nil
 }
 
 // Logout expires the ticket (Not applicable in the current flow)
-func (o *KeycloakObtainer) Logout(_, _ string) error {
+func (o *KeycloakObtainer) RevokeToken(serverAddr string, token interface{}) error {
+	// TODO https://www.keycloak.org/docs/latest/securing_apps/#_token_revocation_endpoint
 	return nil
+}
+
+func stringifyError(status int, body []byte) string {
+	if len(body) == 0 {
+		return fmt.Sprintf("%d %s", status, http.StatusText(status))
+	}
+	var m map[string]interface{}
+	err := json.Unmarshal(body, &m)
+	if err != nil { // error is not json
+		return string(body)
+	}
+	var str []string
+	// error
+	if _, ok := m["error"]; ok {
+		str = append(str, fmt.Sprint(m["error"]))
+		delete(m, "error")
+	}
+	// error_description
+	if _, ok := m["error_description"]; ok {
+		str = append(str, fmt.Sprint(m["error_description"]))
+		delete(m, "error_description")
+	}
+	// others
+	for k, v := range m {
+		str = append(str, fmt.Sprintf("%s (%v)", k, v))
+	}
+	return strings.Join(str, ": ")
 }

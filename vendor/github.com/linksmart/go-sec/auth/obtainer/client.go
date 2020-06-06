@@ -7,12 +7,11 @@ import (
 )
 
 type Client struct {
-	obtainer  *Obtainer
-	username  string
-	password  string
+	obtainer *Obtainer
+	username string
+	password string
 	clientID string
-	tgt       string
-	ticket    string
+	token    interface{}
 	sync.Mutex
 }
 
@@ -24,75 +23,53 @@ func NewClient(providerName, providerURL, username, password, clientID string) (
 	}
 
 	return &Client{
-		obtainer:  o,
-		username:  username,
-		password:  password,
+		obtainer: o,
+		username: username,
+		password: password,
 		clientID: clientID,
 	}, nil
 }
 
-// Obtain the ticket, create one if it's not available
-func (c *Client) Obtain() (string, error) {
+// Obtain obtains a new token and returns the token string. If token is already available, it just returns the token string
+func (c *Client) Obtain() (tokenString string, err error) {
 	c.Lock()
 	defer c.Unlock()
 
-	if c.ticket == "" {
-		// Get Ticket Granting Ticket
-		TGT, err := c.obtainer.Login(c.username, c.password, c.clientID)
+	if c.token == nil {
+		token, err := c.obtainer.ObtainToken(c.username, c.password, c.clientID)
 		if err != nil {
 			return "", err
 		}
-		c.tgt = TGT
-
-		// Get Service Ticket
-		ticket, err := c.obtainer.RequestTicket(TGT, c.clientID)
-		if err != nil {
-			return "", err
-		}
-		c.ticket = ticket
-
+		c.token = token
 	}
-
-	return c.ticket, nil
+	return c.obtainer.TokenString(c.token)
 }
 
-// Renew the ticket
-func (c *Client) Renew() (string, error) {
+// Renew renews the token and returns the token string
+func (c *Client) Renew() (tokenString string, err error) {
 	c.Lock()
 	defer c.Unlock()
 
-	// Renew Service Ticket using previous TGT
-	ticket, err := c.obtainer.RequestTicket(c.tgt, c.clientID)
+	token, err := c.obtainer.RenewToken(c.token, c.clientID)
 	if err != nil {
-		// Get a new Ticket Granting Ticket
-		TGT, err := c.obtainer.Login(c.username, c.password, c.clientID)
-		if err != nil {
-			return "", err
-		}
-		c.tgt = TGT
-
-		// Get Service Ticket
-		ticket, err = c.obtainer.RequestTicket(TGT, c.clientID)
-		if err != nil {
-			return "", err
-		}
+		// could not renew, try to obtain a new one
+		return c.Obtain()
 	}
-	c.ticket = ticket
+	c.token = token
 
-	return c.ticket, nil
+	return c.obtainer.TokenString(c.token)
 }
 
-// Delete the ticket granting ticket
-func (c *Client) Delete() error {
+// Revoke revokes the token
+func (c *Client) Revoke() error {
 	c.Lock()
 	defer c.Unlock()
 
-	err := c.obtainer.Logout(c.tgt)
+	err := c.obtainer.RevokeToken(c.token)
 	if err != nil {
 		return err
 	}
-	c.tgt = ""
-	c.ticket = ""
+	c.token = nil
 
 	return nil
 }

@@ -5,26 +5,24 @@ package obtainer
 
 import (
 	"fmt"
-	"log"
-	"os"
-	"strconv"
 	"sync"
 )
 
 // Interface methods to login, obtain Service Ticket, and logout
 type Driver interface {
-	// Login must return a Ticket Granting Ticket (TGT), given serverAddr, valid username, password, and clientID
-	Login(serverAddr, username, password, clientID string) (string, error)
-	// RequestTicket must return a Service Ticket, given serverAddr, valid TGT and clientID
-	RequestTicket(serverAddr, TGT, clientID string) (string, error)
-	// Logout must expire the TGT, given serverAddr, and a valid TGT
-	Logout(serverAddr, TGT string) error
+	// ObtainToken requests a token in exchange for user credentials
+	ObtainToken(serverAddr string, username, password, clientID string) (token interface{}, err error)
+	// TokenString returns the string part of token object (e.g. access_token, id_token strings)
+	TokenString(token interface{}) (tokenString string, err error)
+	// RenewToken renews the token (when applicable) using information inside the token (e.g. refresh_token)
+	RenewToken(serverAddr string, token interface{}, clientID string) (newToken interface{}, err error)
+	// RevokeToken revokes a previously obtained token
+	RevokeToken(serverAddr string, token interface{}) error
 }
 
 var (
 	driversMu sync.Mutex
 	drivers   = make(map[string]Driver)
-	logger    *log.Logger
 )
 
 // Register registers a driver (called by a the driver package)
@@ -43,14 +41,7 @@ func Setup(name, serverAddr string) (*Obtainer, error) {
 	driveri, ok := drivers[name]
 	driversMu.Unlock()
 	if !ok {
-		return nil, fmt.Errorf("unknown obtainer %s (forgot to import driver?)", name)
-	}
-
-	// Initialize the logger
-	logger = log.New(os.Stdout, fmt.Sprintf("[%s] ", name), 0)
-	v, err := strconv.Atoi(os.Getenv("DEBUG"))
-	if err == nil && v == 1 {
-		logger.SetFlags(log.Ltime | log.Lshortfile)
+		return nil, fmt.Errorf("unknown obtainer: '%s' (forgot to import driver?)", name)
 	}
 
 	return &Obtainer{
@@ -68,14 +59,18 @@ type Obtainer struct {
 // Wrapper functions
 // These functions are public
 
-func (o *Obtainer) Login(username, password, clientID string) (string, error) {
-	return o.driver.Login(o.serverAddr, username, password, clientID)
+func (o *Obtainer) ObtainToken(username, password, clientID string) (token interface{}, err error) {
+	return o.driver.ObtainToken(o.serverAddr, username, password, clientID)
 }
 
-func (o *Obtainer) RequestTicket(TGT, clientID string) (string, error) {
-	return o.driver.RequestTicket(o.serverAddr, TGT, clientID)
+func (o *Obtainer) TokenString(token interface{}) (tokenString string, err error) {
+	return o.driver.TokenString(token)
 }
 
-func (o *Obtainer) Logout(TGT string) error {
-	return o.driver.Logout(o.serverAddr, TGT)
+func (o *Obtainer) RenewToken(token interface{}, clientID string) (newToken interface{}, err error) {
+	return o.driver.RenewToken(o.serverAddr, token, clientID)
+}
+
+func (o *Obtainer) RevokeToken(token interface{}) error {
+	return o.driver.RevokeToken(o.serverAddr, token)
 }

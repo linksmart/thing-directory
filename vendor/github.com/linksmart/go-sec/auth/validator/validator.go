@@ -5,9 +5,6 @@ package validator
 
 import (
 	"fmt"
-	"log"
-	"os"
-	"strconv"
 	"sync"
 
 	"github.com/linksmart/go-sec/authz"
@@ -15,16 +12,15 @@ import (
 
 // Interface methods to validate Service Ticket
 type Driver interface {
-	// Validate must validate a ticket, given the server address and service ID
-	//	When ticket is valid, it must return true together with the UserProfile
-	//	When ticket is invalid, it must return false and provide the reason in the UserProfile.Status
-	Validate(serverAddr, serviceID, ticket string) (bool, *UserProfile, error)
+	// Validate must validate a token, given the server address and client ID
+	//	When token is valid, it must return true together with the UserProfile
+	//	When token is invalid, it must return false and provide the reason in the UserProfile.Status
+	Validate(serverAddr, clientID string, tokenString string) (bool, *UserProfile, error)
 }
 
 var (
 	driversMu sync.Mutex
 	drivers   = make(map[string]Driver)
-	logger    *log.Logger
 )
 
 // Register registers a driver (called by a the driver package)
@@ -44,14 +40,7 @@ func Setup(name, serverAddr, clientID string, basicEnabled bool, authz *authz.Co
 	driveri, ok := drivers[name]
 	driversMu.Unlock()
 	if !ok {
-		return nil, fmt.Errorf("unknown validator %s (forgot to import driver?)", name)
-	}
-
-	// Initialize the logger
-	logger = log.New(os.Stdout, fmt.Sprintf("[%s] ", name), 0)
-	v, err := strconv.Atoi(os.Getenv("DEBUG"))
-	if err == nil && v == 1 {
-		logger.SetFlags(log.Ltime | log.Lshortfile)
+		return nil, fmt.Errorf("unknown validator: '%s' (forgot to import driver?)", name)
 	}
 
 	return &Validator{
@@ -75,11 +64,11 @@ type Validator struct {
 	authz *authz.Conf
 }
 
-// Validate validates a ticket
-//	When ticket is valid, it returns true together with the UserProfile
-//	When ticket is invalid, it returns false and provide the reason in the UserProfile.Status
-func (v *Validator) Validate(ticket string) (bool, *UserProfile, error) {
-	return v.driver.Validate(v.serverAddr, v.clientID, ticket)
+// Validate validates a token
+//	When token is valid, it returns true together with the UserProfile
+//	When token is invalid, it returns false and provide the reason in the UserProfile.Status
+func (v *Validator) Validate(tokenString string) (bool, *UserProfile, error) {
+	return v.driver.Validate(v.serverAddr, v.clientID, tokenString)
 }
 
 // UserProfile is the profile of user that is returned by the Validator
