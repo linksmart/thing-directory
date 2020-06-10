@@ -365,79 +365,57 @@ components:
       value:
         {
           "@context": "https://www.w3.org/2019/wot/td/v1",
-          "id": "urn:uuid:32c0dc26-4183-4dda-8f77-8955e52066df",
-          "title": "MyTemperatureSensor",
+          "id": "urn:example:1234",
+          "title": "ExampleSensor",
           "created": "2020-02-28T17:22:25.879568Z",
           "modified": "2020-02-28T17:22:25.879568Z",
           "properties": {
             "status": {
               "forms": [
               {
-                "op": [
-                  "readproperty",
-                  "writeproperty"
-                ],
-                "href": "https://gw1.iot/status",
-                "contentType": "application/senml+json",
-                "security": [
-                  "basic_sc"
-                ]
+                "op": ["readproperty","writeproperty"],
+                "href": "https://example.com/status",
+                "contentType": "application/senml+json"
               }
               ],
               "type": "number"
             }
           },
-          "security": [
-            "basic_sc"
-          ],
-          "securityDefinitions": {
-            "basic_sc": {
-              "scheme": "basic"
-            }
+          "security": ["nosec_sc"],
+          "securityDefinitions": {"nosec_sc":{"scheme":"nosec"}
           }
         }
     ThingDescriptionList:
       summary: Example Paginated Thing Descriptions
       value:
         {
-          "@context":"",
+          "@context": "https://linksmart.eu/thing-directory/context.jsonld",
           "@type": "Catalog",
           "items":[
           {
-            "@context":"https://www.w3.org/2019/wot/td/v1",
-            "id":"urn:uuid:32c0dc26-4183-4dda-8f77-8955e52066df",
-            "title":"MyTemperatureSensor",
-            "created":"2020-02-28T17:22:25.879568Z",
-            "modified":"2020-02-28T17:22:25.879568Z",
-            "properties":{
+            "@context": "https://www.w3.org/2019/wot/td/v1",
+            "id": "urn:example:1234",
+            "title": "ExampleSensor",
+            "created": "2020-02-28T17:22:25.879568Z",
+            "modified": "2020-02-28T17:22:25.879568Z",
+            "properties": {
               "status":{
-                "forms":[
+                "forms": [
                 {
-                  "op":[
-                    "readproperty",
-                    "writeproperty"
-                  ],
-                  "href":"https://gw1.iot/status",
-                  "contentType":"application/senml+json",
-                  "security":[
-                    "basic_sc"
-                  ]
+                  "op": ["readproperty","writeproperty"],
+                  "href": "https://gw1.iot/status",
+                  "contentType": "application/senml+json"
                 }
                 ],
-                "type":"number"
+                "type": "number"
               }
             },
-            "security":[
-              "basic_sc"
-            ],
-            "securityDefinitions":{
-              "basic_sc":{
-                "scheme":"basic"
-              }
+            "security": ["nosec_sc"],
+            "securityDefinitions": {"nosec_sc": {"scheme": "nosec"}
             }
           }
           ],
-          "page":1,
-          "perPage":100,
-          "total":1
+          "page": 1,
+          "perPage": 100,
+          "total": 1
         }
