@@ -18,6 +18,7 @@ type Rule struct {
 	Methods   []string `json:"methods"`
 	Users     []string `json:"users"`
 	Groups    []string `json:"groups"`
+	Clients   []string `json:"clients"`
 }
 
 // Validate authorization config

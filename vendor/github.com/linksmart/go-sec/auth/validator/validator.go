@@ -13,9 +13,9 @@ import (
 // Interface methods to validate Service Ticket
 type Driver interface {
 	// Validate must validate a token, given the server address and client ID
-	//	When token is valid, it must return true together with the UserProfile
-	//	When token is invalid, it must return false and provide the reason in the UserProfile.Status
-	Validate(serverAddr, clientID string, tokenString string) (bool, *UserProfile, error)
+	//	When token is valid, it must return true together with the Profile
+	//	When token is invalid, it must return false and provide the reason in the Profile.Status
+	Validate(serverAddr, clientID string, tokenString string) (bool, *authz.Claims, error)
 }
 
 var (
@@ -65,16 +65,9 @@ type Validator struct {
 }
 
 // Validate validates a token
-//	When token is valid, it returns true together with the UserProfile
-//	When token is invalid, it returns false and provide the reason in the UserProfile.Status
-func (v *Validator) Validate(tokenString string) (bool, *UserProfile, error) {
+//	When token is valid, it returns true together with the Profile
+//	When token is invalid, it returns false and provide the reason in the Profile.Status
+func (v *Validator) Validate(tokenString string) (bool, *authz.Claims, error) {
 	return v.driver.Validate(v.serverAddr, v.clientID, tokenString)
 }
 
-// UserProfile is the profile of user that is returned by the Validator
-type UserProfile struct {
-	Username string
-	Groups   []string
-	// Status is the message given when token is not validated
-	Status string
-}

@@ -13,6 +13,7 @@ import (
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/linksmart/go-sec/auth/validator"
+	"github.com/linksmart/go-sec/authz"
 )
 
 const DriverName = "keycloak"
@@ -27,7 +28,7 @@ func init() {
 }
 
 // Validate validates the token
-func (v *KeycloakValidator) Validate(serverAddr, clientID, tokenString string) (bool, *validator.UserProfile, error) {
+func (v *KeycloakValidator) Validate(serverAddr, clientID, tokenString string) (bool, *authz.Claims, error) {
 
 	if v.publicKey == nil {
 		var err error
@@ -42,6 +43,7 @@ func (v *KeycloakValidator) Validate(serverAddr, clientID, tokenString string) (
 		Type              string   `json:"typ"`
 		PreferredUsername string   `json:"preferred_username"`
 		Groups            []string `json:"groups"`
+		ClientID          string   `json:"clientID"` // for tokens issued as part of client credentials grant
 	}
 	// Parse the jwt id_token
 	token, err := jwt.ParseWithClaims(tokenString, &expectedClaims{}, func(token *jwt.Token) (interface{}, error) {
@@ -56,18 +58,18 @@ func (v *KeycloakValidator) Validate(serverAddr, clientID, tokenString string) (
 		if token != nil && !token.Valid {
 			if ve, ok := err.(*jwt.ValidationError); ok {
 				if ve.Errors&jwt.ValidationErrorMalformed != 0 {
-					return false, &validator.UserProfile{Status: fmt.Sprintf("invalid token.")}, nil
+					return false, &authz.Claims{Status: fmt.Sprintf("invalid token.")}, nil
 				} else if ve.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
-					return false, &validator.UserProfile{Status: fmt.Sprintf("token is either expired or not active yet")}, nil
+					return false, &authz.Claims{Status: fmt.Sprintf("token is either expired or not active yet")}, nil
 				} else {
-					return false, &validator.UserProfile{Status: fmt.Sprintf("error validating the token: %s", err)}, nil
+					return false, &authz.Claims{Status: fmt.Sprintf("error validating the token: %s", err)}, nil
 				}
 			} else {
-				return false, &validator.UserProfile{Status: fmt.Sprintf("invalid token: %s", err)}, nil
+				return false, &authz.Claims{Status: fmt.Sprintf("invalid token: %s", err)}, nil
 			}
 		}
 
-		return false, &validator.UserProfile{Status: fmt.Sprintf("error parsing jwt token: %s", err)}, nil
+		return false, &authz.Claims{Status: fmt.Sprintf("error parsing jwt token: %s", err)}, nil
 	}
 
 	// Validate the other claims
@@ -75,22 +77,25 @@ func (v *KeycloakValidator) Validate(serverAddr, clientID, tokenString string) (
 	if !ok {
 		return false, nil, fmt.Errorf("unable to extract claims from the jwt id_token")
 	}
-	if claims.Type != "ID" {
-		return false, &validator.UserProfile{Status: fmt.Sprintf("unexpected token type: %s, expected `ID` (id_token)", claims.Type)}, nil
+	//if claims.Type != "ID" {
+	//	return false, &authz.Claims{Status: fmt.Sprintf("unexpected token type: %s, expected `ID` (id_token)", claims.Type)}, nil
+	//}
+	if claims.Audience == "" {
+		return false, &authz.Claims{Status: fmt.Sprintf("token has no audience")}, nil
 	}
 	if claims.Audience != clientID {
-		return false, &validator.UserProfile{Status: fmt.Sprintf("token is issued for another client: %s", claims.Audience)}, nil
+		return false, &authz.Claims{Status: fmt.Sprintf("token is issued for another client: %s", claims.Audience)}, nil
 	}
 	if claims.Issuer != serverAddr {
-		return false, &validator.UserProfile{Status: fmt.Sprintf("token is issued by another provider: %s", claims.Issuer)}, nil
+		return false, &authz.Claims{Status: fmt.Sprintf("token is issued by another provider: %s", claims.Issuer)}, nil
 	}
 
 	// return user profile from claims
-	return true, &validator.UserProfile{
+	return true, &authz.Claims{
 		Username: claims.PreferredUsername,
 		Groups:   claims.Groups,
+		ClientID: claims.ClientID,
 	}, nil
-
 }
 
 func queryPublicKey(serverAddr string) (*rsa.PublicKey, error) {
