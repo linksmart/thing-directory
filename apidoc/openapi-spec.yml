@@ -4,7 +4,7 @@ openapi: 3.0.0
 #  - url: http://localhost:8081
 
 info:
-  version: "1.0.0-beta.4"
+  version: "1.0.0-beta.12"
   title: LinkSmart Thing Directory
   description: API documetnation of the [LinkSmart Thing Directory](https://github.com/linksmart/thing-directory)
   license:
@@ -93,7 +93,7 @@ paths:
 
         description: Thing Description to be created
         required: true
-  '/td/{id}':
+  /td/{id}:
     put:
       tags:
         - td
@@ -186,55 +186,8 @@ paths:
           $ref: '#/components/responses/RespNotfound'
         '500':
           $ref: '#/components/responses/RespInternalServerError'
-  '/td/filter/{path}/{op}/{value}':
-    get:
-      deprecated: true
-      tags:
-        - td
-      summary: Filtering API
-      parameters:
-        - name: path
-          in: path
-          description: Dot-separated path in the registration JSON
-          required: true
-          schema:
-            type: string
-        - name: op
-          in: path
-          description: String comparison operator
-          required: true
-          schema:
-            type: string
-            enum:
-              - equals
-              - prefix
-              - suffix
-              - contains
-        - name: value
-          in: path
-          description: The value to be searched
-          required: true
-          schema:
-            type: string
-        - $ref: '#/components/parameters/ParamPage'
-        - $ref: '#/components/parameters/ParamPerPage'
-      responses:
-        '200':
-          description: Succcessful response
-          content:
-            application/ld+json:
-              schema:
-                $ref: '#/components/schemas/ThingDescriptionPage'
-              examples:
-                ThingDescriptionList:
-                  $ref: '#/components/examples/ThingDescriptionList'
-        '401':
-          $ref: '#/components/responses/RespUnauthorized'
-        '403':
-          $ref: '#/components/responses/RespForbidden'
-        '500':
-          $ref: '#/components/responses/RespInternalServerError'
-  '/validation':
+
+  /validation:
     get:
       tags:
         - validation
@@ -266,6 +219,10 @@ paths:
       #       examples:
       #         ThingDescription:
       #           $ref: '#/components/examples/ThingDescription'
+security:
+  - BasicAuth: []
+  - BearerAuth: []
+
 components:
   parameters:
     ParamPage:
@@ -284,6 +241,15 @@ components:
       schema:
         type: number
         format: integer
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   responses:
     RespBadRequest:
       description: Bad Request
@@ -337,6 +303,8 @@ components:
       properties:
         '@context':
           format: url
+        '@type':
+          format: string
         items:
           type: array
           items:
@@ -433,6 +401,7 @@ components:
       value:
         {
           "@context":"",
+          "@type": "Catalog",
           "items":[
           {
             "@context":"https://www.w3.org/2019/wot/td/v1",
