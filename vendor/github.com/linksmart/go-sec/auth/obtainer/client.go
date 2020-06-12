@@ -48,15 +48,16 @@ func (c *Client) Obtain() (tokenString string, err error) {
 // Renew renews the token and returns the token string
 func (c *Client) Renew() (tokenString string, err error) {
 	c.Lock()
-	defer c.Unlock()
 
 	token, err := c.obtainer.RenewToken(c.token, c.clientID)
 	if err != nil {
 		// could not renew, try to obtain a new one
-		return c.Obtain()
+		c.Unlock()
+		return c.Obtain() // this acquires the lock on its own
 	}
 	c.token = token
 
+	defer c.Unlock()
 	return c.obtainer.TokenString(c.token)
 }
 

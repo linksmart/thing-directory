@@ -46,8 +46,8 @@ github.com/kelseyhightower/envconfig v1.4.0 h1:Im6hONhd3pLkfDFsbRgu68RDNkGF1r3dv
 github.com/kelseyhightower/envconfig v1.4.0/go.mod h1:cccZRl6mQpaq41TPp5QxidR+Sa3axMbJDNb//FQX6Gg=
 github.com/linksmart/go-sec v1.0.1 h1:UNeRj81/KHCy4hkFcZn7x5N/nM+uNxe+xsLBQzNF7kg=
 github.com/linksmart/go-sec v1.0.1/go.mod h1:bTksBzP6fCEwIM43z8m3jSRa4YIAWdUwMBYjcoftm1c=
-github.com/linksmart/go-sec v1.3.0 h1:HTH1PE5Saa3CK0jF7fZHP/KOaBDYRMQEeRENmAdNs5U=
-github.com/linksmart/go-sec v1.3.0/go.mod h1:W9EZRLqptioAzaxMjWEKzd5jye53aoRzMi4KO+FCFjY=
+github.com/linksmart/go-sec v1.3.1 h1:ODSrV1KK4ktbCs7USXuNC8VmKhdCP6dkm8tfXdhAj5I=
+github.com/linksmart/go-sec v1.3.1/go.mod h1:W9EZRLqptioAzaxMjWEKzd5jye53aoRzMi4KO+FCFjY=
 github.com/linksmart/service-catalog/v3 v3.0.0-beta.1.0.20200302143206-92739dd2a511 h1:JNHuaKtZUDsgbGJ5bdFBZ4vIUlJB7EBvjLdSaNOFatQ=
 github.com/linksmart/service-catalog/v3 v3.0.0-beta.1.0.20200302143206-92739dd2a511/go.mod h1:2C0k5NvYvMgX2y095WCfuhpfZyKrZXX/TjYxlgR9K8g=
 github.com/miekg/dns v1.1.27 h1:aEH/kqUzUxGJ/UHcEKdJY+ugH6WEzsEBBSPa8zuy1aM=
