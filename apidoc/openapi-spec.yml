@@ -4,7 +4,7 @@ openapi: 3.0.0
 #  - url: http://localhost:8081
 
 info:
-  version: "1.0.0-beta.12"
+  version: "1.0.0-beta.13"
   title: LinkSmart Thing Directory
   description: API documetnation of the [LinkSmart Thing Directory](https://github.com/linksmart/thing-directory)
   license:
@@ -99,12 +99,13 @@ paths:
         - td
       summary: Creates a new Thing Description with the provided ID, or updates an existing one
       description: |
-        The `id` in the path is the resource name. It is mandatory and must be a valid Thing Description ID.<br>
-        The server ignores `id` in the body.
+        The `id` in the path is the resource id and must match the one in Thing Description.<br>
+        For creating a TD without user-defined `id`, use the `POST` method.
       parameters:
         - name: id
           in: path
           description: ID of the Thing Description
+          example: "urn:example:1234"
           required: true
           schema:
             type: string
@@ -130,7 +131,7 @@ paths:
               type: object
             examples:
               ThingDescription:
-                $ref: '#/components/examples/ThingDescription'
+                $ref: '#/components/examples/ThingDescriptionWithID'
         description: The Thing Description object
         required: true
     get:
@@ -141,6 +142,7 @@ paths:
         - name: id
           in: path
           description: ID of the Thing Description
+          example: "urn:example:1234"
           required: true
           schema:
             type: string
@@ -153,7 +155,7 @@ paths:
                 type: object
               examples:
                 response:
-                  $ref: '#/components/examples/ThingDescription'
+                  $ref: '#/components/examples/ThingDescriptionWithID'
         '400':
           $ref: '#/components/responses/RespBadRequest'
         '401':
@@ -330,55 +332,38 @@ components:
       value:
         {
           "@context": "https://www.w3.org/2019/wot/td/v1",
-          "title": "MyTemperatureSensor",
-          "created": "2020-02-28T17:22:25.879568Z",
-          "modified": "2020-02-28T17:22:25.879568Z",
+          "title": "ExampleSensor",
           "properties": {
             "status": {
               "forms": [
               {
-                "op": [
-                  "readproperty",
-                  "writeproperty"
-                ],
-                "href": "https://gw1.iot/status",
-                "contentType": "application/senml+json",
-                "security": [
-                  "basic_sc"
-                ]
+                "op": ["readproperty"],
+                "href": "https://example.com/status",
+                "contentType": "text/html"
               }
-              ],
-              "type": "number"
+              ]
             }
           },
-          "security": [
-            "basic_sc"
-          ],
-          "securityDefinitions": {
-            "basic_sc": {
-              "scheme": "basic"
-            }
+          "security": ["nosec_sc"],
+          "securityDefinitions": {"nosec_sc":{"scheme":"nosec"}
           }
         }
-    ThingDescription:
+    ThingDescriptionWithID:
       summary: Example Thing Description
       value:
         {
           "@context": "https://www.w3.org/2019/wot/td/v1",
           "id": "urn:example:1234",
           "title": "ExampleSensor",
-          "created": "2020-02-28T17:22:25.879568Z",
-          "modified": "2020-02-28T17:22:25.879568Z",
           "properties": {
             "status": {
               "forms": [
               {
-                "op": ["readproperty","writeproperty"],
+                "op": ["readproperty"],
                 "href": "https://example.com/status",
-                "contentType": "application/senml+json"
+                "contentType": "text/html"
               }
-              ],
-              "type": "number"
+              ]
             }
           },
           "security": ["nosec_sc"],
@@ -396,22 +381,19 @@ components:
             "@context": "https://www.w3.org/2019/wot/td/v1",
             "id": "urn:example:1234",
             "title": "ExampleSensor",
-            "created": "2020-02-28T17:22:25.879568Z",
-            "modified": "2020-02-28T17:22:25.879568Z",
             "properties": {
-              "status":{
+              "status": {
                 "forms": [
                 {
-                  "op": ["readproperty","writeproperty"],
-                  "href": "https://gw1.iot/status",
-                  "contentType": "application/senml+json"
+                  "op": ["readproperty"],
+                  "href": "https://example.com/status",
+                  "contentType": "text/html"
                 }
-                ],
-                "type": "number"
+                ]
               }
             },
             "security": ["nosec_sc"],
-            "securityDefinitions": {"nosec_sc": {"scheme": "nosec"}
+            "securityDefinitions": {"nosec_sc":{"scheme":"nosec"}
             }
           }
           ],
