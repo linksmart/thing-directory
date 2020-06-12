@@ -468,8 +468,8 @@ func TestGetAll(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Error reading response body: %s", err)
 		}
-		if res.StatusCode != http.StatusInternalServerError {
-			t.Fatalf("Expected status %v, got: %d. Response body:\n%s", http.StatusInternalServerError, res.StatusCode, b)
+		if res.StatusCode != http.StatusBadRequest {
+			t.Fatalf("Expected status %v, got: %d. Response body:\n%s", http.StatusBadRequest, res.StatusCode, b)
 		}
 	})
 
@@ -484,8 +484,8 @@ func TestGetAll(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Error reading response body: %s", err)
 		}
-		if res.StatusCode != http.StatusInternalServerError {
-			t.Fatalf("Expected status %v, got: %d. Response body:\n%s", http.StatusInternalServerError, res.StatusCode, b)
+		if res.StatusCode != http.StatusBadRequest {
+			t.Fatalf("Expected status %v, got: %d. Response body:\n%s", http.StatusBadRequest, res.StatusCode, b)
 		}
 	})
 

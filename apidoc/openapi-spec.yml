@@ -51,6 +51,8 @@ paths:
               examples:
                 ThingDescriptionList:
                   $ref: '#/components/examples/ThingDescriptionList'
+        '400':
+          $ref: '#/components/responses/RespBadRequest'
         '401':
           $ref: '#/components/responses/RespUnauthorized'
         '403':
