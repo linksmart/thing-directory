@@ -39,12 +39,12 @@ func (c *Controller) add(td ThingDescription) (string, error) {
 	if !ok || id == "" {
 		// System generated id
 		id = c.newURN()
+		td[_id] = id
 	}
 	if err := validateThingDescription(td); err != nil {
 		return "", &BadRequestError{err.Error()}
 	}
 
-	td[_id] = id
 	td[_created] = time.Now().UTC()
 	td[_modified] = td[_created]
 
@@ -61,14 +61,13 @@ func (c *Controller) get(id string) (ThingDescription, error) {
 }
 
 func (c *Controller) update(id string, td ThingDescription) error {
-	td[_id] = id
-	if err := validateThingDescription(td); err != nil {
-		return &BadRequestError{err.Error()}
-	}
-
 	oldTD, err := c.storage.get(id)
 	if err != nil {
 		return err
+	}
+
+	if err := validateThingDescription(td); err != nil {
+		return &BadRequestError{err.Error()}
 	}
 
 	td[_created] = oldTD[_created]

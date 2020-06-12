@@ -303,6 +303,28 @@ func TestPut(t *testing.T) {
 			t.Fatalf("Put:\n%v\n Retrieved:\n%v\n", td, storedTD)
 		}
 	})
+
+	t.Run("Create with different ID in body", func(t *testing.T) {
+		id := "urn:example:test/thing_3"
+		td := mockedTD("urn:example:test/thing_4")
+		b, _ := json.Marshal(td)
+
+		// create over HTTP
+		res, err := httpDoRequest(http.MethodPut, testServer.URL+"/td/"+id, bytes.NewReader(b))
+		if err != nil {
+			t.Fatalf("Error putting TD: %s", err)
+		}
+		defer res.Body.Close()
+
+		b, err = ioutil.ReadAll(res.Body)
+		if err != nil {
+			t.Fatalf("Error reading response body: %s", err)
+		}
+
+		if res.StatusCode != http.StatusBadRequest {
+			t.Fatalf("Expected response %v, got: %d. Reponse body: %s", http.StatusBadRequest, res.StatusCode, b)
+		}
+	})
 }
 
 func TestDelete(t *testing.T) {

@@ -4,6 +4,7 @@ package catalog
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -71,7 +72,7 @@ func (a *HTTPAPI) Post(w http.ResponseWriter, req *http.Request) {
 	if td[_id] != nil {
 		id, ok := td[_id].(string)
 		if !ok || id != "" {
-			ErrorResponse(w, http.StatusBadRequest, "Registering with defined ID is not possible using a POST request.")
+			ErrorResponse(w, http.StatusBadRequest, "Registering with user-defined id is not possible using a POST request.")
 			return
 		}
 	}
@@ -113,12 +114,20 @@ func (a *HTTPAPI) Put(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	if id, ok := td[_id].(string); !ok || id == "" {
+		ErrorResponse(w, http.StatusBadRequest, "Registration without id is not possible using a PUT request.")
+		return
+	}
+	if params["id"] != td[_id] {
+		ErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("Resource id in path (%s) does not match the id in body (%s)", params["id"], td[_id]))
+		return
+	}
+
 	err = a.controller.update(params["id"], td)
 	if err != nil {
 		switch err.(type) {
 		case *NotFoundError:
 			// Create a new device with the given id
-			td[_id] = params["id"]
 			id, err := a.controller.add(td)
 			if err != nil {
 				switch err.(type) {
