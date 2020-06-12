@@ -174,18 +174,18 @@ func setupHTTPRouter(config *HTTPConfig, api *catalog.HTTPAPI) (*negroni.Negroni
 	// Configure http api router
 	r := newRouter()
 	r.get("/", commonHandlers.ThenFunc(indexHandler))
+	r.options("/{path:.*}", commonHandlers.ThenFunc(optionsHandler))
+	// OpenAPI Proxy for Swagger "try it out" feature
 	r.get("/openapi-spec-proxy", commonHandlers.ThenFunc(apiSpecProxy))
 	r.get("/openapi-spec-proxy/{basepath:.+}", commonHandlers.ThenFunc(apiSpecProxy))
-	r.options("/{path:.*}", commonHandlers.ThenFunc(optionsHandler))
-
+	// TD listing, filtering
 	r.get("/td", commonHandlers.ThenFunc(api.GetMany))
-	r.get("/td/filter/{path}/{op}/{value:.*}", commonHandlers.ThenFunc(api.Filter)) // deprecated
-
+	// TD crud
 	r.post("/td", commonHandlers.ThenFunc(api.Post))
 	r.get("/td/{id:.+}", commonHandlers.ThenFunc(api.Get))
 	r.put("/td/{id:.+}", commonHandlers.ThenFunc(api.Put))
 	r.delete("/td/{id:.+}", commonHandlers.ThenFunc(api.Delete))
-
+	// TD validation
 	r.get("/validation", commonHandlers.ThenFunc(api.GetValidation))
 
 	logger := negroni.NewLogger()

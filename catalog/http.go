@@ -268,51 +268,6 @@ func (a *HTTPAPI) GetMany(w http.ResponseWriter, req *http.Request) {
 	w.Write(b)
 }
 
-// Deprecated:
-// Filter lists filtered items in a paginated catalog format
-func (a *HTTPAPI) Filter(w http.ResponseWriter, req *http.Request) {
-	params := mux.Vars(req)
-	path := params["path"]
-	op := params["op"]
-	value := params["value"]
-
-	err := req.ParseForm()
-	if err != nil {
-		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query:", err.Error())
-		return
-	}
-	page, perPage, err := utils.ParsePagingParams(
-		req.Form.Get(QueryParamPage), req.Form.Get(QueryParamPerPage), MaxPerPage)
-	if err != nil {
-		ErrorResponse(w, http.StatusBadRequest, "Error parsing query parameters:", err.Error())
-		return
-	}
-
-	items, total, err := a.controller.filter(path, op, value, page, perPage)
-	if err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	coll := &ThingDescriptionPage{
-		Context: ResponseContextURL,
-		Type:    ResponseType,
-		Items:   items,
-		Page:    page,
-		PerPage: perPage,
-		Total:   total,
-	}
-
-	b, err := json.Marshal(coll)
-	if err != nil {
-		ErrorResponse(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	w.Header().Set("Content-Type", a.contentType)
-	w.Write(b)
-}
-
 // GetValidation handler gets validation for the request body
 func (a *HTTPAPI) GetValidation(w http.ResponseWriter, req *http.Request) {
 	body, err := ioutil.ReadAll(req.Body)

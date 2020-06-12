@@ -99,40 +99,6 @@ func (c *Controller) list(page, perPage int) ([]ThingDescription, int, error) {
 	return tds, total, nil
 }
 
-// Deprecated
-func (c *Controller) filter(path, op, value string, page, perPage int) ([]ThingDescription, int, error) {
-
-	matches := make([]ThingDescription, 0)
-	pp := MaxPerPage
-	for p := 1; ; p++ {
-		slice, t, err := c.storage.list(p, pp)
-		if err != nil {
-			return nil, 0, err
-		}
-
-		for i := range slice {
-			matched, err := utils.MatchObject(slice[i], strings.Split(path, "."), op, value)
-			if err != nil {
-				return nil, 0, err
-			}
-			if matched {
-				matches = append(matches, slice[i])
-			}
-		}
-
-		if p*pp >= t {
-			break
-		}
-	}
-	// Pagination
-	offset, limit, err := utils.GetPagingAttr(len(matches), page, perPage, MaxPerPage)
-	if err != nil {
-		return nil, 0, &BadRequestError{fmt.Sprintf("Unable to paginate: %s", err)}
-	}
-	// Return the page
-	return matches[offset : offset+limit], len(matches), nil
-}
-
 func (c *Controller) listAll() ([]ThingDescription, int, error) {
 	var items []ThingDescription
 	pp := MaxPerPage
