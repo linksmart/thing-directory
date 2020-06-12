@@ -227,15 +227,27 @@ func (a *HTTPAPI) GetMany(w http.ResponseWriter, req *http.Request) {
 		w.Header().Add("X-Request-Jsonpath", jsonPath)
 		items, total, err = a.controller.filterJSONPath(jsonPath, page, perPage)
 		if err != nil {
-			ErrorResponse(w, http.StatusInternalServerError, err.Error())
-			return
+			switch err.(type) {
+			case *BadRequestError:
+				ErrorResponse(w, http.StatusBadRequest, err.Error())
+				return
+			default:
+				ErrorResponse(w, http.StatusInternalServerError, err.Error())
+				return
+			}
 		}
 	} else if xPath := req.Form.Get(QueryParamXPath); xPath != "" {
 		w.Header().Add("X-Request-Xpath", xPath)
 		items, total, err = a.controller.filterXPath(xPath, page, perPage)
 		if err != nil {
-			ErrorResponse(w, http.StatusInternalServerError, err.Error())
-			return
+			switch err.(type) {
+			case *BadRequestError:
+				ErrorResponse(w, http.StatusBadRequest, err.Error())
+				return
+			default:
+				ErrorResponse(w, http.StatusInternalServerError, err.Error())
+				return
+			}
 		}
 	} else if req.Form.Get(QueryParamFetchPath) != "" {
 		ErrorResponse(w, http.StatusBadRequest, "fetch query parameter is deprecated. Use jsonpath or xpath")
@@ -243,8 +255,14 @@ func (a *HTTPAPI) GetMany(w http.ResponseWriter, req *http.Request) {
 	} else {
 		items, total, err = a.controller.list(page, perPage)
 		if err != nil {
-			ErrorResponse(w, http.StatusInternalServerError, err.Error())
-			return
+			switch err.(type) {
+			case *BadRequestError:
+				ErrorResponse(w, http.StatusBadRequest, err.Error())
+				return
+			default:
+				ErrorResponse(w, http.StatusInternalServerError, err.Error())
+				return
+			}
 		}
 	}
 

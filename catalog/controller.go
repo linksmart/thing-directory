@@ -9,7 +9,6 @@ import (
 	"log"
 	"runtime/debug"
 	"strconv"
-	"strings"
 	"time"
 
 	xpath "github.com/antchfx/jsonquery"
@@ -137,7 +136,7 @@ func (c *Controller) filterJSONPath(path string, page, perPage int) ([]interface
 	// filter results with jsonpath
 	b, err = jsonpath.Get(b, path)
 	if err != nil {
-		return nil, 0, fmt.Errorf("error evaluating jsonpath: %s", err)
+		return nil, 0, &BadRequestError{fmt.Sprintf("error evaluating jsonpath: %s", err)}
 	}
 
 	// de-serialize the filtered results
@@ -185,7 +184,7 @@ func (c *Controller) filterXPath(path string, page, perPage int) ([]interface{},
 	// filter with xpath
 	nodes, err := xpath.QueryAll(doc, path)
 	if err != nil {
-		return nil, 0, fmt.Errorf("error filtering input with xpath: %s", err)
+		return nil, 0, &BadRequestError{fmt.Sprintf("error filtering input with xpath: %s", err)}
 	}
 	for _, n := range nodes {
 		results = append(results, getObjectFromXPathNode(n))
