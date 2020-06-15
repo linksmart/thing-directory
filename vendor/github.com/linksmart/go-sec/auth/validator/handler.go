@@ -3,14 +3,12 @@
 package validator
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
 
 	_ "github.com/linksmart/go-sec/auth/keycloak/obtainer"
-	"github.com/linksmart/go-sec/auth/obtainer"
 )
 
 // Handler is a http.Handler that validates tickets and performs optional authorization
@@ -90,52 +88,6 @@ func (v *Validator) validationChain(tokenString string, path, method string) (in
 		}
 	}
 	return http.StatusOK, nil
-}
-
-// Cached clients for Basic auth
-var clients = make(map[string]*obtainer.Client)
-
-// basicAuth generates a token for the given credentials
-//	Tokens are cached and are only regenerated if no longer valid
-func (v *Validator) basicAuth(credentials string) (string, int, error) {
-
-	b, err := base64.StdEncoding.DecodeString(credentials)
-	if err != nil {
-		return "", http.StatusBadRequest, fmt.Errorf("basic auth: invalid encoding: %s", err)
-	}
-
-	client, found := clients[credentials]
-	if !found {
-		pair := strings.SplitN(string(b), ":", 2)
-		if len(pair) != 2 {
-			return "", http.StatusBadRequest, fmt.Errorf("basic auth: invalid format for credentials")
-		}
-
-		// Setup ticket client
-		client, err = obtainer.NewClient(v.driverName, v.serverAddr, pair[0], pair[1], v.clientID)
-		if err != nil {
-			return "", http.StatusInternalServerError, fmt.Errorf("basic auth: unable to create a client to obtain tokens: %s", err)
-		}
-
-		clients[credentials] = client
-	}
-
-	tokenString, err := client.Obtain()
-	if err != nil {
-		return "", http.StatusUnauthorized, fmt.Errorf("basic auth: unable to obtain ticket: %s", err)
-	}
-
-	valid, _, err := v.driver.Validate(v.serverAddr, v.clientID, tokenString)
-	if err != nil {
-		return "", http.StatusInternalServerError, fmt.Errorf("basic auth: validation error: %s", err)
-	}
-	if !valid {
-		tokenString, err = client.Renew()
-		if err != nil {
-			return "", http.StatusUnauthorized, fmt.Errorf("basic auth: unable to renew token: %s", err)
-		}
-	}
-	return tokenString, http.StatusOK, nil
 }
 
 // errorResponse writes error to HTTP ResponseWriter
