@@ -77,6 +77,8 @@ jobs:
       COPYCONFIG: ../conf/settings.json ../conf/wot_td_schema.json
       BUILDNUMBER: ${{github.run_number}}
       DATADIR: /var/lib/thing-directory
+      ENVIROMENTVARS: DISABLE_LOG_TIME=true
+      LOGOUTPUT: syslog
 
     steps:
 
