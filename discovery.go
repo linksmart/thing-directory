@@ -21,22 +21,26 @@ func registerDNSSDService(conf *Config) (func(), error) {
 	instance := strings.ReplaceAll(conf.DNSSD.Publish.Instance, ".", "\\.")
 	instance = strings.ReplaceAll(conf.DNSSD.Publish.Instance, "\\", "\\\\")
 
-	log.Printf("Registering DNS-SD service with Service Instance Name: %s.%s.%s Subtype: %s",
+	log.Printf("DNS-SD: registering as \"%s.%s.%s\", subtype: %s",
 		instance, catalog.DNSSDServiceType, conf.DNSSD.Publish.Domain, catalog.DNSSDServiceSubtype)
 
 	var ifs []net.Interface
-	if conf.DNSSD.Publish.Interface != "" {
-		iface, err := net.InterfaceByName(conf.DNSSD.Publish.Interface)
+
+	for _, name := range conf.DNSSD.Publish.Interfaces {
+		iface, err := net.InterfaceByName(name)
 		if err != nil {
-			return nil, fmt.Errorf("error finding interface %s: %s", conf.DNSSD.Publish.Interface, err)
+			return nil, fmt.Errorf("error finding interface %s: %s", name, err)
 		}
 		if (iface.Flags & net.FlagMulticast) > 0 {
 			ifs = append(ifs, *iface)
 		} else {
-			return nil, fmt.Errorf("interface %s does not support multicast", conf.DNSSD.Publish.Interface)
+			return nil, fmt.Errorf("interface %s does not support multicast", name)
 		}
-	} else {
-		log.Println("DNS-SD publish interface is not set. Will register to all interfaces with multicast support.")
+		log.Printf("DNS-SD: will register to interface: %s", name)
+	}
+
+	if len(ifs) == 0 {
+		log.Println("DNS-SD: publish interfaces not set. Will register to all interfaces with multicast support.")
 	}
 
 	sd, err := zeroconf.Register(

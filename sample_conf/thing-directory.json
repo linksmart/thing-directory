@@ -9,7 +9,7 @@
       "enabled": false,
       "instance": "LinkSmart Thing Directory",
       "domain": "local.",
-      "interface": ""
+      "interfaces": []
     }
   },
   "serviceCatalog": null,

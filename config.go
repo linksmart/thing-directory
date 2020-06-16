@@ -40,10 +40,10 @@ type ServiceCatalog struct {
 
 type DNSSDConfig struct {
 	Publish struct {
-		Enabled   bool   `json:"enabled"`
-		Instance  string `json:"instance"`
-		Domain    string `json:"domain"`
-		Interface string `json:"interface"`
+		Enabled    bool     `json:"enabled"`
+		Instance   string   `json:"instance"`
+		Domain     string   `json:"domain"`
+		Interfaces []string `json:"interfaces"`
 	}
 }
 
