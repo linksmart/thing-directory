@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
 
 	"github.com/codegangsta/negroni"
 	"github.com/gorilla/context"
@@ -129,7 +130,7 @@ func main() {
 
 	// Ctrl+C / Kill handling
 	handler := make(chan os.Signal, 1)
-	signal.Notify(handler, os.Interrupt, os.Kill)
+	signal.Notify(handler, syscall.SIGINT, syscall.SIGTERM)
 	<-handler
 	log.Println("Shutting down...")
 }
