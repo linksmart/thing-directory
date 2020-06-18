@@ -222,7 +222,7 @@ func getObjectFromXPathNode(n *xpath.Node) interface{} {
 		return basicTypeFromXPathStr(n.Data)
 	}
 
-	if n.FirstChild.Data == "" { // in case of array, there will be no key
+	if n.FirstChild != nil && n.FirstChild.Data == "" { // in case of array, there will be no key
 		retArray := make([]interface{}, 0)
 		for child := n.FirstChild; child != nil; child = child.NextSibling {
 			retArray = append(retArray, getObjectFromXPathNode(child))
