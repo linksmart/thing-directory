@@ -1,0 +1,95 @@
+{
+  "@context": "https://www.w3.org/2019/wot/td/v1",
+  "title": "LinkSmart Thing Directory",
+  "securityDefinitions": {
+    "bearer_sc": {
+      "scheme": "bearer"
+    },
+    "basic_sc": {
+      "scheme": "basic"
+    }
+  },
+  "security": [
+    "bearer_sc",
+    "basic"
+  ],
+  "actions": {
+    "td": {
+      "uriVariables": {
+        "id": {
+          "type": "string",
+          "format": "iri-reference"
+        }
+      },
+      "forms": [
+        {
+          "href": "/td",
+          "htv:methodName": "POST",
+          "contentType": "application/ld+json"
+        },
+        {
+          "href": "/td/{id}",
+          "htv:methodName": "PUT",
+          "contentType": "application/ld+json"
+        },
+        {
+          "href": "/td/{id}",
+          "htv:methodName": "PATCH",
+          "contentType": "application/ld+json"
+        },
+        {
+          "href": "/td/{id}",
+          "htv:methodName": "DELETE"
+        }
+      ]
+    }
+  },
+  "properties": {
+    "td": {
+      "uriVariables": {
+        "id": {
+          "type": "string",
+          "format": "iri-reference"
+        },
+        "page": {
+          "type": "number",
+          "minimum": 1
+        },
+        "per_page": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "oneOf": {
+          "xpath": {
+            "type": "string"
+          },
+          "jsonpath": {
+            "type": "string"
+          }
+        }
+      },
+      "forms": [
+        {
+          "href": "/td/{id}",
+          "htv:methodName": "GET",
+          "contentType": "application/ld+json"
+        },
+        {
+          "href": "/td{?page,per_page,xpath,jsonpath}",
+          "htv:methodName": "GET",
+          "contentType": "application/ld+json"
+        }
+      ]
+    },
+    "validation": {
+      "forms": [
+        {
+          "href": "/validation",
+          "htv:methodName": "GET",
+          "contentType": "application/ld+json"
+        }
+      ]
+    }
+  }
+}
