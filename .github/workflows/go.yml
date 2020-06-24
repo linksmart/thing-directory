@@ -74,7 +74,8 @@ jobs:
       MAINAINER: LinkSmart <info@linksmart.eu>
       DESCRIPTION: WoT Thing Directory by LinkSmart
       EXEARGUMENTS: --conf /etc/thing-directory/settings.json --schema /etc/thing-directory/wot_td_schema.json
-      COPYCONFIG: ../conf/settings.json.example ../conf/wot_td_schema.json
+      COPYCONFIG: ../conf/settings.json.dpkg-new ../conf/wot_td_schema.json.dpkg-new
+      CONFIGREPLACEASK: settings.json wot_td_schema.json
       BUILDNUMBER: ${{github.run_number}}
       DATADIR: /var/lib/thing-directory
       ENVIROMENTVARS: DISABLE_LOG_TIME=true
@@ -96,7 +97,8 @@ jobs:
         if: success()
         run: |
           mkdir Builds
-          echo "jq '.storage.dsn = \"$DATADIR\"' conf/thing-directory.json > conf/settings.json.example" | bash
+          echo "jq '.storage.dsn = \"$DATADIR\"' conf/thing-directory.json > conf/settings.json.dpkg-new" | bash
+          cp conf/wot_td_schema.json conf/wot_td_schema.json.dpkg-new
 
       - name: Create DEB for Debian amd64
         id: deb-linux-amd64
@@ -107,7 +109,6 @@ jobs:
           curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/control-build.sh | bash
           curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/pre-post-build.sh | bash
           curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/service-build.sh | bash
-          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/logrotate-build.sh | bash
           curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/build-deb.sh | bash
           cd ..
           rm -r dpkg
@@ -126,7 +127,6 @@ jobs:
           curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/control-build.sh | bash
           curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/pre-post-build.sh | bash
           curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/service-build.sh | bash
-          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/logrotate-build.sh | bash
           curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/build-deb.sh | bash
           cd ..
           rm -r dpkg
@@ -145,7 +145,6 @@ jobs:
           curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/control-build.sh | bash
           curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/pre-post-build.sh | bash
           curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/service-build.sh | bash
-          curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/logrotate-build.sh | bash
           curl -s https://raw.githubusercontent.com/linksmart/ci-scripts/master/deb/build-deb.sh | bash
           cd ..
           rm -r dpkg
