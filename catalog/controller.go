@@ -17,7 +17,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-var controllerExpiryCleanupInterval = 10 * time.Second // to be modified in unit tests
+var controllerExpiryCleanupInterval = 60 * time.Second // to be modified in unit tests
 
 type Controller struct {
 	storage Storage
