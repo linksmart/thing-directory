@@ -17,7 +17,7 @@ const (
 	MaxPerPage = 100
 	// query parameters
 	QueryParamPage     = "page"
-	QueryParamPerPage  = "perPage"
+	QueryParamPerPage  = "per_page"
 	QueryParamJSONPath = "jsonpath"
 	QueryParamXPath    = "xpath"
 	// Deprecated
