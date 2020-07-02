@@ -1,4 +1,4 @@
-module github.com/farshidtz/zeroconf
+module github.com/grandcat/zeroconf
 
 go 1.13
 

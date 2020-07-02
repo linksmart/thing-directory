@@ -24,9 +24,6 @@ github.com/eclipse/paho.mqtt.golang/packets
 github.com/farshidtz/elog
 # github.com/farshidtz/mqtt-match v1.0.1
 github.com/farshidtz/mqtt-match
-# github.com/farshidtz/zeroconf v1.0.1-0.20200522135212-459a917d5032
-## explicit
-github.com/farshidtz/zeroconf
 # github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e
 github.com/golang/groupcache/lru
 # github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db
@@ -37,6 +34,9 @@ github.com/gorilla/context
 # github.com/gorilla/mux v1.7.3
 ## explicit
 github.com/gorilla/mux
+# github.com/grandcat/zeroconf v1.0.1-0.20200528163356-cfc8183341d9
+## explicit
+github.com/grandcat/zeroconf
 # github.com/justinas/alice v0.0.0-20160512134231-052b8b6c18ed
 ## explicit
 github.com/justinas/alice

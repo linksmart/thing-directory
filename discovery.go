@@ -8,7 +8,7 @@ import (
 	"net"
 	"strings"
 
-	"github.com/farshidtz/zeroconf" // switch to upstream when PR merged (https://github.com/grandcat/zeroconf/pull/73)
+	"github.com/grandcat/zeroconf"
 	"github.com/linksmart/go-sec/auth/obtainer"
 	sc "github.com/linksmart/service-catalog/v3/catalog"
 	"github.com/linksmart/service-catalog/v3/client"
