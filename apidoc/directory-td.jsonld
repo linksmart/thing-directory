@@ -9,10 +9,7 @@
       "scheme": "basic"
     }
   },
-  "security": [
-    "bearer_sc",
-    "basic"
-  ],
+  "security": "bearer_sc",
   "actions": {
     "td": {
       "description": "Add, modify, or remove a Thing Description",
@@ -51,7 +48,7 @@
       "description": "Retrieve a Thing Description",
       "uriVariables": {
         "id": {
-          "description": "Thing Description ID",
+          "title": "Thing Description ID",
           "type": "string",
           "format": "iri-reference"
         }
@@ -68,19 +65,23 @@
       "description": "List and filter Thing Descriptions",
       "uriVariables": {
         "page": {
+          "title": "Catalog page",
           "type": "number",
           "minimum": 1
         },
         "per_page": {
+          "title": "Catalog items per page",
           "type": "number",
           "minimum": 1,
           "maximum": 100
         },
         "oneOf": {
           "xpath": {
+            "title": "XPath query expression",
             "type": "string"
           },
           "jsonpath": {
+            "title": "JSONPath query expression",
             "type": "string"
           }
         }
