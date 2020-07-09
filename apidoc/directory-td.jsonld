@@ -15,8 +15,10 @@
   ],
   "actions": {
     "td": {
+      "description": "Add, modify, or remove a Thing Description",
       "uriVariables": {
         "id": {
+          "title": "Thing Description ID",
           "type": "string",
           "format": "iri-reference"
         }
@@ -46,11 +48,25 @@
   },
   "properties": {
     "td": {
+      "description": "Retrieve a Thing Description",
       "uriVariables": {
         "id": {
+          "description": "Thing Description ID",
           "type": "string",
           "format": "iri-reference"
-        },
+        }
+      },
+      "forms": [
+        {
+          "href": "/td/{id}",
+          "htv:methodName": "GET",
+          "contentType": "application/ld+json"
+        }
+      ]
+    },
+    "catalog": {
+      "description": "List and filter Thing Descriptions",
+      "uriVariables": {
         "page": {
           "type": "number",
           "minimum": 1
@@ -71,18 +87,14 @@
       },
       "forms": [
         {
-          "href": "/td/{id}",
-          "htv:methodName": "GET",
-          "contentType": "application/ld+json"
-        },
-        {
           "href": "/td{?page,per_page,xpath,jsonpath}",
           "htv:methodName": "GET",
-          "contentType": "application/ld+json"
+          "contentType": "application/json"
         }
       ]
     },
     "validation": {
+      "description": "Validate a Thing Description",
       "forms": [
         {
           "href": "/validation",
