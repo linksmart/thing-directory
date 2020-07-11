@@ -185,6 +185,7 @@ func setupHTTPRouter(config *HTTPConfig, api *catalog.HTTPAPI) (*negroni.Negroni
 	r.post("/td", commonHandlers.ThenFunc(api.Post))
 	r.get("/td/{id:.+}", commonHandlers.ThenFunc(api.Get))
 	r.put("/td/{id:.+}", commonHandlers.ThenFunc(api.Put))
+	r.patch("/td/{id:.+}", commonHandlers.ThenFunc(api.Patch))
 	r.delete("/td/{id:.+}", commonHandlers.ThenFunc(api.Delete))
 	// TD validation
 	r.get("/validation", commonHandlers.ThenFunc(api.GetValidation))

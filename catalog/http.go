@@ -158,6 +158,11 @@ func (a *HTTPAPI) Put(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// Patch updates parts or all of an existing item (Response: StatusOK)
+func (a *HTTPAPI) Patch(w http.ResponseWriter, req *http.Request) {
+	ErrorResponse(w, http.StatusNotImplemented, "PATCH method is not implemented")
+}
+
 // Get handler get one item
 func (a *HTTPAPI) Get(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
