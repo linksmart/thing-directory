@@ -32,8 +32,8 @@ func (authz *Conf) Validate() error {
 		if len(rule.Methods) == 0 {
 			return errors.New("no methods in an authorization rule")
 		}
-		if len(rule.Users) == 0 && len(rule.Groups) == 0 {
-			return errors.New("at least one user or group must be assigned to each authorization rule")
+		if len(rule.Users)+len(rule.Groups)+len(rule.Clients) == 0 {
+			return errors.New("at least one user, group, or client must be set in each authorization rule")
 		}
 	}
 
