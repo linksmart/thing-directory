@@ -4,6 +4,7 @@ package authz
 type Claims struct {
 	Username string
 	Groups   []string
+	Roles    []string
 	ClientID string // for tokens issued as part of client credentials grant
 	// Status is the message given when token is not validated
 	Status string

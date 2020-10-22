@@ -27,16 +27,20 @@
         "enabled": true,
         "rules": [
           {
-            "resources": ["/td"],
+            "paths": ["/td"],
             "methods": ["GET","POST", "PUT", "DELETE"],
             "users": ["admin"],
-            "groups": []
+            "groups": [],
+            "clients": [],
+            "denyPathSubstrings": []
           },
           {
-            "resources": ["/td"],
+            "paths": ["/td"],
             "methods": ["GET"],
             "users": [],
-            "groups": ["anonymous"]
+            "groups": ["anonymous"],
+            "clients": [],
+            "denyPathSubstrings": []
           }
         ]
       }

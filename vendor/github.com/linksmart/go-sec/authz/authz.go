@@ -10,28 +10,42 @@ import (
 // GroupAnonymous is the group name for unauthenticated users
 const GroupAnonymous = "anonymous"
 
-// Authorized checks whether a user/group is authorized to access a resource using the specific method
-func (authz *Conf) Authorized(resource, method string, claims *Claims) bool {
+// Authorized checks whether a user/group is authorized to access a path using the specific method
+func (authz *Conf) Authorized(path, method string, claims *Claims) bool {
 	if claims == nil {
 		claims = &Claims{Groups: []string{GroupAnonymous}}
 	}
 	// Create a tree of paths
 	// e.g. /path1/path2/path3 -> [/path1/path2/path3 /path1/path2 /path1]
 	// e.g. / -> [/]
-	resourceSplit := strings.Split(resource, "/")[1:] // split and drop the first part (empty string before slash)
-	resourceTree := make([]string, 0, len(resourceSplit))
+	pathSplit := strings.Split(path, "/")[1:] // split and drop the first part (empty string before slash)
+	pathTree := make([]string, 0, len(pathSplit))
 	// construct tree from longest to shortest (/path1) path
-	for i := len(resourceSplit); i >= 1; i-- {
-		resourceTree = append(resourceTree, "/"+strings.Join(resourceSplit[:i], "/"))
+	for i := len(pathSplit); i >= 1; i-- {
+		pathTree = append(pathTree, "/"+strings.Join(pathSplit[:i], "/"))
 	}
-	//fmt.Printf("%s -> %v -> %v\n", resource, resourceSplit, resourceTree)
+	//fmt.Printf("%s -> %v -> %v\n", path, pathSplit, pathTree)
 
 	for _, rule := range authz.Rules {
-		for _, res := range resourceTree {
+		// take Paths from deprecated Resources
+		if len(rule.Paths) == 0 && len(rule.Resources) != 0 {
+			rule.Paths = rule.Resources
+		}
+
+		for _, substr := range rule.DenyPathSubstrtings {
+			if strings.Contains(path, substr) {
+				return false
+			}
+		}
+
+		for _, p := range pathTree {
 			// Return true if user or group matches a rule
-			if inSlice(res, rule.Resources) &&
+			if inSlice(p, rule.Paths) &&
 				inSlice(method, rule.Methods) &&
-				(inSlice(claims.Username, rule.Users) || hasIntersection(claims.Groups, rule.Groups) || inSlice(claims.ClientID, rule.Clients)) {
+				(inSlice(claims.Username, rule.Users) ||
+					hasIntersection(claims.Groups, rule.Groups) ||
+					hasIntersection(claims.Roles, rule.Roles) ||
+					inSlice(claims.ClientID, rule.Clients)) {
 				return true
 			}
 		}

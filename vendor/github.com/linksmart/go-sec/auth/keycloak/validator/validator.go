@@ -43,6 +43,7 @@ func (v *KeycloakValidator) Validate(serverAddr, clientID, tokenString string) (
 		Type              string   `json:"typ"`
 		PreferredUsername string   `json:"preferred_username"`
 		Groups            []string `json:"groups"`
+		Roles             []string `json:"roles"`
 		ClientID          string   `json:"clientID"` // for tokens issued as part of client credentials grant
 	}
 	// Parse the jwt id_token
@@ -94,6 +95,7 @@ func (v *KeycloakValidator) Validate(serverAddr, clientID, tokenString string) (
 	return true, &authz.Claims{
 		Username: claims.PreferredUsername,
 		Groups:   claims.Groups,
+		Roles:    claims.Roles,
 		ClientID: claims.ClientID,
 	}, nil
 }

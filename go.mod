@@ -12,7 +12,7 @@ require (
 	github.com/grandcat/zeroconf v1.0.1-0.20200528163356-cfc8183341d9
 	github.com/justinas/alice v0.0.0-20160512134231-052b8b6c18ed
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/linksmart/go-sec v1.3.3
+	github.com/linksmart/go-sec v1.4.0
 	github.com/linksmart/service-catalog/v3 v3.0.0-beta.1.0.20200302143206-92739dd2a511
 	github.com/miekg/dns v1.1.29 // indirect
 	github.com/onsi/ginkgo v1.12.0 // indirect
