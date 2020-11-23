@@ -159,6 +159,7 @@ func (c *Controller) listAll() ([]ThingDescription, int, error) {
 	}
 }
 
+// TODO: Improve filterJSONPath by reducing the number of (de-)serializations
 func (c *Controller) filterJSONPath(path string, page, perPage int) ([]interface{}, int, error) {
 	var results []interface{}
 
@@ -200,6 +201,7 @@ func (c *Controller) filterJSONPath(path string, page, perPage int) ([]interface
 	return results[offset : offset+limit], len(results), nil
 }
 
+// TODO: Improve filterXPath by reducing the number of (de-)serializations
 func (c *Controller) filterXPath(path string, page, perPage int) ([]interface{}, int, error) {
 	var results []interface{}
 
