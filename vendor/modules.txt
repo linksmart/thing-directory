@@ -20,6 +20,9 @@ github.com/dgrijalva/jwt-go
 # github.com/eclipse/paho.mqtt.golang v1.2.0
 github.com/eclipse/paho.mqtt.golang
 github.com/eclipse/paho.mqtt.golang/packets
+# github.com/evanphx/json-patch/v5 v5.1.0
+## explicit
+github.com/evanphx/json-patch/v5
 # github.com/farshidtz/elog v1.0.1
 github.com/farshidtz/elog
 # github.com/farshidtz/mqtt-match v1.0.1
@@ -62,6 +65,8 @@ github.com/miekg/dns
 ## explicit
 # github.com/onsi/gomega v1.9.0
 ## explicit
+# github.com/pkg/errors v0.9.1
+github.com/pkg/errors
 # github.com/rs/cors v1.7.0
 ## explicit
 github.com/rs/cors
