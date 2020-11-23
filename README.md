@@ -8,6 +8,7 @@ This is an implementation of the [W3C WoT Thing Description Directory (TDD)](htt
 It is currently stable but the following mandatory features are under development:
 * Partial updates
 * Dedicated search endpoints
+* Problem Details for error responses
 
 ## Getting Started
 * [Deployment](https://github.com/linksmart/thing-directory/wiki/Deployment)
