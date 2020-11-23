@@ -3,9 +3,11 @@
 [![GitHub tag (latest pre-release)](https://img.shields.io/github/tag-pre/linksmart/thing-directory.svg?label=pre-release)](https://github.com/linksmart/thing-directory/tags)
 [![CICD](https://github.com/linksmart/thing-directory/workflows/CICD/badge.svg)](https://github.com/linksmart/thing-directory/actions?query=workflow:CICD)
   
-This is a candidate implementation for the W3C [Web of Things (WoT) Thing Directory](https://www.w3.org/TR/wot-architecture/#dfn-thing-directory) service, a catalog of [Thing Descriptions](https://www.w3.org/TR/wot-thing-description/).
+This is an implementation of the [W3C WoT Thing Description Directory (TDD)](https://w3c.github.io/wot-discovery/), a registry of [Thing Descriptions](https://www.w3.org/TR/wot-thing-description/).
 
-This is currently under development.
+It is currently stable but the following mandatory features are under development:
+* Partial updates
+* Dedicated search endpoints
 
 ## Getting Started
 * [Deployment](https://github.com/linksmart/thing-directory/wiki/Deployment)
