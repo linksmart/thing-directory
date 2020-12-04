@@ -54,6 +54,10 @@ github.com/linksmart/go-sec v1.3.4-0.20201015112134-ae3c2c66dac4 h1:uAM2jQ2nxYFp
 github.com/linksmart/go-sec v1.3.4-0.20201015112134-ae3c2c66dac4/go.mod h1:W9EZRLqptioAzaxMjWEKzd5jye53aoRzMi4KO+FCFjY=
 github.com/linksmart/go-sec v1.4.0 h1:8MjTfzRc3KBpCECpNNXOBC2/zupVlplc1N5bHFABvHs=
 github.com/linksmart/go-sec v1.4.0/go.mod h1:W9EZRLqptioAzaxMjWEKzd5jye53aoRzMi4KO+FCFjY=
+github.com/linksmart/go-sec v1.4.1 h1:BJQ+6pIq7yFRVhZFsC2z6yXFI5CsdB6rJ3x2+ab393A=
+github.com/linksmart/go-sec v1.4.1/go.mod h1:W9EZRLqptioAzaxMjWEKzd5jye53aoRzMi4KO+FCFjY=
+github.com/linksmart/go-sec v1.4.2 h1:PhXpF6Gjm8/EYPUzoX0C8OJZ5FEOnS6XDtO8JHzu1hk=
+github.com/linksmart/go-sec v1.4.2/go.mod h1:W9EZRLqptioAzaxMjWEKzd5jye53aoRzMi4KO+FCFjY=
 github.com/linksmart/service-catalog/v3 v3.0.0-beta.1.0.20200302143206-92739dd2a511 h1:JNHuaKtZUDsgbGJ5bdFBZ4vIUlJB7EBvjLdSaNOFatQ=
 github.com/linksmart/service-catalog/v3 v3.0.0-beta.1.0.20200302143206-92739dd2a511/go.mod h1:2C0k5NvYvMgX2y095WCfuhpfZyKrZXX/TjYxlgR9K8g=
 github.com/miekg/dns v1.1.27 h1:aEH/kqUzUxGJ/UHcEKdJY+ugH6WEzsEBBSPa8zuy1aM=

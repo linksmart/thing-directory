@@ -10,8 +10,8 @@ import (
 // GroupAnonymous is the group name for unauthenticated users
 const GroupAnonymous = "anonymous"
 
-// Authorized checks whether a user/group is authorized to access a path using the specific method
-func (authz *Conf) Authorized(path, method string, claims *Claims) bool {
+// Authorized checks whether a request is authorized given the path, method, and claims
+func (rules Rules) Authorized(path, method string, claims *Claims) bool {
 	if claims == nil {
 		claims = &Claims{Groups: []string{GroupAnonymous}}
 	}
@@ -26,26 +26,33 @@ func (authz *Conf) Authorized(path, method string, claims *Claims) bool {
 	}
 	//fmt.Printf("%s -> %v -> %v\n", path, pathSplit, pathTree)
 
-	for _, rule := range authz.Rules {
+	for _, rule := range rules {
 		// take Paths from deprecated Resources
 		if len(rule.Paths) == 0 && len(rule.Resources) != 0 {
 			rule.Paths = rule.Resources
 		}
+		// take exclusion substrings from deprecated DenyPathSubstrtings
+		if len(rule.ExcludePathSubstrtings) == 0 && len(rule.DenyPathSubstrtings) != 0 {
+			rule.ExcludePathSubstrtings = rule.DenyPathSubstrtings
+		}
 
-		for _, substr := range rule.DenyPathSubstrtings {
+		var excludedPath bool
+		for _, substr := range rule.ExcludePathSubstrtings {
 			if strings.Contains(path, substr) {
-				return false
+				excludedPath = true
+				break
 			}
 		}
 
 		for _, p := range pathTree {
-			// Return true if user or group matches a rule
+			// Return true if a rule matches
 			if inSlice(p, rule.Paths) &&
 				inSlice(method, rule.Methods) &&
 				(inSlice(claims.Username, rule.Users) ||
 					hasIntersection(claims.Groups, rule.Groups) ||
 					hasIntersection(claims.Roles, rule.Roles) ||
-					inSlice(claims.ClientID, rule.Clients)) {
+					inSlice(claims.ClientID, rule.Clients)) &&
+				!excludedPath {
 				return true
 			}
 		}

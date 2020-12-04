@@ -19,7 +19,7 @@ func (v *Validator) Handler(next http.Handler) http.Handler {
 		Authorization := r.Header.Get("Authorization")
 		if Authorization == "" {
 			if v.authz != nil {
-				if ok := v.authz.Authorized(r.URL.Path, r.Method, nil); ok {
+				if ok := v.authz.Rules.Authorized(r.URL.Path, r.Method, nil); ok {
 					// Anonymous access, proceed to the next handler
 					next.ServeHTTP(w, r)
 					return
@@ -83,7 +83,7 @@ func (v *Validator) validationChain(tokenString string, path, method string) (in
 	}
 	// Check for optional authorization
 	if v.authz.Enabled {
-		if ok := v.authz.Authorized(path, method, claims); !ok {
+		if ok := v.authz.Rules.Authorized(path, method, claims); !ok {
 			return http.StatusForbidden, fmt.Errorf("access forbidden")
 		}
 	}
