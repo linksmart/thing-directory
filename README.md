@@ -5,11 +5,6 @@
   
 This is an implementation of the [W3C WoT Thing Description Directory (TDD)](https://w3c.github.io/wot-discovery/), a registry of [Thing Descriptions](https://www.w3.org/TR/wot-thing-description/).
 
-It is currently stable but the following mandatory features are under development:
-* Partial updates
-* Dedicated search endpoints
-* Problem Details for error responses
-
 ## Getting Started
 * [Deployment](https://github.com/linksmart/thing-directory/wiki/Deployment)
 * [Configuration](https://github.com/linksmart/thing-directory/wiki/Configuration)
