@@ -2,8 +2,13 @@
 title: 'Thing Directory: A lightweight registry of WoT Thing Descriptions'
 tags:
 authors:
-
+  - name: Farshid Tavakolizadeh
+    affiliation: 1
+  - name: Shreekantha Devasya
+    affiliation: 1
 affiliations:
+ - name: Fraunhofer Institute for Applied Information Technology, Sankt Augustin, Germany
+   index: 1
 date: 16 December 2020
 bibliography: paper.bib
 
