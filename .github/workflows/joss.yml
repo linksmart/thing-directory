@@ -4,6 +4,7 @@ on:
   push:
     paths:
     - 'paper/joss/**'
+    - '.github/workflows/joss.yml'
 
 jobs:
   paper:
