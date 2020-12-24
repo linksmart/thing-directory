@@ -4,6 +4,7 @@ on:
   push:
     paths-ignore:
     - 'paper/**'
+    - '.github/workflows/joss.yml'
     - '*.md'
 
 jobs:
