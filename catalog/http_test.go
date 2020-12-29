@@ -57,6 +57,7 @@ func setupTestHTTPServer(t *testing.T) (CatalogController, *httptest.Server) {
 	r.Methods("GET").Path("/td/{id:.+}").HandlerFunc(api.Get)
 	r.Methods("POST").Path("/td/").HandlerFunc(api.Post)
 	r.Methods("PUT").Path("/td/{id:.+}").HandlerFunc(api.Put)
+	r.Methods("PATCH").Path("/td/{id:.+}").HandlerFunc(api.Patch)
 	r.Methods("DELETE").Path("/td/{id:.+}").HandlerFunc(api.Delete)
 	// Listing and filtering
 	r.Methods("GET").Path("/td").HandlerFunc(api.GetMany)
@@ -317,6 +318,245 @@ func TestPut(t *testing.T) {
 		defer res.Body.Close()
 
 		b, err = ioutil.ReadAll(res.Body)
+		if err != nil {
+			t.Fatalf("Error reading response body: %s", err)
+		}
+
+		if res.StatusCode != http.StatusBadRequest {
+			t.Fatalf("Expected response %v, got: %d. Reponse body: %s", http.StatusBadRequest, res.StatusCode, b)
+		}
+	})
+}
+
+func TestPatch(t *testing.T) {
+	controller, testServer := setupTestHTTPServer(t)
+
+	t.Run("Update title", func(t *testing.T) {
+		// add through controller
+		id := "urn:example:test/thing_1"
+		td := mockedTD(id)
+		_, err := controller.add(td)
+		if err != nil {
+			t.Fatalf("Error adding through controller: %s", err)
+		}
+
+		jsonTD := `{"title": "new title"}`
+
+		// patch over HTTP
+		res, err := httpDoRequest(http.MethodPatch, testServer.URL+"/td/"+id, []byte(jsonTD))
+		if err != nil {
+			t.Fatalf("Error putting TD: %s", err)
+		}
+		defer res.Body.Close()
+
+		b, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			t.Fatalf("Error reading response body: %s", err)
+		}
+
+		if res.StatusCode != http.StatusOK {
+			t.Fatalf("Expected response %v, got: %d. Reponse body: %s", http.StatusOK, res.StatusCode, b)
+		}
+
+		storedTD, err := controller.get(id)
+		if err != nil {
+			t.Fatalf("Error getting through controller: %s", err)
+		}
+
+		td["title"] = "new title"
+		// set system-generated attributes
+		td["created"] = storedTD["created"]
+		td["modified"] = storedTD["modified"]
+
+		if !serializedEqual(td, storedTD) {
+			t.Fatalf("Posted:\n%v\n Retrieved:\n%v\n", td, storedTD)
+		}
+	})
+
+	t.Run("Remove description", func(t *testing.T) {
+		// add through controller
+		id := "urn:example:test/thing_2"
+		td := mockedTD(id)
+		td["description"] = "this is a test descr"
+		_, err := controller.add(td)
+		if err != nil {
+			t.Fatalf("Error adding through controller: %s", err)
+		}
+
+		// set null to remove
+		jsonTD := `{"description": null}`
+
+		// patch over HTTP
+		res, err := httpDoRequest(http.MethodPatch, testServer.URL+"/td/"+id, []byte(jsonTD))
+		if err != nil {
+			t.Fatalf("Error putting TD: %s", err)
+		}
+		defer res.Body.Close()
+
+		b, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			t.Fatalf("Error reading response body: %s", err)
+		}
+
+		if res.StatusCode != http.StatusOK {
+			t.Fatalf("Expected response %v, got: %d. Reponse body: %s", http.StatusOK, res.StatusCode, b)
+		}
+
+		storedTD, err := controller.get(id)
+		if err != nil {
+			t.Fatalf("Error getting through controller: %s", err)
+		}
+
+		delete(td, "description")
+		// set system-generated attributes
+		td["created"] = storedTD["created"]
+		td["modified"] = storedTD["modified"]
+
+		if !serializedEqual(td, storedTD) {
+			t.Fatalf("Posted:\n%v\n Retrieved:\n%v\n", td, storedTD)
+		}
+	})
+
+	t.Run("Patch properties object", func(t *testing.T) {
+		// add through controller
+		id := "urn:example:test/thing_3"
+		td := mockedTD(id)
+		td["properties"] = map[string]interface{}{
+			"status": map[string]interface{}{
+				"forms": []map[string]interface{}{
+					{"href": "https://mylamp.example.com/status"},
+				},
+			},
+		}
+		_, err := controller.add(td)
+		if err != nil {
+			t.Fatalf("Error adding through controller: %s", err)
+		}
+
+		// patch with new property
+		jsonTD := `{"properties": {"new_property": {"forms": [{"href": "https://mylamp.example.com/new_property"}]}}}`
+
+		// patch over HTTP
+		res, err := httpDoRequest(http.MethodPatch, testServer.URL+"/td/"+id, []byte(jsonTD))
+		if err != nil {
+			t.Fatalf("Error putting TD: %s", err)
+		}
+		defer res.Body.Close()
+
+		b, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			t.Fatalf("Error reading response body: %s", err)
+		}
+
+		if res.StatusCode != http.StatusOK {
+			t.Fatalf("Expected response %v, got: %d. Reponse body: %s", http.StatusOK, res.StatusCode, b)
+		}
+
+		storedTD, err := controller.get(id)
+		if err != nil {
+			t.Fatalf("Error getting through controller: %s", err)
+		}
+
+		td["properties"] = map[string]interface{}{
+			"status": map[string]interface{}{
+				"forms": []map[string]interface{}{
+					{"href": "https://mylamp.example.com/status"},
+				},
+			},
+			"new_property": map[string]interface{}{
+				"forms": []map[string]interface{}{
+					{"href": "https://mylamp.example.com/new_property"},
+				},
+			},
+		}
+		// set system-generated attributes
+		td["created"] = storedTD["created"]
+		td["modified"] = storedTD["modified"]
+
+		if !serializedEqual(td, storedTD) {
+			t.Fatalf("Posted:\n%v\n Retrieved:\n%v\n", td, storedTD)
+		}
+	})
+
+	t.Run("Patch array", func(t *testing.T) {
+		// add through controller
+		id := "urn:example:test/thing_4"
+		td := mockedTD(id)
+		td["properties"] = map[string]interface{}{
+			"status": map[string]interface{}{
+				"forms": []map[string]interface{}{
+					{"href": "https://mylamp.example.com/status"},
+				},
+			},
+		}
+		_, err := controller.add(td)
+		if err != nil {
+			t.Fatalf("Error adding through controller: %s", err)
+		}
+
+		// patch with different array
+		jsonTD := `{"properties": {"status": {"forms": [
+					{"href": "https://mylamp.example.com/status"},
+					{"href": "coaps://mylamp.example.com/status"}
+				]}}}`
+
+		// patch over HTTP
+		res, err := httpDoRequest(http.MethodPatch, testServer.URL+"/td/"+id, []byte(jsonTD))
+		if err != nil {
+			t.Fatalf("Error putting TD: %s", err)
+		}
+		defer res.Body.Close()
+
+		b, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			t.Fatalf("Error reading response body: %s", err)
+		}
+
+		if res.StatusCode != http.StatusOK {
+			t.Fatalf("Expected response %v, got: %d. Reponse body: %s", http.StatusOK, res.StatusCode, b)
+		}
+
+		storedTD, err := controller.get(id)
+		if err != nil {
+			t.Fatalf("Error getting through controller: %s", err)
+		}
+
+		td["properties"] = map[string]interface{}{
+			"status": map[string]interface{}{
+				"forms": []map[string]interface{}{
+					{"href": "https://mylamp.example.com/status"},
+					{"href": "coaps://mylamp.example.com/status"},
+				},
+			},
+		}
+		// set system-generated attributes
+		td["created"] = storedTD["created"]
+		td["modified"] = storedTD["modified"]
+
+		if !serializedEqual(td, storedTD) {
+			t.Fatalf("Posted:\n%v\n Retrieved:\n%v\n", td, storedTD)
+		}
+	})
+
+	t.Run("Remove mandatory title", func(t *testing.T) {
+		// add through controller
+		id := "urn:example:test/thing_5"
+		td := mockedTD(id)
+		_, err := controller.add(td)
+		if err != nil {
+			t.Fatalf("Error adding through controller: %s", err)
+		}
+
+		jsonTD := `{"title": null}`
+
+		// patch over HTTP
+		res, err := httpDoRequest(http.MethodPatch, testServer.URL+"/td/"+id, []byte(jsonTD))
+		if err != nil {
+			t.Fatalf("Error putting TD: %s", err)
+		}
+		defer res.Body.Close()
+
+		b, err := ioutil.ReadAll(res.Body)
 		if err != nil {
 			t.Fatalf("Error reading response body: %s", err)
 		}
