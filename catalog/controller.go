@@ -97,7 +97,7 @@ func (c *Controller) patch(id string, td ThingDescription) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("%s", patchBytes)
+	//fmt.Printf("%s", patchBytes)
 
 	newBytes, err := jsonpatch.MergePatch(oldBytes, patchBytes)
 	if err != nil {
