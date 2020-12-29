@@ -374,11 +374,11 @@ components:
           "properties": {
             "status": {
               "forms": [
-              {
-                "op": ["readproperty"],
-                "href": "https://example.com/status",
-                "contentType": "text/html"
-              }
+                {
+                  "op": ["readproperty"],
+                  "href": "https://example.com/status",
+                  "contentType": "text/html"
+                }
               ]
             }
           },
@@ -396,11 +396,11 @@ components:
           "properties": {
             "status": {
               "forms": [
-              {
-                "op": ["readproperty"],
-                "href": "https://example.com/status",
-                "contentType": "text/html"
-              }
+                {
+                  "op": ["readproperty"],
+                  "href": "https://example.com/status",
+                  "contentType": "text/html"
+                }
               ]
             }
           },
@@ -415,25 +415,25 @@ components:
           "@context": "https://linksmart.eu/thing-directory/context.jsonld",
           "@type": "Catalog",
           "items":[
-          {
-            "@context": "https://www.w3.org/2019/wot/td/v1",
-            "id": "urn:example:1234",
-            "title": "ExampleSensor",
-            "properties": {
-              "status": {
-                "forms": [
-                {
-                  "op": ["readproperty"],
-                  "href": "https://example.com/status",
-                  "contentType": "text/html"
+            {
+              "@context": "https://www.w3.org/2019/wot/td/v1",
+              "id": "urn:example:1234",
+              "title": "ExampleSensor",
+              "properties": {
+                "status": {
+                  "forms": [
+                    {
+                      "op": ["readproperty"],
+                      "href": "https://example.com/status",
+                      "contentType": "text/html"
+                    }
+                  ]
                 }
-                ]
+              },
+              "security": ["nosec_sc"],
+              "securityDefinitions": {"nosec_sc":{"scheme":"nosec"}
               }
-            },
-            "security": ["nosec_sc"],
-            "securityDefinitions": {"nosec_sc":{"scheme":"nosec"}
             }
-          }
           ],
           "page": 1,
           "perPage": 100,
