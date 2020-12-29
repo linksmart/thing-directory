@@ -240,7 +240,7 @@ func TestPut(t *testing.T) {
 		td["title"] = "updated title"
 		b, _ := json.Marshal(td)
 		// update over HTTP
-		res, err := httpDoRequest(http.MethodPut, testServer.URL+"/td/"+id, bytes.NewReader(b))
+		res, err := httpDoRequest(http.MethodPut, testServer.URL+"/td/"+id, b)
 		if err != nil {
 			t.Fatalf("Error putting TD: %s", err)
 		}
@@ -274,7 +274,7 @@ func TestPut(t *testing.T) {
 		b, _ := json.Marshal(td)
 
 		// create over HTTP
-		res, err := httpDoRequest(http.MethodPut, testServer.URL+"/td/"+id, bytes.NewReader(b))
+		res, err := httpDoRequest(http.MethodPut, testServer.URL+"/td/"+id, b)
 		if err != nil {
 			t.Fatalf("Error putting TD: %s", err)
 		}
@@ -310,7 +310,7 @@ func TestPut(t *testing.T) {
 		b, _ := json.Marshal(td)
 
 		// create over HTTP
-		res, err := httpDoRequest(http.MethodPut, testServer.URL+"/td/"+id, bytes.NewReader(b))
+		res, err := httpDoRequest(http.MethodPut, testServer.URL+"/td/"+id, b)
 		if err != nil {
 			t.Fatalf("Error putting TD: %s", err)
 		}
@@ -340,7 +340,7 @@ func TestDelete(t *testing.T) {
 
 	t.Run("Remove existing", func(t *testing.T) {
 		// delete over HTTP
-		res, err := httpDoRequest(http.MethodDelete, testServer.URL+"/td/"+id, bytes.NewReader(nil))
+		res, err := httpDoRequest(http.MethodDelete, testServer.URL+"/td/"+id, nil)
 		if err != nil {
 			t.Fatalf("Error deleting TD: %s", err)
 		}
@@ -359,7 +359,7 @@ func TestDelete(t *testing.T) {
 
 	t.Run("Remove non-existing", func(t *testing.T) {
 		// delete over HTTP
-		res, err := httpDoRequest(http.MethodDelete, testServer.URL+"/td/something-else", bytes.NewReader(nil))
+		res, err := httpDoRequest(http.MethodDelete, testServer.URL+"/td/something-else", nil)
 		if err != nil {
 			t.Fatalf("Error deleting TD: %s", err)
 		}
@@ -522,7 +522,7 @@ func TestValidation(t *testing.T) {
 		b, _ := json.Marshal(td)
 
 		// retrieve over HTTP
-		res, err := httpDoRequest(http.MethodGet, testServer.URL+"/validation", bytes.NewReader(b))
+		res, err := httpDoRequest(http.MethodGet, testServer.URL+"/validation", b)
 		if err != nil {
 			t.Fatalf("Error getting: %s", err)
 		}
@@ -557,7 +557,7 @@ func TestValidation(t *testing.T) {
 		b, _ := json.Marshal(td)
 
 		// retrieve over HTTP
-		res, err := httpDoRequest(http.MethodGet, testServer.URL+"/validation", bytes.NewReader(b))
+		res, err := httpDoRequest(http.MethodGet, testServer.URL+"/validation", b)
 		if err != nil {
 			t.Fatalf("Error getting: %s", err)
 		}
@@ -590,8 +590,8 @@ func TestValidation(t *testing.T) {
 
 // UTILITY FUNCTIONS
 
-func httpDoRequest(method, url string, r *bytes.Reader) (*http.Response, error) {
-	req, err := http.NewRequest(method, url, r)
+func httpDoRequest(method, url string, b []byte) (*http.Response, error) {
+	req, err := http.NewRequest(method, url, bytes.NewReader(b))
 	if err != nil {
 		return nil, err
 	}
