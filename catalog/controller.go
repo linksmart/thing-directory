@@ -13,6 +13,7 @@ import (
 
 	xpath "github.com/antchfx/jsonquery"
 	jsonpath "github.com/bhmj/jsonslice"
+	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/linksmart/service-catalog/v3/utils"
 	uuid "github.com/satori/go.uuid"
 )
@@ -80,6 +81,50 @@ func (c *Controller) update(id string, td ThingDescription) error {
 	return nil
 }
 
+// TODO: Improve patch by reducing the number of (de-)serializations
+func (c *Controller) patch(id string, td ThingDescription) error {
+	oldTD, err := c.storage.get(id)
+	if err != nil {
+		return err
+	}
+
+	// serialize to json for mergepatch input
+	oldBytes, err := json.Marshal(oldTD)
+	if err != nil {
+		return err
+	}
+	patchBytes, err := json.Marshal(td)
+	if err != nil {
+		return err
+	}
+	//fmt.Printf("%s", patchBytes)
+
+	newBytes, err := jsonpatch.MergePatch(oldBytes, patchBytes)
+	if err != nil {
+		return err
+	}
+	oldBytes, patchBytes = nil, nil
+
+	td = ThingDescription{}
+	err = json.Unmarshal(newBytes, &td)
+	if err != nil {
+		return err
+	}
+
+	if err := validateThingDescription(td); err != nil {
+		return &BadRequestError{err.Error()}
+	}
+
+	td[_modified] = time.Now().UTC()
+
+	err = c.storage.update(id, td)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *Controller) delete(id string) error {
 	err := c.storage.delete(id)
 	if err != nil {
@@ -114,6 +159,7 @@ func (c *Controller) listAll() ([]ThingDescription, int, error) {
 	}
 }
 
+// TODO: Improve filterJSONPath by reducing the number of (de-)serializations
 func (c *Controller) filterJSONPath(path string, page, perPage int) ([]interface{}, int, error) {
 	var results []interface{}
 
@@ -155,6 +201,7 @@ func (c *Controller) filterJSONPath(path string, page, perPage int) ([]interface
 	return results[offset : offset+limit], len(results), nil
 }
 
+// TODO: Improve filterXPath by reducing the number of (de-)serializations
 func (c *Controller) filterXPath(path string, page, perPage int) ([]interface{}, int, error) {
 	var results []interface{}
 

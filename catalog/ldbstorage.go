@@ -4,6 +4,7 @@ package catalog
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"net/url"
@@ -213,5 +214,7 @@ func (s *LevelDBStorage) Close() {
 	if err != nil {
 		log.Printf("Error closing storage: %s", err)
 	}
-	log.Println("Closed leveldb.")
+	if flag.Lookup("test.v") == nil {
+		log.Println("Closed leveldb.")
+	}
 }

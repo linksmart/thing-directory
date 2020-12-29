@@ -18,6 +18,8 @@ github.com/dgrijalva/jwt-go v3.0.0+incompatible h1:nfVqwkkhaRUethVJaQf5TUFdFr3YU
 github.com/dgrijalva/jwt-go v3.0.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=
 github.com/eclipse/paho.mqtt.golang v1.2.0 h1:1F8mhG9+aO5/xpdtFkW4SxOJB67ukuDC3t2y2qayIX0=
 github.com/eclipse/paho.mqtt.golang v1.2.0/go.mod h1:H9keYFcgq3Qr5OUJm/JZI/i6U7joQ8SYLhZwfeOo6Ts=
+github.com/evanphx/json-patch/v5 v5.1.0 h1:B0aXl1o/1cP8NbviYiBMkcHBtUjIJ1/Ccg6b+SwCLQg=
+github.com/evanphx/json-patch/v5 v5.1.0/go.mod h1:G79N1coSVB93tBe7j6PhzjmR3/2VvlbKOFpnXhI9Bw4=
 github.com/farshidtz/elog v1.0.1 h1:GXdAmbHVyJ5l6V37gLK+Pedjd/sMRt0RPLzB/HcVFj0=
 github.com/farshidtz/elog v1.0.1/go.mod h1:OXTASC4gfW1KTSCg/qieXdyo9SoUA+c4U8qGkp6DW9I=
 github.com/farshidtz/mqtt-match v1.0.1 h1:VEBojQL9P5F7E3gu9XULIUZnzZknn7byF2rJ7RX20cQ=
@@ -38,6 +40,7 @@ github.com/grandcat/zeroconf v1.0.1-0.20200528163356-cfc8183341d9 h1:Vb1ObISmE87
 github.com/grandcat/zeroconf v1.0.1-0.20200528163356-cfc8183341d9/go.mod h1:lTKmG1zh86XyCoUeIHSA4FJMBwCJiQmGfcP2PdzytEs=
 github.com/hpcloud/tail v1.0.0 h1:nfCOvKYfkgYP8hkirhJocXT2+zOD8yUNjXaWfTlyFKI=
 github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpOxQnU=
+github.com/jessevdk/go-flags v1.4.0/go.mod h1:4FA24M0QyGHXBuZZK/XkWh8h0e1EYbRYJSGM75WSRxI=
 github.com/justinas/alice v0.0.0-20160512134231-052b8b6c18ed h1:Ab4XhecWusSSeIfQ2eySh7kffQ1Wsv6fNSkwefr6AVQ=
 github.com/justinas/alice v0.0.0-20160512134231-052b8b6c18ed/go.mod h1:oLH0CmIaxCGXD67VKGR5AacGXZSMznlmeqM8RzPrcY8=
 github.com/kelseyhightower/envconfig v1.3.0 h1:IvRS4f2VcIQy6j4ORGIf9145T/AsUB+oY8LyvN8BXNM=
@@ -46,12 +49,6 @@ github.com/kelseyhightower/envconfig v1.4.0 h1:Im6hONhd3pLkfDFsbRgu68RDNkGF1r3dv
 github.com/kelseyhightower/envconfig v1.4.0/go.mod h1:cccZRl6mQpaq41TPp5QxidR+Sa3axMbJDNb//FQX6Gg=
 github.com/linksmart/go-sec v1.0.1 h1:UNeRj81/KHCy4hkFcZn7x5N/nM+uNxe+xsLBQzNF7kg=
 github.com/linksmart/go-sec v1.0.1/go.mod h1:bTksBzP6fCEwIM43z8m3jSRa4YIAWdUwMBYjcoftm1c=
-github.com/linksmart/go-sec v1.3.2 h1:FSW9bvXGFZouNAqJYuv9Kh7Bfhbkezt9V/6/hbgMbAw=
-github.com/linksmart/go-sec v1.3.2/go.mod h1:W9EZRLqptioAzaxMjWEKzd5jye53aoRzMi4KO+FCFjY=
-github.com/linksmart/go-sec v1.3.3 h1:i+wVndlGK4jWujpFWxn1rXZpxkSvDj8GLf9KXAZkTZk=
-github.com/linksmart/go-sec v1.3.3/go.mod h1:W9EZRLqptioAzaxMjWEKzd5jye53aoRzMi4KO+FCFjY=
-github.com/linksmart/go-sec v1.3.4-0.20201015112134-ae3c2c66dac4 h1:uAM2jQ2nxYFpe+1wbtxG2iU4GLDZzKGi6cl2TLq7hnk=
-github.com/linksmart/go-sec v1.3.4-0.20201015112134-ae3c2c66dac4/go.mod h1:W9EZRLqptioAzaxMjWEKzd5jye53aoRzMi4KO+FCFjY=
 github.com/linksmart/go-sec v1.4.0 h1:8MjTfzRc3KBpCECpNNXOBC2/zupVlplc1N5bHFABvHs=
 github.com/linksmart/go-sec v1.4.0/go.mod h1:W9EZRLqptioAzaxMjWEKzd5jye53aoRzMi4KO+FCFjY=
 github.com/linksmart/go-sec v1.4.1 h1:BJQ+6pIq7yFRVhZFsC2z6yXFI5CsdB6rJ3x2+ab393A=
@@ -74,6 +71,7 @@ github.com/onsi/gomega v1.4.3/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1Cpa
 github.com/onsi/gomega v1.7.1/go.mod h1:XdKZgCCFLUoM/7CFJVPcG8C1xQ1AJ0vpAezJrB7JYyY=
 github.com/onsi/gomega v1.9.0 h1:R1uwffexN6Pr340GtYRIdZmAiN4J+iw6WG4wog1DUXg=
 github.com/onsi/gomega v1.9.0/go.mod h1:Ho0h+IUsWyvy1OpqCwxlQ/21gkhVunqlU8fDGcoTdcA=
+github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

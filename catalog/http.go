@@ -160,7 +160,44 @@ func (a *HTTPAPI) Put(w http.ResponseWriter, req *http.Request) {
 
 // Patch updates parts or all of an existing item (Response: StatusOK)
 func (a *HTTPAPI) Patch(w http.ResponseWriter, req *http.Request) {
-	ErrorResponse(w, http.StatusNotImplemented, "PATCH method is not implemented")
+	params := mux.Vars(req)
+
+	body, err := ioutil.ReadAll(req.Body)
+	req.Body.Close()
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	var td ThingDescription
+	if err := json.Unmarshal(body, &td); err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "Error processing the request:", err.Error())
+		return
+	}
+
+	if id, ok := td[_id].(string); ok && id == "" {
+		if params["id"] != td[_id] {
+			ErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("Resource id in path (%s) does not match the id in body (%s)", params["id"], td[_id]))
+			return
+		}
+	}
+
+	err = a.controller.patch(params["id"], td)
+	if err != nil {
+		switch err.(type) {
+		case *NotFoundError:
+			ErrorResponse(w, http.StatusNotFound, "Invalid registration:", err.Error())
+			return
+		case *BadRequestError:
+			ErrorResponse(w, http.StatusBadRequest, "Invalid registration:", err.Error())
+			return
+		default:
+			ErrorResponse(w, http.StatusInternalServerError, "Error updating the registration:", err.Error())
+			return
+		}
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 // Get handler get one item

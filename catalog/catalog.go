@@ -43,6 +43,7 @@ type CatalogController interface {
 	add(d ThingDescription) (string, error)
 	get(id string) (ThingDescription, error)
 	update(id string, d ThingDescription) error
+	patch(id string, d ThingDescription) error
 	delete(id string) error
 	list(page, perPage int) ([]ThingDescription, int, error)
 	filterJSONPath(path string, page, perPage int) ([]interface{}, int, error)
