@@ -1,6 +1,11 @@
 ---
-title: 'Thing Directory: A lightweight registry of WoT Thing Descriptions'
+title: 'Thing Directory: Simple and lightweight registry of IoT device metadata'
 tags:
+  - internet of things
+  - web of things
+  - wireless sensor networks
+  - discovery
+  - catalog
 authors:
   - name: Farshid Tavakolizadeh
     affiliation: 1
