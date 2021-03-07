@@ -11,9 +11,10 @@ import (
 type ThingDescription = map[string]interface{}
 
 const (
-	ResponseContextURL = "https://linksmart.eu/thing-directory/context.jsonld"
-	ResponseType       = "Catalog"
-	ResponseMediaType  = "application/ld+json"
+	ResponseContextURL    = "https://linksmart.eu/thing-directory/context.jsonld"
+	ResponseType          = "Catalog"
+	ResponseMediaType     = "application/ld+json"
+	ResponseJSONMediaType = "application/json"
 	// DNS-SD
 	DNSSDServiceType    = "_wot._tcp"
 	DNSSDServiceSubtype = "_directory" // _directory._sub._wot._tcp
@@ -47,7 +48,9 @@ type CatalogController interface {
 	delete(id string) error
 	list(page, perPage int) ([]ThingDescription, int, error)
 	filterJSONPath(path string, page, perPage int) ([]interface{}, int, error)
+	filterJSONPathBytes(query string) ([]byte, error)
 	filterXPath(path string, page, perPage int) ([]interface{}, int, error)
+	//filterXPathBytes(query string) ([]byte, error)
 	total() (int, error)
 	cleanExpired()
 

@@ -201,6 +201,33 @@ func (c *Controller) filterJSONPath(path string, page, perPage int) ([]interface
 	return results[offset : offset+limit], len(results), nil
 }
 
+func (c *Controller) filterJSONPathBytes(query string) ([]byte, error) {
+	// TODO query in bytes?
+	// query all items
+	items, total, err := c.listAll()
+	if err != nil {
+		return nil, err
+	}
+	if total == 0 {
+		return []byte{}, nil
+	}
+
+	// serialize to json
+	b, err := json.Marshal(items)
+	if err != nil {
+		return nil, fmt.Errorf("error serializing for jsonpath: %s", err)
+	}
+	items = nil
+
+	// filter results with jsonpath
+	b, err = jsonpath.Get(b, query)
+	if err != nil {
+		return nil, &BadRequestError{fmt.Sprintf("error evaluating jsonpath: %s", err)}
+	}
+
+	return b, nil
+}
+
 // TODO: Improve filterXPath by reducing the number of (de-)serializations
 func (c *Controller) filterXPath(path string, page, perPage int) ([]interface{}, int, error) {
 	var results []interface{}
