@@ -85,7 +85,7 @@ func registerInServiceCatalog(conf *Config) (func() error, error) {
 		}},
 		Doc: "https://github.com/linksmart/thing-directory",
 		//Meta: map[string]interface{}{},
-		TTL: uint32(conf.ServiceCatalog.Ttl),
+		TTL: uint32(conf.ServiceCatalog.TTL),
 	}
 
 	var ticket *obtainer.Client

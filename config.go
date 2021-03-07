@@ -34,7 +34,7 @@ type ServiceCatalog struct {
 	Enabled  bool          `json:"enabled"`
 	Discover bool          `json:"discover"`
 	Endpoint string        `json:"endpoint"`
-	Ttl      int           `json:"ttl"`
+	TTL      int           `json:"ttl"`
 	Auth     obtainer.Conf `json:"auth"`
 }
 
@@ -85,7 +85,7 @@ func (c *Config) Validate() error {
 		if c.ServiceCatalog.Endpoint == "" && c.ServiceCatalog.Discover {
 			return fmt.Errorf("Service Catalog must have either endpoint or set discovery flag")
 		}
-		if c.ServiceCatalog.Ttl <= 0 {
+		if c.ServiceCatalog.TTL <= 0 {
 			return fmt.Errorf("Service Catalog must have TTL >= 0")
 		}
 		if c.ServiceCatalog.Auth.Enabled {
