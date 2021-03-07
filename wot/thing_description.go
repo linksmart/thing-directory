@@ -128,7 +128,7 @@ type ActionAffordance struct {
 	Input DataSchema `json:"input,omitempty"`
 
 	// Used to define the output data schema of the Action.
-	Output DataSchema `json:"input,omitempty"`
+	Output DataSchema `json:"output,omitempty"`
 
 	// Signals if the Action is safe (=true) or not. Used to signal if there is no internal state (cf. resource state) is changed when invoking an Action. In that case responses can be cached as example.
 	Safe bool `json:"safe"` //default: false
@@ -207,7 +207,7 @@ type Link struct {
 	Type string `json:"type,omitempty"`
 
 	// A link relation type identifies the semantics of a link.
-	Rel string `json:"type,omitempty"`
+	Rel string `json:"rel,omitempty"`
 
 	// Overrides the link context (by default the Thing itself identified by its id) with the given URI or IRI.
 	Anchor AnyURI `json:"anchor,omitempty"`
