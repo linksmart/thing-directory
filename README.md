@@ -6,9 +6,10 @@
 This is an implementation of the [W3C WoT Thing Description Directory (TDD)](https://w3c.github.io/wot-discovery/), a registry of [Thing Descriptions](https://www.w3.org/TR/wot-thing-description/).
 
 ## Getting Started
-* [Deployment](https://github.com/linksmart/thing-directory/wiki/Deployment)
-* [Configuration](https://github.com/linksmart/thing-directory/wiki/Configuration)
-* [API Documentation](https://linksmart.github.io/swagger-ui/dist/?url=https://raw.githubusercontent.com/linksmart/thing-directory/master/apidoc/openapi-spec.yml)
+Visit the following pages to get started:
+* [Deployment](https://github.com/linksmart/thing-directory/wiki/Deployment): How to deploy the software, as Docker container, Debian package, or platform-specific binary distributions
+* [Configuration](https://github.com/linksmart/thing-directory/wiki/Configuration): How to configure the server software with JSON files and environment variables
+* [API Documentation](https://linksmart.github.io/swagger-ui/dist/?url=https://raw.githubusercontent.com/linksmart/thing-directory/master/apidoc/openapi-spec.yml): How to interact with the networking APIs
 
 **Further documentation are available in the [wiki](https://github.com/linksmart/thing-directory/wiki)**.
 
