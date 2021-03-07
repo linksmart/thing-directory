@@ -15,11 +15,18 @@ import (
 	"github.com/linksmart/thing-directory/catalog"
 )
 
+// escape special characters as recommended by https://tools.ietf.org/html/rfc6763#section-4.3
+func escapeDNSSDServiceInstance(instance string) (escaped string) {
+	// replace \ by \\
+	escaped = strings.ReplaceAll(instance, "\\", "\\\\")
+	// replace . by \.
+	escaped = strings.ReplaceAll(escaped, ".", "\\.")
+	return escaped
+}
+
 // register as a DNS-SD Service
 func registerDNSSDService(conf *Config) (func(), error) {
-	// escape special characters (https://tools.ietf.org/html/rfc6763#section-4.3)
-	instance := strings.ReplaceAll(conf.DNSSD.Publish.Instance, ".", "\\.")
-	instance = strings.ReplaceAll(conf.DNSSD.Publish.Instance, "\\", "\\\\")
+	instance := escapeDNSSDServiceInstance(conf.DNSSD.Publish.Instance)
 
 	log.Printf("DNS-SD: registering as \"%s.%s.%s\", subtype: %s",
 		instance, catalog.DNSSDServiceType, conf.DNSSD.Publish.Domain, catalog.DNSSDServiceSubtype)
