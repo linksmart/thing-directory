@@ -368,7 +368,7 @@ func TestControllerFilter(t *testing.T) {
 		}
 	}
 
-	controller.add(map[string]any{
+	_, err := controller.add(map[string]any{
 		"@context": "https://www.w3.org/2019/wot/td/v1",
 		"id":       "urn:example:test/thing_x",
 		"title":    "interesting thing",
@@ -380,7 +380,11 @@ func TestControllerFilter(t *testing.T) {
 			},
 		},
 	})
-	controller.add(map[string]any{
+	if err != nil {
+		t.Fatal("Error adding a TD:", err.Error())
+	}
+
+	_, err = controller.add(map[string]any{
 		"@context": "https://www.w3.org/2019/wot/td/v1",
 		"id":       "urn:example:test/thing_y",
 		"title":    "interesting thing",
@@ -392,6 +396,9 @@ func TestControllerFilter(t *testing.T) {
 			},
 		},
 	})
+	if err != nil {
+		t.Fatal("Error adding a TD:", err.Error())
+	}
 
 	t.Run("filter with JSONPath", func(t *testing.T) {
 		TDs, total, err := controller.filterJSONPath("$[?(@.title=='interesting thing')]", 1, 10)

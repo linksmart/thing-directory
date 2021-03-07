@@ -82,7 +82,7 @@ func (c *Config) Validate() error {
 	}
 
 	if c.ServiceCatalog.Enabled {
-		if c.ServiceCatalog.Endpoint == "" && c.ServiceCatalog.Discover == false {
+		if c.ServiceCatalog.Endpoint == "" && c.ServiceCatalog.Discover {
 			return fmt.Errorf("Service Catalog must have either endpoint or set discovery flag")
 		}
 		if c.ServiceCatalog.Ttl <= 0 {

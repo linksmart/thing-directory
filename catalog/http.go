@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -223,7 +224,10 @@ func (a *HTTPAPI) Get(w http.ResponseWriter, req *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", a.contentType)
-	w.Write(b)
+	_, err = w.Write(b)
+	if err != nil {
+		log.Printf("ERROR writing HTTP response: %s", err)
+	}
 }
 
 // Delete removes one item
@@ -325,7 +329,10 @@ func (a *HTTPAPI) GetMany(w http.ResponseWriter, req *http.Request) {
 
 	w.Header().Set("Content-Type", a.contentType)
 	w.Header().Set("X-Request-URL", req.RequestURI)
-	w.Write(b)
+	_, err = w.Write(b)
+	if err != nil {
+		log.Printf("ERROR writing HTTP response: %s", err)
+	}
 }
 
 // GetValidation handler gets validation for the request body
@@ -367,5 +374,8 @@ func (a *HTTPAPI) GetValidation(w http.ResponseWriter, req *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(b)
+	_, err = w.Write(b)
+	if err != nil {
+		log.Printf("ERROR writing HTTP response: %s", err)
+	}
 }

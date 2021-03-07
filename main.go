@@ -123,7 +123,12 @@ func main() {
 			panic("Error registering service:" + err.Error())
 		}
 		// Unregister from the Service Catalog
-		defer unregisterService()
+		defer func() {
+			err := unregisterService()
+			if err != nil {
+				log.Printf("Error unregistering service from catalog: %s", err)
+			}
+		}()
 	}
 
 	log.Println("Ready!")

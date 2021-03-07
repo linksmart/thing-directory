@@ -42,8 +42,14 @@ func ErrorResponse(w http.ResponseWriter, code int, msgs ...string) {
 	if code >= 500 {
 		log.Println("ERROR:", msg)
 	}
-	b, _ := json.Marshal(e)
+	b, err := json.Marshal(e)
+	if err != nil {
+		log.Printf("ERROR serializing error object: %s", err)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	w.Write(b)
+	_, err = w.Write(b)
+	if err != nil {
+		log.Printf("ERROR writing HTTP response: %s", err)
+	}
 }

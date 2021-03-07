@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 
@@ -116,6 +117,9 @@ func apiSpecProxy(w http.ResponseWriter, req *http.Request) {
 		if !strings.HasPrefix(basePath, "/") {
 			basePath = "/" + basePath
 		}
-		w.Write([]byte("\nservers: [url: " + basePath + "]"))
+		_, err := w.Write([]byte("\nservers: [url: " + basePath + "]"))
+		if err != nil {
+			log.Printf("ERROR writing HTTP response: %s", err)
+		}
 	}
 }
