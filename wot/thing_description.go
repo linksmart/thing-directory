@@ -241,7 +241,7 @@ type SecurityScheme struct {
 }
 
 type DataSchema struct {
-	// TJSON-LD keyword to label the object with semantic tags (or types)
+	// JSON-LD keyword to label the object with semantic tags (or types)
 	Type any `json:"@type,omitempty"`
 
 	// Const corresponds to the JSON schema field "const".
@@ -271,7 +271,8 @@ type DataSchema struct {
 	// Provides multi-language human-readable titles (e.g., display a text for UI representation in different languages).
 	Titles []string `json:"titles,omitempty"`
 
-	// Type_2 corresponds to the JSON schema field "type".
+	// Assignment of JSON-based data types compatible with JSON Schema (one of boolean, integer, number, string, object, array, or null).
+	// DataType corresponds to the JSON schema field "type".
 	DataType string `json:"type,omitempty"`
 
 	// Unit corresponds to the JSON schema field "unit".
@@ -288,6 +289,17 @@ type DataSchema struct {
 
 	// Metadata describing data of type object. This Subclass is indicated by the value object assigned to type in DataSchema instances.
 	*ObjectSchema
+}
+
+// DataSchemaTypeEnumValues are the allowed values allowed for DataSchema.DataType
+var DataSchemaDataTypeEnumValues = []string{
+	"boolean",
+	"integer",
+	"number",
+	"string",
+	"object",
+	"array",
+	"null",
 }
 
 type ArraySchema struct {
@@ -461,14 +473,4 @@ type OAuth2SecurityScheme struct {
 
 	//Authorization flow.
 	Flow string `json:"flow"`
-}
-
-var enumValues_DataSchemaType = []any{
-	"boolean",
-	"integer",
-	"number",
-	"string",
-	"object",
-	"array",
-	"null",
 }
