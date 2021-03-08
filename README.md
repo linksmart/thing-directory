@@ -33,12 +33,52 @@ Visit the following pages to get started:
 ## Development
 The dependencies of this package are managed by [Go Modules](https://github.com/golang/go/wiki/Modules).
 
-To Compile from source:
-```
+Clone this repo:
+```bash
 git clone https://github.com/linksmart/thing-directory.git
 cd thing-directory
+```
+
+Compile from source:
+```bash
 go build
 ```
+This will result in an executable called `thing-directory` (linux/macOS) or `thing-directory.exe` (windows).
+
+Copy sample configuration files for server and JSON Schema into `conf` directory:
+```bash
+mkdir -p conf
+cp sample_conf/thing-directory.json wot/wot_td_schema.json conf
+```
+`conf` is the default directory for configuration files. This can be changed with CLI arguments.
+
+Get the CLI argument help (linux/macOS):
+```bash
+$ ./thing-directory -help
+Usage of ./thing-directory:
+  -conf string
+        Configuration file path (default "conf/thing-directory.json")
+  -schema string
+        WoT Thing Description schema file path (default "conf/wot_td_schema.json")
+  -version
+        Print the API version
+```
+
+Run (linux/macOS):
+```bash
+$ ./thing-directory
+```
+
+To build and run together:
+```bash
+go run .
+```
+
+Test all packages (add `-v` flag for verbose results):
+```bash
+go test ./...
+```
+
 
 ## Contributing
 Contributions are welcome. 
