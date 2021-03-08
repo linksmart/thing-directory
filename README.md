@@ -45,10 +45,10 @@ go build
 ```
 This will result in an executable called `thing-directory` (linux/macOS) or `thing-directory.exe` (windows).
 
-Download samples configuration file and JSON Schema into `conf` directory:
+Copy sample configuration files for server and JSON Schema into `conf` directory:
 ```bash
-wget -P conf https://raw.githubusercontent.com/linksmart/thing-directory/master/sample_conf/thing-directory.json 
-wget -P conf https://raw.githubusercontent.com/linksmart/thing-directory/master/wot/wot_td_schema.json
+mkdir -p conf
+cp sample_conf/thing-directory.json wot/wot_td_schema.json conf
 ```
 `conf` is the default directory for configuration files. This can be changed with CLI arguments.
 
