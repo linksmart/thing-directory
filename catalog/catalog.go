@@ -48,9 +48,12 @@ type CatalogController interface {
 	delete(id string) error
 	list(page, perPage int) ([]ThingDescription, int, error)
 	listAllBytes() ([]byte, error)
+	// Deprecated
 	filterJSONPath(path string, page, perPage int) ([]interface{}, int, error)
 	filterJSONPathBytes(query string) ([]byte, error)
+	// Deprecated
 	filterXPath(path string, page, perPage int) ([]interface{}, int, error)
+	filterXPathBytes(query string) ([]byte, error)
 	//filterXPathBytes(query string) ([]byte, error)
 	total() (int, error)
 	cleanExpired()

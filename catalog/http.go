@@ -374,7 +374,38 @@ func (a *HTTPAPI) SearchJSONPath(w http.ResponseWriter, req *http.Request) {
 
 // SearchXPath returns the XPath query result
 func (a *HTTPAPI) SearchXPath(w http.ResponseWriter, req *http.Request) {
-	ErrorResponse(w, http.StatusNotImplemented, "For now, use /td?xpath={query}")
+	err := req.ParseForm()
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query:", err.Error())
+		return
+	}
+
+	query := req.Form.Get(QueryParamSearchQuery)
+	if query == "" {
+		ErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("No value for %s argument", QueryParamSearchQuery))
+		return
+	}
+	w.Header().Add("X-Request-Query", query)
+
+	b, err := a.controller.filterXPathBytes(query)
+	if err != nil {
+		switch err.(type) {
+		case *BadRequestError:
+			ErrorResponse(w, http.StatusBadRequest, err.Error())
+			return
+		default:
+			ErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", ResponseJSONMediaType)
+	w.Header().Set("X-Request-URL", req.RequestURI)
+	_, err = w.Write(b)
+	if err != nil {
+		log.Printf("ERROR writing HTTP response: %s", err)
+		return
+	}
 }
 
 // GetValidation handler gets validation for the request body

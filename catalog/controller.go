@@ -163,6 +163,7 @@ func (c *Controller) listAllBytes() ([]byte, error) {
 	return c.storage.listAllBytes()
 }
 
+// Deprecated
 // Note: filterJSONPath performs several (de-)serializations
 // Use filterJSONPathBytes to query bytes directly
 func (c *Controller) filterJSONPath(path string, page, perPage int) ([]interface{}, int, error) {
@@ -222,7 +223,9 @@ func (c *Controller) filterJSONPathBytes(query string) ([]byte, error) {
 	return b, nil
 }
 
-// TODO: Improve filterXPath by reducing the number of (de-)serializations
+// Deprecated
+// Note: filterXPath performs several (de-)serializations
+// Use filterXPathBytes to query bytes directly
 func (c *Controller) filterXPath(path string, page, perPage int) ([]interface{}, int, error) {
 	var results []interface{}
 
@@ -265,6 +268,38 @@ func (c *Controller) filterXPath(path string, page, perPage int) ([]interface{},
 	}
 	// return the requested page
 	return results[offset : offset+limit], len(results), nil
+}
+
+func (c *Controller) filterXPathBytes(path string) ([]byte, error) {
+	// query all items
+	b, err := c.listAllBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	// parse the json document
+	doc, err := xpath.Parse(bytes.NewReader(b))
+	if err != nil {
+		return nil, fmt.Errorf("error parsing serialized input for xpath filtering: %s", err)
+	}
+
+	// filter with xpath
+	nodes, err := xpath.QueryAll(doc, path)
+	if err != nil {
+		return nil, &BadRequestError{fmt.Sprintf("error filtering input with xpath: %s", err)}
+	}
+	results := make([]interface{}, len(nodes))
+	for i := range nodes {
+		results[i] = getObjectFromXPathNode(nodes[i])
+	}
+
+	// serialize
+	b, err = json.Marshal(results)
+	if err != nil {
+		return nil, fmt.Errorf("error serliazing results of xpath filtering: %s", err)
+	}
+
+	return b, nil
 }
 
 // basicTypeFromXPathStr is a hack to get the actual data type from xpath.TextNode
