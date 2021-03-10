@@ -159,7 +159,12 @@ func (c *Controller) listAll() ([]ThingDescription, int, error) {
 	}
 }
 
-// TODO: Improve filterJSONPath by reducing the number of (de-)serializations
+func (c *Controller) listAllBytes() ([]byte, error) {
+	return c.storage.listAllBytes()
+}
+
+// Note: filterJSONPath performs several (de-)serializations
+// Use filterJSONPathBytes to query bytes directly
 func (c *Controller) filterJSONPath(path string, page, perPage int) ([]interface{}, int, error) {
 	var results []interface{}
 
@@ -202,22 +207,11 @@ func (c *Controller) filterJSONPath(path string, page, perPage int) ([]interface
 }
 
 func (c *Controller) filterJSONPathBytes(query string) ([]byte, error) {
-	// TODO query in bytes?
 	// query all items
-	items, total, err := c.listAll()
+	b, err := c.listAllBytes()
 	if err != nil {
 		return nil, err
 	}
-	if total == 0 {
-		return []byte{}, nil
-	}
-
-	// serialize to json
-	b, err := json.Marshal(items)
-	if err != nil {
-		return nil, fmt.Errorf("error serializing for jsonpath: %s", err)
-	}
-	items = nil
 
 	// filter results with jsonpath
 	b, err = jsonpath.Get(b, query)
