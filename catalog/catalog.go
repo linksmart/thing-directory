@@ -27,15 +27,23 @@ const (
 	_ttl      = "ttl"
 )
 
-func validateThingDescription(td map[string]interface{}) error {
+func validateThingDescription(td map[string]interface{}) ([]wot.ValidationError, error) {
+	issues, err := wot.ValidateMap(&td)
+	if err != nil {
+		return nil, fmt.Errorf("error validating with JSON schema: %s", err)
+	}
+
 	if td[_ttl] != nil {
 		_, ok := td[_ttl].(float64)
 		if !ok {
-			return fmt.Errorf("ttl is %T instead of float64", td[_ttl])
+			issues = append(issues, wot.ValidationError{
+				Name:   _ttl,
+				Reason: fmt.Sprintf("Invalid type. Expected float64, given: %T", td[_ttl]),
+			})
 		}
 	}
 
-	return wot.ValidateMap(&td)
+	return issues, nil
 }
 
 // Controller interface

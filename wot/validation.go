@@ -3,7 +3,6 @@ package wot
 import (
 	"fmt"
 	"io/ioutil"
-	"strings"
 
 	"github.com/xeipuuv/gojsonschema"
 )
@@ -30,30 +29,23 @@ func LoadSchema(path string) error {
 }
 
 // ValidateMap validates the input against the loaded WoT Thing Description schema
-func ValidateMap(td *map[string]interface{}) error {
+func ValidateMap(td *map[string]interface{}) ([]ValidationError, error) {
 	if schema == nil {
-		return fmt.Errorf("WoT Thing Description schema is not loaded")
+		return nil, fmt.Errorf("WoT Thing Description schema is not loaded")
 	}
 
 	result, err := schema.Validate(gojsonschema.NewGoLoader(td))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if !result.Valid() {
-		var errors []string
-		for _, desc := range result.Errors() {
-			errors = append(errors, desc.String())
+		var issues []ValidationError
+		for _, re := range result.Errors() {
+			issues = append(issues, ValidationError{Name: re.Field(), Reason: re.Description()})
 		}
-		return &ValidationError{errors}
+		return issues, nil
 	}
-	return nil
-}
 
-type ValidationError struct {
-	Errors []string
-}
-
-func (e ValidationError) Error() string {
-	return strings.Join(e.Errors, ", ")
+	return nil, nil
 }
