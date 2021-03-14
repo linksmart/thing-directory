@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/gorilla/mux"
@@ -60,24 +61,44 @@ func optionsHandler(w http.ResponseWriter, _ *http.Request) {
 }
 
 func indexHandler(w http.ResponseWriter, _ *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintf(w, `<html>`)
-	fmt.Fprintf(w, `<h1>LinkSmart Thing Directory</h1>`)
+	const sourceRepo = "https://github.com/linksmart/thing-directory"
+	var version = "master"
 	if Version != "" {
-		fmt.Fprintf(w, `<p>Version: %s</p>`, Version)
+		version = Version
 	}
-	fmt.Fprintf(w, `<p><a href="https://github.com/linksmart/thing-directory">https://github.com/linksmart/thing-directory</a></p>`)
-	fmt.Fprintf(w, `<p>RESTful directory endpoint: <a href="./td">/td</a></p>`)
-	fmt.Fprintf(w, `<p>API Documentation: <a href="https://linksmart.github.io/swagger-ui/dist/?url=https://raw.githubusercontent.com/linksmart/thing-directory/master/apidoc/openapi-spec.yml">Swagger UI</a></p>`)
-	fmt.Fprintf(w, `
-<p><a href="" id="swagger">Try it out!</a> (experimental; requires internet connection on both server and client sides)</p>
+	var spec = "https://raw.githubusercontent.com/linksmart/thing-directory/" + version + "/apidoc/openapi-spec.yml"
+	var swaggerUIRelativeScheme = "//linksmart.github.io/swagger-ui/dist"
+	var swaggerUISecure = "https:" + swaggerUIRelativeScheme
+	// TODO: check on startup
+	_, err := url.ParseRequestURI(swaggerUISecure)
+	if err != nil {
+		log.Printf("ERROR: Invalid SwaggerUI URL: %s", err)
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	var body string
+	body += `<html>`
+	body += `<h1>LinkSmart Thing Directory</h1>`
+	body += fmt.Sprintf(`Version: %s</p>`, version)
+	// Source code
+	body += fmt.Sprintf(`<p><a href="%s">%s</a></p>`, sourceRepo, sourceRepo)
+	// Registration endpoint
+	body += `<p>RESTful registration endpoint: <a href="./td">/td</a></p>`
+	// Swagger UI
+	body += fmt.Sprintf(`<p>API Documentation: <a href="%s/?url=%s">Swagger UI</a></p>`, swaggerUISecure, spec)
+	// Interactive Swagger UI
+	body += fmt.Sprintf(`<p><a href="" id="swagger">Try it out!</a> (experimental; requires internet connection on both server and client sides)</p>
 <script type="text/javascript">
 window.onload = function(){
-    document.getElementById("swagger").href = "//linksmart.github.io/swagger-ui/dist/?url=" + window.location.toString() + "openapi-spec-proxy" + window.location.pathname;
+    document.getElementById("swagger").href = "%s/?url=" + window.location.toString() + "openapi-spec-proxy" + window.location.pathname;
 }
-</script>
-`)
-	fmt.Fprintf(w, `<html>`)
+</script>`, swaggerUIRelativeScheme)
+	body += `<html>`
+
+	_, err = w.Write([]byte(body))
+	if err != nil {
+		log.Printf("ERROR writing HTTP response: %s", err)
+	}
 }
 
 func apiSpecProxy(w http.ResponseWriter, req *http.Request) {
@@ -85,20 +106,26 @@ func apiSpecProxy(w http.ResponseWriter, req *http.Request) {
 	if Version != "" {
 		version = Version
 	}
+	var spec = "https://raw.githubusercontent.com/linksmart/thing-directory/" + version + "/apidoc/openapi-spec.yml"
 
 	// get the spec
-	var openapiSpecs = "https://raw.githubusercontent.com/linksmart/thing-directory/" + version + "/apidoc/openapi-spec.yml"
-	res, err := http.Get(openapiSpecs)
+	res, err := http.Get(spec)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Error querying Open API specs: %s", err)
+		_, err := fmt.Fprintf(w, "Error querying Open API specs: %s", err)
+		if err != nil {
+			log.Printf("ERROR writing HTTP response: %s", err)
+		}
 		return
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
 		w.WriteHeader(res.StatusCode)
-		fmt.Fprintf(w, "GET %s: %s", openapiSpecs, res.Status)
+		_, err := fmt.Fprintf(w, "GET %s: %s", spec, res.Status)
+		if err != nil {
+			log.Printf("ERROR writing HTTP response: %s", err)
+		}
 		return
 	}
 
@@ -106,7 +133,10 @@ func apiSpecProxy(w http.ResponseWriter, req *http.Request) {
 	_, err = io.Copy(w, res.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Error responding Open API specs: %s", err)
+		_, err := fmt.Fprintf(w, "Error responding Open API specs: %s", err)
+		if err != nil {
+			log.Printf("ERROR writing HTTP response: %s", err)
+		}
 		return
 	}
 
