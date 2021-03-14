@@ -374,7 +374,7 @@ func (a *HTTPAPI) GetValidation(w http.ResponseWriter, req *http.Request) {
 	}
 	if len(results) != 0 {
 		for _, result := range results {
-			response.Errors = append(response.Errors, fmt.Sprintf("%s: %s", result.Name, result.Reason))
+			response.Errors = append(response.Errors, fmt.Sprintf("%s: %s", result.Field, result.Descr))
 		}
 	} else {
 		response.Valid = true

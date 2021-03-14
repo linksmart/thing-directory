@@ -37,8 +37,8 @@ func validateThingDescription(td map[string]interface{}) ([]wot.ValidationError,
 		_, ok := td[_ttl].(float64)
 		if !ok {
 			issues = append(issues, wot.ValidationError{
-				Name:   _ttl,
-				Reason: fmt.Sprintf("Invalid type. Expected float64, given: %T", td[_ttl]),
+				Field: _ttl,
+				Descr: fmt.Sprintf("Invalid type. Expected float64, given: %T", td[_ttl]),
 			})
 		}
 	}

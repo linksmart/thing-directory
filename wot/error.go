@@ -25,6 +25,6 @@ type ProblemDetails struct {
 }
 
 type ValidationError struct {
-	Name   string `json:"name"`
-	Reason string `json:"reason"`
+	Field string `json:"field"`
+	Descr string `json:"description"`
 }

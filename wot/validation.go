@@ -42,7 +42,7 @@ func ValidateMap(td *map[string]interface{}) ([]ValidationError, error) {
 	if !result.Valid() {
 		var issues []ValidationError
 		for _, re := range result.Errors() {
-			issues = append(issues, ValidationError{Name: re.Field(), Reason: re.Description()})
+			issues = append(issues, ValidationError{Field: re.Field(), Descr: re.Description()})
 		}
 		return issues, nil
 	}
