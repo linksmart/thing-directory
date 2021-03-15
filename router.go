@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"io"
 	"log"
 	"net/http"
@@ -60,45 +61,68 @@ func optionsHandler(w http.ResponseWriter, _ *http.Request) {
 }
 
 func indexHandler(w http.ResponseWriter, _ *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintf(w, `<html>`)
-	fmt.Fprintf(w, `<h1>LinkSmart Thing Directory</h1>`)
-	if Version != "" {
-		fmt.Fprintf(w, `<p>Version: %s</p>`, Version)
-	}
-	fmt.Fprintf(w, `<p><a href="https://github.com/linksmart/thing-directory">https://github.com/linksmart/thing-directory</a></p>`)
-	fmt.Fprintf(w, `<p>RESTful directory endpoint: <a href="./td">/td</a></p>`)
-	fmt.Fprintf(w, `<p>API Documentation: <a href="https://linksmart.github.io/swagger-ui/dist/?url=https://raw.githubusercontent.com/linksmart/thing-directory/master/apidoc/openapi-spec.yml">Swagger UI</a></p>`)
-	fmt.Fprintf(w, `
-<p><a href="" id="swagger">Try it out!</a> (experimental; requires internet connection on both server and client sides)</p>
-<script type="text/javascript">
-window.onload = function(){
-    document.getElementById("swagger").href = "//linksmart.github.io/swagger-ui/dist/?url=" + window.location.toString() + "openapi-spec-proxy" + window.location.pathname;
-}
-</script>
-`)
-	fmt.Fprintf(w, `<html>`)
-}
-
-func apiSpecProxy(w http.ResponseWriter, req *http.Request) {
-	var version = "master"
+	version := "master"
 	if Version != "" {
 		version = Version
 	}
+	spec := strings.NewReplacer("{version}", version).Replace(Spec)
+
+	swaggerUIRelativeScheme := "//" + SwaggerUISchemeLess
+	swaggerUISecure := "https:" + swaggerUIRelativeScheme
+
+	w.Header().Set("Content-Type", "text/html")
+
+	data := struct {
+		Version, SourceRepo, Spec, SwaggerUIRelativeScheme, SwaggerUISecure string
+	}{version, SourceCodeRepo, spec, swaggerUIRelativeScheme, swaggerUISecure}
+
+	tmpl := `
+<h1>LinkSmart Thing Directory</h1>
+<p>Version: {{.Version}}</p>
+<p><a href="{{.SourceRepo}}">{{.SourceRepo}}</a></p>
+<p>API Documentation: <a href="{{.SwaggerUISecure}}/?url={{.Spec}}">Swagger UI</a></p>
+<p><a href="" id="swagger">Try it out!</a> (experimental; requires internet connection on both server and client sides)</p>
+<script type="text/javascript">
+	window.onload = function(){
+	   document.getElementById("swagger").href = "{{.SwaggerUIRelativeScheme}}/?url=" + window.location.toString() + "openapi-spec-proxy" + window.location.pathname;
+	}
+</script>`
+
+	t, err := template.New("body").Parse(tmpl)
+	if err != nil {
+		log.Fatalf("Error parsing template: %s", err)
+	}
+	err = t.Execute(w, data)
+	if err != nil {
+		log.Fatalf("Error applying template to response: %s", err)
+	}
+}
+
+func apiSpecProxy(w http.ResponseWriter, req *http.Request) {
+	version := "master"
+	if Version != "" {
+		version = Version
+	}
+	spec := strings.NewReplacer("{version}", version).Replace(Spec)
 
 	// get the spec
-	var openapiSpecs = "https://raw.githubusercontent.com/linksmart/thing-directory/" + version + "/apidoc/openapi-spec.yml"
-	res, err := http.Get(openapiSpecs)
+	res, err := http.Get(spec)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Error querying Open API specs: %s", err)
+		_, err := fmt.Fprintf(w, "Error querying Open API specs: %s", err)
+		if err != nil {
+			log.Printf("ERROR writing HTTP response: %s", err)
+		}
 		return
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
 		w.WriteHeader(res.StatusCode)
-		fmt.Fprintf(w, "GET %s: %s", openapiSpecs, res.Status)
+		_, err := fmt.Fprintf(w, "GET %s: %s", spec, res.Status)
+		if err != nil {
+			log.Printf("ERROR writing HTTP response: %s", err)
+		}
 		return
 	}
 
@@ -106,7 +130,10 @@ func apiSpecProxy(w http.ResponseWriter, req *http.Request) {
 	_, err = io.Copy(w, res.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Error responding Open API specs: %s", err)
+		_, err := fmt.Fprintf(w, "Error responding Open API specs: %s", err)
+		if err != nil {
+			log.Printf("ERROR writing HTTP response: %s", err)
+		}
 		return
 	}
 
