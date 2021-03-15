@@ -30,6 +30,12 @@ const LINKSMART = `
 ╩═╝ ╩ ╝╚╝ ╩ ╩  ╚═╝ ╩ ╩ ╩ ╩ ╩╚═  ╩
 `
 
+const (
+	SwaggerUISchemeLess = "linksmart.github.io/swagger-ui/dist"
+	Spec                = "https://raw.githubusercontent.com/linksmart/thing-directory/{version}/apidoc/openapi-spec.yml"
+	SourceCodeRepo      = "https://github.com/linksmart/thing-directory"
+)
+
 var (
 	confPath    = flag.String("conf", "conf/thing-directory.json", "Configuration file path")
 	schemaPath  = flag.String("schema", "conf/wot_td_schema.json", "WoT Thing Description schema file path")

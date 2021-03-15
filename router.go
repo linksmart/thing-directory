@@ -4,10 +4,10 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"io"
 	"log"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"github.com/gorilla/mux"
@@ -61,52 +61,49 @@ func optionsHandler(w http.ResponseWriter, _ *http.Request) {
 }
 
 func indexHandler(w http.ResponseWriter, _ *http.Request) {
-	const sourceRepo = "https://github.com/linksmart/thing-directory"
-	var version = "master"
+	version := "master"
 	if Version != "" {
 		version = Version
 	}
-	var spec = "https://raw.githubusercontent.com/linksmart/thing-directory/" + version + "/apidoc/openapi-spec.yml"
-	var swaggerUIRelativeScheme = "//linksmart.github.io/swagger-ui/dist"
-	var swaggerUISecure = "https:" + swaggerUIRelativeScheme
-	// TODO: check on startup
-	_, err := url.ParseRequestURI(swaggerUISecure)
-	if err != nil {
-		log.Printf("ERROR: Invalid SwaggerUI URL: %s", err)
-	}
+	spec := strings.NewReplacer("{version}", version).Replace(Spec)
+
+	swaggerUIRelativeScheme := "//" + SwaggerUISchemeLess
+	swaggerUISecure := "https:" + swaggerUIRelativeScheme
 
 	w.Header().Set("Content-Type", "text/html")
-	var body string
-	body += `<html>`
-	body += `<h1>LinkSmart Thing Directory</h1>`
-	body += fmt.Sprintf(`Version: %s</p>`, version)
-	// Source code
-	body += fmt.Sprintf(`<p><a href="%s">%s</a></p>`, sourceRepo, sourceRepo)
-	// Registration endpoint
-	body += `<p>RESTful registration endpoint: <a href="./td">/td</a></p>`
-	// Swagger UI
-	body += fmt.Sprintf(`<p>API Documentation: <a href="%s/?url=%s">Swagger UI</a></p>`, swaggerUISecure, spec)
-	// Interactive Swagger UI
-	body += fmt.Sprintf(`<p><a href="" id="swagger">Try it out!</a> (experimental; requires internet connection on both server and client sides)</p>
-<script type="text/javascript">
-window.onload = function(){
-    document.getElementById("swagger").href = "%s/?url=" + window.location.toString() + "openapi-spec-proxy" + window.location.pathname;
-}
-</script>`, swaggerUIRelativeScheme)
-	body += `<html>`
 
-	_, err = w.Write([]byte(body))
+	data := struct {
+		Version, SourceRepo, Spec, SwaggerUIRelativeScheme, SwaggerUISecure string
+	}{version, SourceCodeRepo, spec, swaggerUIRelativeScheme, swaggerUISecure}
+
+	tmpl := `
+<h1>LinkSmart Thing Directory</h1>
+<p>Version: {{.Version}}</p>
+<p><a href="{{.SourceRepo}}">{{.SourceRepo}}</a></p>
+<p>API Documentation: <a href="{{.SwaggerUISecure}}/?url={{.Spec}}">Swagger UI</a></p>
+<p><a href="" id="swagger">Try it out!</a> (experimental; requires internet connection on both server and client sides)</p>
+<script type="text/javascript">
+	window.onload = function(){
+	   document.getElementById("swagger").href = "{{.SwaggerUIRelativeScheme}}/?url=" + window.location.toString() + "openapi-spec-proxy" + window.location.pathname;
+	}
+</script>`
+
+	t, err := template.New("body").Parse(tmpl)
 	if err != nil {
-		log.Printf("ERROR writing HTTP response: %s", err)
+		log.Fatalf("Error parsing template: %s", err)
+	}
+	err = t.Execute(w, data)
+	if err != nil {
+		log.Fatalf("Error applying template to response: %s", err)
 	}
 }
 
 func apiSpecProxy(w http.ResponseWriter, req *http.Request) {
-	var version = "master"
+	version := "master"
 	if Version != "" {
 		version = Version
 	}
-	var spec = "https://raw.githubusercontent.com/linksmart/thing-directory/" + version + "/apidoc/openapi-spec.yml"
+	spec := strings.NewReplacer("{version}", version).Replace(Spec)
 
 	// get the spec
 	res, err := http.Get(spec)
