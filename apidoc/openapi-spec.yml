@@ -120,7 +120,7 @@ paths:
         '201':
           description: A new Thing Description is created
         '400':
-          $ref: '#/components/responses/RespBadRequest'
+          $ref: '#/components/responses/RespValidationBadRequest'
         '401':
           $ref: '#/components/responses/RespUnauthorized'
         '403':
@@ -156,7 +156,7 @@ paths:
         '200':
           description: Thing Description patched successfully
         '400':
-          $ref: '#/components/responses/RespBadRequest'
+          $ref: '#/components/responses/RespValidationBadRequest'
         '401':
           $ref: '#/components/responses/RespUnauthorized'
         '403':
