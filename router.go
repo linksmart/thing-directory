@@ -73,11 +73,12 @@ func indexHandler(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 
 	data := struct {
-		Version, SourceRepo, Spec, SwaggerUIRelativeScheme, SwaggerUISecure string
-	}{version, SourceCodeRepo, spec, swaggerUIRelativeScheme, swaggerUISecure}
+		Logo, Version, SourceRepo, Spec, SwaggerUIRelativeScheme, SwaggerUISecure string
+	}{LINKSMART, version, SourceCodeRepo, spec, swaggerUIRelativeScheme, swaggerUISecure}
 
 	tmpl := `
-<h1>LinkSmart Thing Directory</h1>
+<pre>{{.Logo}}</pre>
+<h1>Thing Directory</h1>
 <p>Version: {{.Version}}</p>
 <p><a href="{{.SourceRepo}}">{{.SourceRepo}}</a></p>
 <p>API Documentation: <a href="{{.SwaggerUISecure}}/?url={{.Spec}}">Swagger UI</a></p>
