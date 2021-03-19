@@ -16,10 +16,11 @@ import (
 const (
 	MaxPerPage = 100
 	// query parameters
-	QueryParamPage     = "page"
-	QueryParamPerPage  = "per_page"
-	QueryParamJSONPath = "jsonpath"
-	QueryParamXPath    = "xpath"
+	QueryParamPage        = "page"
+	QueryParamPerPage     = "per_page"
+	QueryParamJSONPath    = "jsonpath"
+	QueryParamXPath       = "xpath"
+	QueryParamSearchQuery = "query"
 	// Deprecated
 	QueryParamFetchPath = "fetch"
 )
@@ -343,6 +344,78 @@ func (a *HTTPAPI) GetMany(w http.ResponseWriter, req *http.Request) {
 	_, err = w.Write(b)
 	if err != nil {
 		log.Printf("ERROR writing HTTP response: %s", err)
+	}
+}
+
+// SearchJSONPath returns the JSONPath query result
+func (a *HTTPAPI) SearchJSONPath(w http.ResponseWriter, req *http.Request) {
+	err := req.ParseForm()
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query:", err.Error())
+		return
+	}
+
+	query := req.Form.Get(QueryParamSearchQuery)
+	if query == "" {
+		ErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("No value for %s argument", QueryParamSearchQuery))
+		return
+	}
+	w.Header().Add("X-Request-Query", query)
+
+	b, err := a.controller.filterJSONPathBytes(query)
+	if err != nil {
+		switch err.(type) {
+		case *BadRequestError:
+			ErrorResponse(w, http.StatusBadRequest, err.Error())
+			return
+		default:
+			ErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", ResponseJSONMediaType)
+	w.Header().Set("X-Request-URL", req.RequestURI)
+	_, err = w.Write(b)
+	if err != nil {
+		log.Printf("ERROR writing HTTP response: %s", err)
+		return
+	}
+}
+
+// SearchXPath returns the XPath query result
+func (a *HTTPAPI) SearchXPath(w http.ResponseWriter, req *http.Request) {
+	err := req.ParseForm()
+	if err != nil {
+		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query:", err.Error())
+		return
+	}
+
+	query := req.Form.Get(QueryParamSearchQuery)
+	if query == "" {
+		ErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("No value for %s argument", QueryParamSearchQuery))
+		return
+	}
+	w.Header().Add("X-Request-Query", query)
+
+	b, err := a.controller.filterXPathBytes(query)
+	if err != nil {
+		switch err.(type) {
+		case *BadRequestError:
+			ErrorResponse(w, http.StatusBadRequest, err.Error())
+			return
+		default:
+			ErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", ResponseJSONMediaType)
+	w.Header().Set("X-Request-URL", req.RequestURI)
+	_, err = w.Write(b)
+	if err != nil {
+		log.Printf("ERROR writing HTTP response: %s", err)
+		return
 	}
 }
 

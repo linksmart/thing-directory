@@ -4,7 +4,7 @@ openapi: 3.0.0
 #  - url: http://localhost:8081
 
 info:
-  version: "1.0.0-beta.18"
+  version: "1.0.0-beta.22"
   title: LinkSmart Thing Directory
   description: API documetnation of the [LinkSmart Thing Directory](https://github.com/linksmart/thing-directory)
   license:
@@ -13,7 +13,9 @@ info:
 
 tags:
   - name: td
-    description: Thing Directory API
+    description: Registration API
+  - name: search
+    description: Search API
   - name: validation
     description: Validation API
 
@@ -31,6 +33,7 @@ paths:
           in: query
           description: JSONPath expression for fetching specific items. E.g. `$[?(@.title=='Kitchen Lamp')].properties`
           required: false
+          deprecated: true
           schema:
             type: string
           # example: $[?(@.title=='Kitchen Lamp')].properties
@@ -38,6 +41,7 @@ paths:
           in: query
           description: xPath 3.0 expression for fetching specific items. E.g. `//*[title='Kitchen Lamp']/properties`
           required: false
+          deprecated: true
           schema:
             type: string
           # example: //*[title='Kitchen Lamp']/properties
@@ -59,7 +63,6 @@ paths:
           $ref: '#/components/responses/RespForbidden'
         '500':
           $ref: '#/components/responses/RespInternalServerError'
-  /td/:
     post:
       tags:
         - td
@@ -224,6 +227,87 @@ paths:
           $ref: '#/components/responses/RespForbidden'
         '404':
           $ref: '#/components/responses/RespNotfound'
+        '500':
+          $ref: '#/components/responses/RespInternalServerError'
+
+  /search/jsonpath:
+    get:
+      tags:
+        - search
+      summary: Query TDs with JSONPath expression
+      description: The query languages, described [here](https://github.com/linksmart/thing-directory/wiki/Query-Language), can be used to filter results and select parts of Thing Descriptions.
+      parameters:
+        - name: query
+          in: query
+          description: JSONPath expression for fetching specific items. E.g. `$[?(@.title=='Kitchen Lamp')].properties`
+          required: true
+          schema:
+            type: string
+          # example: $[?(@.title=='Kitchen Lamp')].properties
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  oneOf:
+                    - type: string
+                    - type: number
+                    - type: integer
+                    - type: boolean
+                    - type: array
+                    - type: object
+              # examples:
+              #   ThingDescriptionList:
+              #     $ref: '#/components/examples/ThingDescriptionList'
+        '400':
+          $ref: '#/components/responses/RespBadRequest'
+        '401':
+          $ref: '#/components/responses/RespUnauthorized'
+        '403':
+          $ref: '#/components/responses/RespForbidden'
+        '500':
+          $ref: '#/components/responses/RespInternalServerError'
+  /search/xpath:
+    get:
+      tags:
+        - search
+      summary: Query TDs with XPath expression
+      description: The query languages, described [here](https://github.com/linksmart/thing-directory/wiki/Query-Language), can be used to filter results and select parts of Thing Descriptions.
+      parameters:
+        - name: query
+          in: query
+          description: xPath 3.0 expression for fetching specific items. E.g. `//*[title='Kitchen Lamp']/properties`
+          required: true
+          schema:
+            type: string
+          # example: //*[title='Kitchen Lamp']/properties
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  oneOf:
+                    - type: string
+                    - type: number
+                    - type: integer
+                    - type: boolean
+                    - type: array
+                    - type: object
+              # examples:
+              #   ThingDescriptionList:
+              #     $ref: '#/components/examples/ThingDescriptionList'
+        '400':
+          $ref: '#/components/responses/RespBadRequest'
+        '401':
+          $ref: '#/components/responses/RespUnauthorized'
+        '403':
+          $ref: '#/components/responses/RespForbidden'
         '500':
           $ref: '#/components/responses/RespInternalServerError'
 
