@@ -4,7 +4,7 @@ openapi: 3.0.0
 #  - url: http://localhost:8081
 
 info:
-  version: "1.0.0-beta.21"
+  version: "1.0.0-beta.22"
   title: LinkSmart Thing Directory
   description: API documetnation of the [LinkSmart Thing Directory](https://github.com/linksmart/thing-directory)
   license:
