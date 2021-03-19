@@ -80,7 +80,7 @@ paths:
               schema:
                 type: string
         '400':
-          $ref: '#/components/responses/RespBadRequest'
+          $ref: '#/components/responses/RespValidationBadRequest'
         '401':
           $ref: '#/components/responses/RespUnauthorized'
         '403':
@@ -380,37 +380,51 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: '#/components/schemas/ProblemDetails'
+    RespValidationBadRequest:
+      description: Bad Request (e.g. validation error)
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - $ref: '#/components/schemas/ProblemDetails'
+              - $ref: '#/components/schemas/ValidationError'
+    ValidationErrorResponse:
+      description: Invalid Thing Description
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationError'
     RespUnauthorized:
       description: Unauthorized
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: '#/components/schemas/ProblemDetails'
     RespForbidden:
       description: Forbidden
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: '#/components/schemas/ProblemDetails'
     RespNotfound:
       description: Not Found
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: '#/components/schemas/ProblemDetails'
     RespConflict:
       description: Conflict
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: '#/components/schemas/ProblemDetails'
     RespInternalServerError:
       description: Internal Server Error
       content:
         application/ld+json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: '#/components/schemas/ProblemDetails'
   schemas:
     ErrorResponse:
       type: object
@@ -419,6 +433,41 @@ components:
           type: integer
         message:
           type: string
+    ProblemDetails:
+      description: RFC7807 Problem Details (https://tools.ietf.org/html/rfc7807)
+      properties:
+#        type:
+#          type: string
+#          description: A URI reference that identifies the problem type.
+        status:
+          type: integer
+          format: int32
+          description: The HTTP status code.
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type.
+        detail:
+          type: string
+          description: A human-readable explanation specific to this occurrence of the problem
+        instance:
+          type: string
+          description: A URI reference that identifies the specific occurrence of the problem.\
+    ValidationError:
+      description: Thing Description validation error
+      allOf:
+        - $ref: '#/components/schemas/ProblemDetails'
+        - type: object
+          properties:
+            validationErrors:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                  description:
+                    type: string
+
     ThingDescription:
       description: WoT Thing Description
       type: object
