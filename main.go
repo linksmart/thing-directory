@@ -192,6 +192,8 @@ func setupHTTPRouter(config *HTTPConfig, api *catalog.HTTPAPI) (*negroni.Negroni
 	r.get("/openapi-spec-proxy/{basepath:.+}", commonHandlers.ThenFunc(apiSpecProxy))
 	// TD listing, filtering
 	r.get("/td", commonHandlers.ThenFunc(api.GetMany))
+	r.get("/search/jsonpath", commonHandlers.ThenFunc(api.SearchJSONPath))
+	r.get("/search/xpath", commonHandlers.ThenFunc(api.SearchXPath))
 	// TD crud
 	r.post("/td", commonHandlers.ThenFunc(api.Post))
 	r.get("/td/{id:.+}", commonHandlers.ThenFunc(api.Get))

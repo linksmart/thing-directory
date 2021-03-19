@@ -3,6 +3,7 @@
 package catalog
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -160,6 +161,35 @@ func (s *LevelDBStorage) list(page int, perPage int) ([]ThingDescription, int, e
 	}
 
 	return devices, total, nil
+}
+
+func (s *LevelDBStorage) listAllBytes() ([]byte, error) {
+
+	s.wg.Add(1)
+	iter := s.db.NewIterator(nil, nil)
+
+	var buffer bytes.Buffer
+	buffer.WriteString("[")
+	separator := byte(',')
+	first := true
+	for iter.Next() {
+		if first {
+			first = false
+		} else {
+			buffer.WriteByte(separator)
+		}
+		buffer.Write(iter.Value())
+	}
+	buffer.WriteString("]")
+
+	iter.Release()
+	s.wg.Done()
+	err := iter.Error()
+	if err != nil {
+		return nil, err
+	}
+
+	return buffer.Bytes(), nil
 }
 
 func (s *LevelDBStorage) total() (int, error) {

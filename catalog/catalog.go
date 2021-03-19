@@ -11,9 +11,10 @@ import (
 type ThingDescription = map[string]interface{}
 
 const (
-	ResponseContextURL = "https://linksmart.eu/thing-directory/context.jsonld"
-	ResponseType       = "Catalog"
-	ResponseMediaType  = "application/ld+json"
+	ResponseContextURL    = "https://linksmart.eu/thing-directory/context.jsonld"
+	ResponseType          = "Catalog"
+	ResponseMediaType     = "application/ld+json"
+	ResponseJSONMediaType = "application/json"
 	// DNS-SD
 	DNSSDServiceType    = "_wot._tcp"
 	DNSSDServiceSubtype = "_directory" // _directory._sub._wot._tcp
@@ -46,8 +47,14 @@ type CatalogController interface {
 	patch(id string, d ThingDescription) error
 	delete(id string) error
 	list(page, perPage int) ([]ThingDescription, int, error)
+	listAllBytes() ([]byte, error)
+	// Deprecated
 	filterJSONPath(path string, page, perPage int) ([]interface{}, int, error)
+	filterJSONPathBytes(query string) ([]byte, error)
+	// Deprecated
 	filterXPath(path string, page, perPage int) ([]interface{}, int, error)
+	filterXPathBytes(query string) ([]byte, error)
+	//filterXPathBytes(query string) ([]byte, error)
 	total() (int, error)
 	cleanExpired()
 
@@ -61,6 +68,7 @@ type Storage interface {
 	delete(id string) error
 	get(id string) (ThingDescription, error)
 	list(page, perPage int) ([]ThingDescription, int, error)
+	listAllBytes() ([]byte, error)
 	total() (int, error)
 	iterator() <-chan ThingDescription
 	Close()
