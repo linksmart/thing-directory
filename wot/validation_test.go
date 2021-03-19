@@ -35,8 +35,11 @@ func TestValidateMap(t *testing.T) {
 				},
 			},
 		}
-		err := ValidateMap(&td)
-		if err == nil {
+		results, err := ValidateMap(&td)
+		if err != nil {
+			t.Fatalf("internal validation error: %s", err)
+		}
+		if len(results) == 0 {
 			t.Fatalf("Didn't return error on non-URI ID: %s", td["id"])
 		}
 	})
@@ -54,8 +57,11 @@ func TestValidateMap(t *testing.T) {
 				},
 			},
 		}
-		err := ValidateMap(&td)
-		if err == nil {
+		results, err := ValidateMap(&td)
+		if err != nil {
+			t.Fatalf("internal validation error: %s", err)
+		}
+		if len(results) == 0 {
 			t.Fatalf("Didn't return error on missing mandatory title.")
 		}
 	})

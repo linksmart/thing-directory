@@ -11,7 +11,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/linksmart/service-catalog/v3/utils"
-	"github.com/linksmart/thing-directory/wot"
 )
 
 const (
@@ -88,6 +87,9 @@ func (a *HTTPAPI) Post(w http.ResponseWriter, req *http.Request) {
 		case *BadRequestError:
 			ErrorResponse(w, http.StatusBadRequest, "Invalid registration:", err.Error())
 			return
+		case *ValidationError:
+			ValidationErrorResponse(w, err.(*ValidationError).validationErrors)
+			return
 		default:
 			ErrorResponse(w, http.StatusInternalServerError, "Error creating the registration:", err.Error())
 			return
@@ -139,6 +141,9 @@ func (a *HTTPAPI) Put(w http.ResponseWriter, req *http.Request) {
 				case *BadRequestError:
 					ErrorResponse(w, http.StatusBadRequest, "Invalid registration:", err.Error())
 					return
+				case *ValidationError:
+					ValidationErrorResponse(w, err.(*ValidationError).validationErrors)
+					return
 				default:
 					ErrorResponse(w, http.StatusInternalServerError, "Error creating the registration:", err.Error())
 					return
@@ -150,6 +155,9 @@ func (a *HTTPAPI) Put(w http.ResponseWriter, req *http.Request) {
 			return
 		case *BadRequestError:
 			ErrorResponse(w, http.StatusBadRequest, "Invalid registration:", err.Error())
+			return
+		case *ValidationError:
+			ValidationErrorResponse(w, err.(*ValidationError).validationErrors)
 			return
 		default:
 			ErrorResponse(w, http.StatusInternalServerError, "Error updating the registration:", err.Error())
@@ -192,6 +200,9 @@ func (a *HTTPAPI) Patch(w http.ResponseWriter, req *http.Request) {
 			return
 		case *BadRequestError:
 			ErrorResponse(w, http.StatusBadRequest, "Invalid registration:", err.Error())
+			return
+		case *ValidationError:
+			ValidationErrorResponse(w, err.(*ValidationError).validationErrors)
 			return
 		default:
 			ErrorResponse(w, http.StatusInternalServerError, "Error updating the registration:", err.Error())
@@ -429,11 +440,14 @@ func (a *HTTPAPI) GetValidation(w http.ResponseWriter, req *http.Request) {
 	}
 
 	var response ValidationResult
-	if err := validateThingDescription(td); err != nil {
-		if verr, ok := err.(*wot.ValidationError); ok {
-			response.Errors = verr.Errors
-		} else {
-			response.Errors = []string{err.Error()}
+	results, err := validateThingDescription(td)
+	if err != nil {
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if len(results) != 0 {
+		for _, result := range results {
+			response.Errors = append(response.Errors, fmt.Sprintf("%s: %s", result.Field, result.Descr))
 		}
 	} else {
 		response.Valid = true

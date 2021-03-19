@@ -6,6 +6,11 @@ import (
 
 // here are only the tests related to non-standard TD vocabulary
 func TestValidateThingDescription(t *testing.T) {
+	err := loadSchema()
+	if err != nil {
+		t.Fatalf("error loading WoT Thing Description schema: %s", err)
+	}
+
 	t.Run("non-float TTL", func(t *testing.T) {
 		var td = map[string]any{
 			"@context": "https://www.w3.org/2019/wot/td/v1",
@@ -20,14 +25,20 @@ func TestValidateThingDescription(t *testing.T) {
 			},
 			"ttl": 1,
 		}
-		err := validateThingDescription(td)
-		if err == nil {
+		results, err := validateThingDescription(td)
+		if err != nil {
+			t.Fatalf("internal validation error: %s", err)
+		}
+		if len(results) == 0 {
 			t.Fatalf("Didn't return error on integer TTL.")
 		}
 
 		td["ttl"] = "1"
-		err = validateThingDescription(td)
-		if err == nil {
+		results, err = validateThingDescription(td)
+		if err != nil {
+			t.Fatalf("internal validation error: %s", err)
+		}
+		if len(results) == 0 {
 			t.Fatalf("Didn't return error on string TTL.")
 		}
 	})

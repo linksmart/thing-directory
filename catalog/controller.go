@@ -41,14 +41,19 @@ func (c *Controller) add(td ThingDescription) (string, error) {
 		id = c.newURN()
 		td[_id] = id
 	}
-	if err := validateThingDescription(td); err != nil {
-		return "", &BadRequestError{err.Error()}
+
+	results, err := validateThingDescription(td)
+	if err != nil {
+		return "", err
+	}
+	if len(results) != 0 {
+		return "", &ValidationError{results}
 	}
 
 	td[_created] = time.Now().UTC()
 	td[_modified] = td[_created]
 
-	err := c.storage.add(id, td)
+	err = c.storage.add(id, td)
 	if err != nil {
 		return "", err
 	}
@@ -66,8 +71,12 @@ func (c *Controller) update(id string, td ThingDescription) error {
 		return err
 	}
 
-	if err := validateThingDescription(td); err != nil {
-		return &BadRequestError{err.Error()}
+	results, err := validateThingDescription(td)
+	if err != nil {
+		return err
+	}
+	if len(results) != 0 {
+		return &ValidationError{results}
 	}
 
 	td[_created] = oldTD[_created]
@@ -111,8 +120,12 @@ func (c *Controller) patch(id string, td ThingDescription) error {
 		return err
 	}
 
-	if err := validateThingDescription(td); err != nil {
-		return &BadRequestError{err.Error()}
+	results, err := validateThingDescription(td)
+	if err != nil {
+		return err
+	}
+	if len(results) != 0 {
+		return &ValidationError{results}
 	}
 
 	td[_modified] = time.Now().UTC()
