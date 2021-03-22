@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/linksmart/service-catalog/v3/utils"
@@ -342,6 +343,56 @@ func (a *HTTPAPI) GetMany(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", a.contentType)
 	w.Header().Set("X-Request-URL", req.RequestURI)
 	_, err = w.Write(b)
+	if err != nil {
+		log.Printf("ERROR writing HTTP response: %s", err)
+	}
+}
+
+// GetAll lists entries in a paginated catalog format
+func (a *HTTPAPI) GetAll(w http.ResponseWriter, req *http.Request) {
+	//flusher, ok := w.(http.Flusher)
+	//if !ok {
+	//	panic("expected http.ResponseWriter to be an http.Flusher")
+	//}
+
+	w.Header().Set("Content-Type", a.contentType)
+	w.Header().Set("X-Content-Type-Options", "nosniff") // tell clients not to infer content type from partial body
+
+	_, err := fmt.Fprintf(w, "[")
+	if err != nil {
+		log.Printf("ERROR writing HTTP response: %s", err)
+	}
+
+	first := true
+	for item := range a.controller.iterateBytes(req.Context()) {
+		select {
+		case <-req.Context().Done():
+			log.Println("Cancelled by client.")
+			if err := req.Context().Err(); err != nil {
+				log.Printf("Client err: %s", err)
+				return
+			}
+
+		default:
+			if first {
+				first = false
+			} else {
+				_, err := fmt.Fprint(w, ",")
+				if err != nil {
+					log.Printf("ERROR writing HTTP response: %s", err)
+				}
+			}
+
+			_, err := w.Write(item)
+			if err != nil {
+				log.Printf("ERROR writing HTTP response: %s", err)
+			}
+			time.Sleep(500 * time.Millisecond)
+			//flusher.Flush()
+		}
+
+	}
+	_, err = fmt.Fprintf(w, "]")
 	if err != nil {
 		log.Printf("ERROR writing HTTP response: %s", err)
 	}

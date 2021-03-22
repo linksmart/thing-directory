@@ -4,6 +4,7 @@ package catalog
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -236,6 +237,39 @@ func (s *LevelDBStorage) iterator() <-chan ThingDescription {
 	}()
 
 	return serviceIter
+}
+
+func (s *LevelDBStorage) iterateBytes(ctx context.Context) <-chan []byte {
+	bytesCh := make(chan []byte, 0) // must be zero
+
+	go func() {
+		defer close(bytesCh)
+
+		s.wg.Add(1)
+		defer s.wg.Done()
+		iter := s.db.NewIterator(nil, nil)
+		defer iter.Release()
+
+	Loop:
+		for iter.Next() {
+			select {
+			case <-ctx.Done():
+				//log.Println("LevelDB: canceled")
+				break Loop
+			default:
+				b := make([]byte, len(iter.Value()))
+				copy(b, iter.Value())
+				bytesCh <- b
+			}
+		}
+
+		err := iter.Error()
+		if err != nil {
+			log.Printf("LevelDB Error: %s", err)
+		}
+	}()
+
+	return bytesCh
 }
 
 func (s *LevelDBStorage) Close() {
