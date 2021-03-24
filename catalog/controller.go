@@ -4,6 +4,7 @@ package catalog
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -313,6 +314,10 @@ func (c *Controller) filterXPathBytes(path string) ([]byte, error) {
 	}
 
 	return b, nil
+}
+
+func (c *Controller) iterateBytes(ctx context.Context) <-chan []byte {
+	return c.storage.iterateBytes(ctx)
 }
 
 // basicTypeFromXPathStr is a hack to get the actual data type from xpath.TextNode

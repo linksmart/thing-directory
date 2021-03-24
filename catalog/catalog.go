@@ -3,6 +3,7 @@
 package catalog
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/linksmart/thing-directory/wot"
@@ -64,6 +65,7 @@ type CatalogController interface {
 	filterXPathBytes(query string) ([]byte, error)
 	//filterXPathBytes(query string) ([]byte, error)
 	total() (int, error)
+	iterateBytes(ctx context.Context) <-chan []byte
 	cleanExpired()
 
 	Stop()
@@ -79,5 +81,6 @@ type Storage interface {
 	listAllBytes() ([]byte, error)
 	total() (int, error)
 	iterator() <-chan ThingDescription
+	iterateBytes(ctx context.Context) <-chan []byte
 	Close()
 }

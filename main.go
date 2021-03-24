@@ -192,6 +192,7 @@ func setupHTTPRouter(config *HTTPConfig, api *catalog.HTTPAPI) (*negroni.Negroni
 	r.get("/openapi-spec-proxy/{basepath:.+}", commonHandlers.ThenFunc(apiSpecProxy))
 	// TD listing, filtering
 	r.get("/td", commonHandlers.ThenFunc(api.GetMany))
+	r.get("/td-chunked", commonHandlers.ThenFunc(api.GetAll))
 	r.get("/search/jsonpath", commonHandlers.ThenFunc(api.SearchJSONPath))
 	r.get("/search/xpath", commonHandlers.ThenFunc(api.SearchXPath))
 	// TD crud
@@ -209,7 +210,7 @@ func setupHTTPRouter(config *HTTPConfig, api *catalog.HTTPAPI) (*negroni.Negroni
 		logFlags = 0
 	}
 	logger.ALogger = log.New(os.Stdout, "", logFlags)
-	logger.SetFormat("{{.Method}} {{.Request.URL}} {{.Status}} {{.Duration}}")
+	logger.SetFormat("{{.Method}} {{.Request.URL}} {{.Request.Proto}} {{.Status}} {{.Duration}}")
 
 	// Configure the middleware
 	n := negroni.New(
