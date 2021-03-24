@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/linksmart/service-catalog/v3/utils"
@@ -387,7 +386,7 @@ func (a *HTTPAPI) GetAll(w http.ResponseWriter, req *http.Request) {
 			if err != nil {
 				log.Printf("ERROR writing HTTP response: %s", err)
 			}
-			time.Sleep(500 * time.Millisecond)
+			//time.Sleep(500 * time.Millisecond)
 			//flusher.Flush()
 		}
 
