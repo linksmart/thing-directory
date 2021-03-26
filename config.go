@@ -27,7 +27,14 @@ type HTTPConfig struct {
 	PublicEndpoint string         `json:"publicEndpoint"`
 	BindAddr       string         `json:"bindAddr"`
 	BindPort       int            `json:"bindPort"`
+	TLSConfig      *TLSConfig     `json:"tls"`
 	Auth           validator.Conf `json:"auth"`
+}
+
+type TLSConfig struct {
+	Enabled  bool   `json:"enabled"`
+	KeyFile  string `json:"keyFile"`
+	CertFile string `json:"certFile"`
 }
 
 type ServiceCatalog struct {

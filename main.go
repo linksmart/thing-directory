@@ -110,8 +110,16 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	log.Printf("HTTP server listening on %v", addr)
-	go func() { log.Fatalln(http.Serve(listener, nRouter)) }()
+
+	go func() {
+		if config.HTTP.TLSConfig.Enabled {
+			log.Printf("HTTP/TLS server listening on %v", addr)
+			log.Fatalf("Error starting HTTP/TLS Server: %s", http.ServeTLS(listener, nRouter, config.HTTP.TLSConfig.CertFile, config.HTTP.TLSConfig.KeyFile))
+		} else {
+			log.Printf("HTTP server listening on %v", addr)
+			log.Fatalf("Error starting HTTP Server: %s", http.Serve(listener, nRouter))
+		}
+	}()
 
 	// Publish service using DNS-SD
 	if config.DNSSD.Publish.Enabled {

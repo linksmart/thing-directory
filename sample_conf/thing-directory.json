@@ -17,8 +17,13 @@
     "publicEndpoint": "http://fqdn-of-the-host:8081",
     "bindAddr": "0.0.0.0",
     "bindPort": 8081,
-    "auth": {
+    "tls": {
       "enabled": false,
+      "keyFile": "./tls/key.pem",
+      "certFile": "./tls/cert.pem"
+    },
+    "auth": {
+      "enabled": true,
       "provider": "keycloak",
       "providerURL": "https://provider-url",
       "clientID": "sampleTD",
