@@ -77,6 +77,8 @@ func indexHandler(w http.ResponseWriter, _ *http.Request) {
 	}{LINKSMART, version, SourceCodeRepo, spec, swaggerUIRelativeScheme, swaggerUISecure}
 
 	tmpl := `
+<meta charset="UTF-8">
+
 <pre>{{.Logo}}</pre>
 <h1>Thing Directory</h1>
 <p>Version: {{.Version}}</p>
