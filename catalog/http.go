@@ -40,18 +40,12 @@ type ValidationResult struct {
 }
 
 type HTTPAPI struct {
-	controller  CatalogController
-	contentType string
+	controller CatalogController
 }
 
 func NewHTTPAPI(controller CatalogController, version string) *HTTPAPI {
-	contentType := ResponseMediaType
-	if version != "" {
-		contentType += ";version=" + version
-	}
 	return &HTTPAPI{
-		controller:  controller,
-		contentType: contentType,
+		controller: controller,
 	}
 }
 
@@ -149,7 +143,6 @@ func (a *HTTPAPI) Put(w http.ResponseWriter, req *http.Request) {
 					return
 				}
 			}
-			w.Header().Set("Content-Type", a.contentType)
 			w.Header().Set("Location", id)
 			w.WriteHeader(http.StatusCreated)
 			return
@@ -235,7 +228,7 @@ func (a *HTTPAPI) Get(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", a.contentType)
+	w.Header().Set("Content-Type", wot.MediaTypeThingDescription)
 	_, err = w.Write(b)
 	if err != nil {
 		log.Printf("ERROR writing HTTP response: %s", err)
@@ -339,7 +332,7 @@ func (a *HTTPAPI) GetMany(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", a.contentType)
+	w.Header().Set("Content-Type", wot.MediaTypeJSONLD)
 	w.Header().Set("X-Request-URL", req.RequestURI)
 	_, err = w.Write(b)
 	if err != nil {
@@ -354,7 +347,7 @@ func (a *HTTPAPI) GetAll(w http.ResponseWriter, req *http.Request) {
 	//	panic("expected http.ResponseWriter to be an http.Flusher")
 	//}
 
-	w.Header().Set("Content-Type", a.contentType)
+	w.Header().Set("Content-Type", wot.MediaTypeJSONLD)
 	w.Header().Set("X-Content-Type-Options", "nosniff") // tell clients not to infer content type from partial body
 
 	_, err := fmt.Fprintf(w, "[")
@@ -424,7 +417,7 @@ func (a *HTTPAPI) SearchJSONPath(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	w.Header().Set("Content-Type", ResponseJSONMediaType)
+	w.Header().Set("Content-Type", wot.MediaTypeJSON)
 	w.Header().Set("X-Request-URL", req.RequestURI)
 	_, err = w.Write(b)
 	if err != nil {
@@ -460,7 +453,7 @@ func (a *HTTPAPI) SearchXPath(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	w.Header().Set("Content-Type", ResponseJSONMediaType)
+	w.Header().Set("Content-Type", wot.MediaTypeJSON)
 	w.Header().Set("X-Request-URL", req.RequestURI)
 	_, err = w.Write(b)
 	if err != nil {
@@ -509,7 +502,7 @@ func (a *HTTPAPI) GetValidation(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", wot.MediaTypeJSON)
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(b)
 	if err != nil {
