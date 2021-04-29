@@ -12,7 +12,7 @@ import (
 	"github.com/linksmart/go-sec/auth/obtainer"
 	sc "github.com/linksmart/service-catalog/v3/catalog"
 	"github.com/linksmart/service-catalog/v3/client"
-	"github.com/linksmart/thing-directory/catalog"
+	"github.com/linksmart/thing-directory/wot"
 )
 
 // escape special characters as recommended by https://tools.ietf.org/html/rfc6763#section-4.3
@@ -29,7 +29,7 @@ func registerDNSSDService(conf *Config) (func(), error) {
 	instance := escapeDNSSDServiceInstance(conf.DNSSD.Publish.Instance)
 
 	log.Printf("DNS-SD: registering as \"%s.%s.%s\", subtype: %s",
-		instance, catalog.DNSSDServiceType, conf.DNSSD.Publish.Domain, catalog.DNSSDServiceSubtype)
+		instance, wot.DNSSDServiceType, conf.DNSSD.Publish.Domain, wot.DNSSDServiceSubtypeDirectory)
 
 	var ifs []net.Interface
 
@@ -52,7 +52,7 @@ func registerDNSSDService(conf *Config) (func(), error) {
 
 	sd, err := zeroconf.Register(
 		instance,
-		catalog.DNSSDServiceType+","+catalog.DNSSDServiceSubtype,
+		wot.DNSSDServiceType+","+wot.DNSSDServiceSubtypeDirectory,
 		conf.DNSSD.Publish.Domain,
 		conf.HTTP.BindPort,
 		[]string{"td=/td", "version=" + Version},
