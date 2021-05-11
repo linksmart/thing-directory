@@ -16,6 +16,7 @@ import (
 	jsonpath "github.com/bhmj/jsonslice"
 	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/linksmart/service-catalog/v3/utils"
+	"github.com/linksmart/thing-directory/common"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -48,7 +49,7 @@ func (c *Controller) add(td ThingDescription) (string, error) {
 		return "", err
 	}
 	if len(results) != 0 {
-		return "", &ValidationError{results}
+		return "", &common.ValidationError{results}
 	}
 
 	td[_created] = time.Now().UTC()
@@ -77,7 +78,7 @@ func (c *Controller) update(id string, td ThingDescription) error {
 		return err
 	}
 	if len(results) != 0 {
-		return &ValidationError{results}
+		return &common.ValidationError{ValidationErrors: results}
 	}
 
 	td[_created] = oldTD[_created]
@@ -126,7 +127,7 @@ func (c *Controller) patch(id string, td ThingDescription) error {
 		return err
 	}
 	if len(results) != 0 {
-		return &ValidationError{results}
+		return &common.ValidationError{results}
 	}
 
 	td[_modified] = time.Now().UTC()
@@ -202,7 +203,7 @@ func (c *Controller) filterJSONPath(path string, page, perPage int) ([]interface
 	// filter results with jsonpath
 	b, err = jsonpath.Get(b, path)
 	if err != nil {
-		return nil, 0, &BadRequestError{fmt.Sprintf("error evaluating jsonpath: %s", err)}
+		return nil, 0, &common.BadRequestError{S: fmt.Sprintf("error evaluating jsonpath: %s", err)}
 	}
 
 	// de-serialize the filtered results
@@ -215,7 +216,7 @@ func (c *Controller) filterJSONPath(path string, page, perPage int) ([]interface
 	// paginate
 	offset, limit, err := utils.GetPagingAttr(len(results), page, perPage, MaxPerPage)
 	if err != nil {
-		return nil, 0, &BadRequestError{fmt.Sprintf("unable to paginate: %s", err)}
+		return nil, 0, &common.BadRequestError{S: fmt.Sprintf("unable to paginate: %s", err)}
 	}
 	// return the requested page
 	return results[offset : offset+limit], len(results), nil
@@ -231,7 +232,7 @@ func (c *Controller) filterJSONPathBytes(query string) ([]byte, error) {
 	// filter results with jsonpath
 	b, err = jsonpath.Get(b, query)
 	if err != nil {
-		return nil, &BadRequestError{fmt.Sprintf("error evaluating jsonpath: %s", err)}
+		return nil, &common.BadRequestError{fmt.Sprintf("error evaluating jsonpath: %s", err)}
 	}
 
 	return b, nil
@@ -269,7 +270,7 @@ func (c *Controller) filterXPath(path string, page, perPage int) ([]interface{},
 	// filter with xpath
 	nodes, err := xpath.QueryAll(doc, path)
 	if err != nil {
-		return nil, 0, &BadRequestError{fmt.Sprintf("error filtering input with xpath: %s", err)}
+		return nil, 0, &common.BadRequestError{S: fmt.Sprintf("error filtering input with xpath: %s", err)}
 	}
 	for _, n := range nodes {
 		results = append(results, getObjectFromXPathNode(n))
@@ -278,7 +279,7 @@ func (c *Controller) filterXPath(path string, page, perPage int) ([]interface{},
 	// paginate
 	offset, limit, err := utils.GetPagingAttr(len(results), page, perPage, MaxPerPage)
 	if err != nil {
-		return nil, 0, &BadRequestError{fmt.Sprintf("unable to paginate: %s", err)}
+		return nil, 0, &common.BadRequestError{S: fmt.Sprintf("unable to paginate: %s", err)}
 	}
 	// return the requested page
 	return results[offset : offset+limit], len(results), nil
@@ -300,7 +301,7 @@ func (c *Controller) filterXPathBytes(path string) ([]byte, error) {
 	// filter with xpath
 	nodes, err := xpath.QueryAll(doc, path)
 	if err != nil {
-		return nil, &BadRequestError{fmt.Sprintf("error filtering input with xpath: %s", err)}
+		return nil, &common.BadRequestError{S: fmt.Sprintf("error filtering input with xpath: %s", err)}
 	}
 	results := make([]interface{}, len(nodes))
 	for i := range nodes {

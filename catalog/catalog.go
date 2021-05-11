@@ -69,6 +69,8 @@ type CatalogController interface {
 	cleanExpired()
 
 	Stop()
+
+	AddSubscriber(listener EventListener)
 }
 
 // Storage interface
@@ -83,4 +85,11 @@ type Storage interface {
 	iterator() <-chan ThingDescription
 	iterateBytes(ctx context.Context) <-chan []byte
 	Close()
+}
+
+// EventListener interface that listens to TDD events.
+type EventListener interface {
+	CreateHandler(new ThingDescription) error
+	UpdateHandler(old ThingDescription, new ThingDescription) error
+	DeleteHandler(old ThingDescription) error
 }

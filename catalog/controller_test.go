@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/linksmart/thing-directory/common"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -156,7 +157,7 @@ func TestControllerGet(t *testing.T) {
 		_, err := controller.get("some_id")
 		if err != nil {
 			switch err.(type) {
-			case *NotFoundError:
+			case *common.NotFoundError:
 			// good
 			default:
 				t.Fatalf("TD doesn't exist. Expected NotFoundError but got %s", err)
@@ -248,7 +249,7 @@ func TestControllerDelete(t *testing.T) {
 		err = controller.delete(id)
 		if err != nil {
 			switch err.(type) {
-			case *NotFoundError:
+			case *common.NotFoundError:
 			// good
 			default:
 				t.Fatalf("TD was deleted. Expected NotFoundError but got %s", err)
@@ -262,7 +263,7 @@ func TestControllerDelete(t *testing.T) {
 		_, err = controller.get(id)
 		if err != nil {
 			switch err.(type) {
-			case *NotFoundError:
+			case *common.NotFoundError:
 				// good
 			default:
 				t.Fatalf("TD was deleted. Expected NotFoundError but got %s", err)
@@ -500,7 +501,7 @@ func TestControllerCleanExpired(t *testing.T) {
 	_, err = controller.get(id)
 	if err != nil {
 		switch err.(type) {
-		case *NotFoundError:
+		case *common.NotFoundError:
 		// good
 		default:
 			t.Fatalf("Got an error other than NotFoundError when getting an expired TD: %s\n", err)

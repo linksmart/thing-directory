@@ -138,7 +138,7 @@ type ActionAffordance struct {
 }
 
 /*
-An Interaction Affordance that describes an event source, which asynchronously pushes event data to Consumers (e.g., overheating alerts).
+An Interaction Affordance that describes an notification source, which asynchronously pushes notification data to Consumers (e.g., overheating alerts).
 */
 type EventAffordance struct {
 	InteractionAffordance

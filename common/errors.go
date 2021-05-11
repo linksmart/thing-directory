@@ -1,6 +1,6 @@
 // Copyright 2014-2016 Fraunhofer Institute for Applied Information Technology FIT
 
-package catalog
+package common
 
 import (
 	"encoding/json"
@@ -13,23 +13,23 @@ import (
 )
 
 // Not Found
-type NotFoundError struct{ s string }
+type NotFoundError struct{ S string }
 
-func (e *NotFoundError) Error() string { return e.s }
+func (e *NotFoundError) Error() string { return e.S }
 
 // Conflict (non-unique id, assignment to read-only data)
-type ConflictError struct{ s string }
+type ConflictError struct{ S string }
 
-func (e *ConflictError) Error() string { return e.s }
+func (e *ConflictError) Error() string { return e.S }
 
 // Bad Request
-type BadRequestError struct{ s string }
+type BadRequestError struct{ S string }
 
-func (e *BadRequestError) Error() string { return e.s }
+func (e *BadRequestError) Error() string { return e.S }
 
 // Validation error (HTTP Bad Request)
 type ValidationError struct {
-	validationErrors []wot.ValidationError
+	ValidationErrors []wot.ValidationError
 }
 
 func (e *ValidationError) Error() string { return "validation errors" }
@@ -65,12 +65,12 @@ func ProblemDetailsResponse(w http.ResponseWriter, pd wot.ProblemDetails) {
 	}
 	b, err := json.Marshal(pd)
 	if err != nil {
-		log.Printf("ERROR serializing error object: %s", err)
+		log.Printf("ERROR serializing error object: %S", err)
 	}
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(pd.Status)
 	_, err = w.Write(b)
 	if err != nil {
-		log.Printf("ERROR writing HTTP response: %s", err)
+		log.Printf("ERROR writing HTTP response: %S", err)
 	}
 }

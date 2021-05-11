@@ -13,6 +13,7 @@ import (
 	"sync"
 
 	"github.com/linksmart/service-catalog/v3/utils"
+	"github.com/linksmart/thing-directory/common"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 )
@@ -54,7 +55,7 @@ func (s *LevelDBStorage) add(id string, td ThingDescription) error {
 		return err
 	}
 	if found {
-		return &ConflictError{id + " is not unique"}
+		return &common.ConflictError{id + " is not unique"}
 	}
 
 	err = s.db.Put([]byte(id), bytes, nil)
@@ -69,7 +70,7 @@ func (s *LevelDBStorage) get(id string) (ThingDescription, error) {
 
 	bytes, err := s.db.Get([]byte(id), nil)
 	if err == leveldb.ErrNotFound {
-		return nil, &NotFoundError{id + " is not found"}
+		return nil, &common.NotFoundError{id + " is not found"}
 	} else if err != nil {
 		return nil, err
 	}
@@ -95,7 +96,7 @@ func (s *LevelDBStorage) update(id string, td ThingDescription) error {
 		return err
 	}
 	if !found {
-		return &NotFoundError{id + " is not found"}
+		return &common.NotFoundError{id + " is not found"}
 	}
 
 	err = s.db.Put([]byte(id), bytes, nil)
@@ -112,7 +113,7 @@ func (s *LevelDBStorage) delete(id string) error {
 		return err
 	}
 	if !found {
-		return &NotFoundError{id + " is not found"}
+		return &common.NotFoundError{id + " is not found"}
 	}
 
 	err = s.db.Delete([]byte(id), nil)
@@ -131,7 +132,7 @@ func (s *LevelDBStorage) list(page int, perPage int) ([]ThingDescription, int, e
 	}
 	offset, limit, err := utils.GetPagingAttr(total, page, perPage, MaxPerPage)
 	if err != nil {
-		return nil, 0, &BadRequestError{fmt.Sprintf("Unable to paginate: %s", err)}
+		return nil, 0, &common.BadRequestError{fmt.Sprintf("Unable to paginate: %s", err)}
 	}
 
 	// TODO: is there a better way to do this?
