@@ -11,6 +11,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/linksmart/service-catalog/v3/utils"
+	"github.com/linksmart/thing-directory/wot"
 )
 
 const (
@@ -40,18 +41,12 @@ type ValidationResult struct {
 }
 
 type HTTPAPI struct {
-	controller  CatalogController
-	contentType string
+	controller CatalogController
 }
 
 func NewHTTPAPI(controller CatalogController, version string) *HTTPAPI {
-	contentType := ResponseMediaType
-	if version != "" {
-		contentType += ";version=" + version
-	}
 	return &HTTPAPI{
-		controller:  controller,
-		contentType: contentType,
+		controller: controller,
 	}
 }
 
@@ -70,8 +65,8 @@ func (a *HTTPAPI) Post(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if td[_id] != nil {
-		id, ok := td[_id].(string)
+	if td[wot.KeyThingID] != nil {
+		id, ok := td[wot.KeyThingID].(string)
 		if !ok || id != "" {
 			ErrorResponse(w, http.StatusBadRequest, "Registering with user-defined id is not possible using a POST request.")
 			return
@@ -118,12 +113,12 @@ func (a *HTTPAPI) Put(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if id, ok := td[_id].(string); !ok || id == "" {
+	if id, ok := td[wot.KeyThingID].(string); !ok || id == "" {
 		ErrorResponse(w, http.StatusBadRequest, "Registration without id is not possible using a PUT request.")
 		return
 	}
-	if params["id"] != td[_id] {
-		ErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("Resource id in path (%s) does not match the id in body (%s)", params["id"], td[_id]))
+	if params["id"] != td[wot.KeyThingID] {
+		ErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("Resource id in path (%s) does not match the id in body (%s)", params["id"], td[wot.KeyThingID]))
 		return
 	}
 
@@ -149,7 +144,6 @@ func (a *HTTPAPI) Put(w http.ResponseWriter, req *http.Request) {
 					return
 				}
 			}
-			w.Header().Set("Content-Type", a.contentType)
 			w.Header().Set("Location", id)
 			w.WriteHeader(http.StatusCreated)
 			return
@@ -185,9 +179,9 @@ func (a *HTTPAPI) Patch(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if id, ok := td[_id].(string); ok && id == "" {
-		if params["id"] != td[_id] {
-			ErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("Resource id in path (%s) does not match the id in body (%s)", params["id"], td[_id]))
+	if id, ok := td[wot.KeyThingID].(string); ok && id == "" {
+		if params["id"] != td[wot.KeyThingID] {
+			ErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("Resource id in path (%s) does not match the id in body (%s)", params["id"], td[wot.KeyThingID]))
 			return
 		}
 	}
@@ -224,7 +218,7 @@ func (a *HTTPAPI) Get(w http.ResponseWriter, req *http.Request) {
 			ErrorResponse(w, http.StatusNotFound, err.Error())
 			return
 		default:
-			ErrorResponse(w, http.StatusInternalServerError, "Error retrieving the registration:", err.Error())
+			ErrorResponse(w, http.StatusInternalServerError, "Error retrieving the registration: ", err.Error())
 			return
 		}
 	}
@@ -235,7 +229,7 @@ func (a *HTTPAPI) Get(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", a.contentType)
+	w.Header().Set("Content-Type", wot.MediaTypeThingDescription)
 	_, err = w.Write(b)
 	if err != nil {
 		log.Printf("ERROR writing HTTP response: %s", err)
@@ -339,7 +333,7 @@ func (a *HTTPAPI) GetMany(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", a.contentType)
+	w.Header().Set("Content-Type", wot.MediaTypeJSONLD)
 	w.Header().Set("X-Request-URL", req.RequestURI)
 	_, err = w.Write(b)
 	if err != nil {
@@ -354,7 +348,7 @@ func (a *HTTPAPI) GetAll(w http.ResponseWriter, req *http.Request) {
 	//	panic("expected http.ResponseWriter to be an http.Flusher")
 	//}
 
-	w.Header().Set("Content-Type", a.contentType)
+	w.Header().Set("Content-Type", wot.MediaTypeJSONLD)
 	w.Header().Set("X-Content-Type-Options", "nosniff") // tell clients not to infer content type from partial body
 
 	_, err := fmt.Fprintf(w, "[")
@@ -401,7 +395,7 @@ func (a *HTTPAPI) GetAll(w http.ResponseWriter, req *http.Request) {
 func (a *HTTPAPI) SearchJSONPath(w http.ResponseWriter, req *http.Request) {
 	err := req.ParseForm()
 	if err != nil {
-		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query:", err.Error())
+		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query: ", err.Error())
 		return
 	}
 
@@ -424,7 +418,7 @@ func (a *HTTPAPI) SearchJSONPath(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	w.Header().Set("Content-Type", ResponseJSONMediaType)
+	w.Header().Set("Content-Type", wot.MediaTypeJSON)
 	w.Header().Set("X-Request-URL", req.RequestURI)
 	_, err = w.Write(b)
 	if err != nil {
@@ -437,7 +431,7 @@ func (a *HTTPAPI) SearchJSONPath(w http.ResponseWriter, req *http.Request) {
 func (a *HTTPAPI) SearchXPath(w http.ResponseWriter, req *http.Request) {
 	err := req.ParseForm()
 	if err != nil {
-		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query:", err.Error())
+		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query: ", err.Error())
 		return
 	}
 
@@ -460,7 +454,7 @@ func (a *HTTPAPI) SearchXPath(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	w.Header().Set("Content-Type", ResponseJSONMediaType)
+	w.Header().Set("Content-Type", wot.MediaTypeJSON)
 	w.Header().Set("X-Request-URL", req.RequestURI)
 	_, err = w.Write(b)
 	if err != nil {
@@ -485,7 +479,7 @@ func (a *HTTPAPI) GetValidation(w http.ResponseWriter, req *http.Request) {
 
 	var td ThingDescription
 	if err := json.Unmarshal(body, &td); err != nil {
-		ErrorResponse(w, http.StatusBadRequest, "Error processing the request:", err.Error())
+		ErrorResponse(w, http.StatusBadRequest, "Error processing the request: ", err.Error())
 		return
 	}
 
@@ -509,7 +503,7 @@ func (a *HTTPAPI) GetValidation(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", wot.MediaTypeJSON)
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(b)
 	if err != nil {

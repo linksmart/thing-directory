@@ -12,40 +12,25 @@ import (
 type ThingDescription = map[string]interface{}
 
 const (
-	ResponseContextURL    = "https://linksmart.eu/thing-directory/context.jsonld"
-	ResponseType          = "Catalog"
-	ResponseMediaType     = "application/ld+json"
-	ResponseJSONMediaType = "application/json"
-	// DNS-SD
-	DNSSDServiceType    = "_wot._tcp"
-	DNSSDServiceSubtype = "_directory" // _directory._sub._wot._tcp
+	ResponseContextURL = "https://linksmart.eu/thing-directory/context.jsonld"
+	ResponseType       = "Catalog"
 	// Storage backend types
 	BackendMemory  = "memory"
 	BackendLevelDB = "leveldb"
-	// TD keys used internally
-	_id       = "id"
-	_created  = "created"
-	_modified = "modified"
-	_ttl      = "ttl"
 )
 
 func validateThingDescription(td map[string]interface{}) ([]wot.ValidationError, error) {
-	issues, err := wot.ValidateMap(&td)
+	issues, err := wot.ValidateDiscoveryExtensions(&td)
 	if err != nil {
 		return nil, fmt.Errorf("error validating with JSON schema: %s", err)
 	}
 
-	if td[_ttl] != nil {
-		_, ok := td[_ttl].(float64)
-		if !ok {
-			issues = append(issues, wot.ValidationError{
-				Field: _ttl,
-				Descr: fmt.Sprintf("Invalid type. Expected float64, given: %T", td[_ttl]),
-			})
-		}
+	tdIssues, err := wot.ValidateMap(&td)
+	if err != nil {
+		return nil, fmt.Errorf("error validating with JSON schema: %s", err)
 	}
 
-	return issues, nil
+	return append(issues, tdIssues...), nil
 }
 
 // Controller interface
