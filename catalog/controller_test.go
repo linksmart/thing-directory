@@ -54,7 +54,6 @@ func setup(t *testing.T) CatalogController {
 }
 
 func TestControllerAdd(t *testing.T) {
-	t.Log("Storage Type: " + TestStorageType)
 	controller := setup(t)
 
 	t.Run("user-defined ID", func(t *testing.T) {
@@ -116,7 +115,6 @@ func TestControllerAdd(t *testing.T) {
 }
 
 func TestControllerGet(t *testing.T) {
-	t.Log("Storage Type: " + TestStorageType)
 	controller := setup(t)
 
 	var td = map[string]any{
@@ -168,7 +166,6 @@ func TestControllerGet(t *testing.T) {
 }
 
 func TestControllerUpdate(t *testing.T) {
-	t.Log("Storage Type: " + TestStorageType)
 	controller := setup(t)
 
 	var td = map[string]any{
@@ -214,7 +211,6 @@ func TestControllerUpdate(t *testing.T) {
 }
 
 func TestControllerDelete(t *testing.T) {
-	t.Log("Storage Type: " + TestStorageType)
 	controller := setup(t)
 
 	var td = map[string]any{
@@ -272,7 +268,6 @@ func TestControllerDelete(t *testing.T) {
 }
 
 func TestControllerList(t *testing.T) {
-	t.Log("Storage Type: " + TestStorageType)
 	controller := setup(t)
 
 	// add several entries
@@ -343,7 +338,6 @@ func TestControllerList(t *testing.T) {
 }
 
 func TestControllerFilter(t *testing.T) {
-	t.Log("Storage Type: " + TestStorageType)
 	controller := setup(t)
 
 	for i := 0; i < 5; i++ {
@@ -431,7 +425,6 @@ func TestControllerFilter(t *testing.T) {
 }
 
 func TestControllerTotal(t *testing.T) {
-	t.Log("Storage Type: " + TestStorageType)
 	controller := setup(t)
 
 	const createTotal = 5
@@ -466,7 +459,6 @@ func TestControllerTotal(t *testing.T) {
 }
 
 func TestControllerCleanExpired(t *testing.T) {
-	t.Log("Storage Type: " + TestStorageType)
 
 	// shorten controller's cleanup interval to test quickly
 	controllerExpiryCleanupInterval = 1 * time.Second
