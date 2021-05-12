@@ -144,8 +144,7 @@ func TestPost(t *testing.T) {
 
 		// set system-generated attributes
 		td["id"] = storedTD["id"]
-		td["created"] = storedTD["created"]
-		td["modified"] = storedTD["modified"]
+		td["registration"] = storedTD["registration"]
 
 		if !serializedEqual(td, storedTD) {
 			t.Fatalf("Posted:\n%v\n Retrieved:\n%v\n", td, storedTD)
@@ -262,7 +261,7 @@ func TestPut(t *testing.T) {
 		}
 
 		// set system-generated attributes
-		td["modified"] = storedTD["modified"]
+		td["registration"] = storedTD["registration"]
 
 		if !serializedEqual(td, storedTD) {
 			t.Fatalf("Posted:\n%v\n Retrieved:\n%v\n", td, storedTD)
@@ -297,8 +296,7 @@ func TestPut(t *testing.T) {
 		}
 
 		// set system-generated attributes
-		td["created"] = storedTD["created"]
-		td["modified"] = storedTD["modified"]
+		td["registration"] = storedTD["registration"]
 
 		if !serializedEqual(td, storedTD) {
 			t.Fatalf("Put:\n%v\n Retrieved:\n%v\n", td, storedTD)
@@ -365,8 +363,7 @@ func TestPatch(t *testing.T) {
 
 		td["title"] = "new title"
 		// set system-generated attributes
-		td["created"] = storedTD["created"]
-		td["modified"] = storedTD["modified"]
+		td["registration"] = storedTD["registration"]
 
 		if !serializedEqual(td, storedTD) {
 			t.Fatalf("Posted:\n%v\n Retrieved:\n%v\n", td, storedTD)
@@ -409,8 +406,7 @@ func TestPatch(t *testing.T) {
 
 		delete(td, "description")
 		// set system-generated attributes
-		td["created"] = storedTD["created"]
-		td["modified"] = storedTD["modified"]
+		td["registration"] = storedTD["registration"]
 
 		if !serializedEqual(td, storedTD) {
 			t.Fatalf("Posted:\n%v\n Retrieved:\n%v\n", td, storedTD)
@@ -470,8 +466,7 @@ func TestPatch(t *testing.T) {
 			},
 		}
 		// set system-generated attributes
-		td["created"] = storedTD["created"]
-		td["modified"] = storedTD["modified"]
+		td["registration"] = storedTD["registration"]
 
 		if !serializedEqual(td, storedTD) {
 			t.Fatalf("Posted:\n%v\n Retrieved:\n%v\n", td, storedTD)
@@ -530,8 +525,7 @@ func TestPatch(t *testing.T) {
 			},
 		}
 		// set system-generated attributes
-		td["created"] = storedTD["created"]
-		td["modified"] = storedTD["modified"]
+		td["registration"] = storedTD["registration"]
 
 		if !serializedEqual(td, storedTD) {
 			t.Fatalf("Posted:\n%v\n Retrieved:\n%v\n", td, storedTD)

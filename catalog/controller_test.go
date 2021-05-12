@@ -144,8 +144,7 @@ func TestControllerGet(t *testing.T) {
 		}
 
 		// set system-generated attributes
-		storedTD["created"] = td["created"]
-		storedTD["modified"] = td["modified"]
+		storedTD["registration"] = td["registration"]
 
 		if !serializedEqual(td, storedTD) {
 			t.Fatalf("Added and retrieved TDs are not equal:\n Added:\n%v\n Retrieved:\n%v\n", td, storedTD)
@@ -206,8 +205,7 @@ func TestControllerUpdate(t *testing.T) {
 		}
 
 		// set system-generated attributes
-		storedTD["created"] = td["created"]
-		storedTD["modified"] = td["modified"]
+		storedTD["registration"] = td["registration"]
 
 		if !serializedEqual(td, storedTD) {
 			t.Fatalf("Updates were not applied or returned:\n Expected:\n%v\n Retrieved:\n%v\n", td, storedTD)
@@ -471,7 +469,7 @@ func TestControllerCleanExpired(t *testing.T) {
 	t.Log("Storage Type: " + TestStorageType)
 
 	// shorten controller's cleanup interval to test quickly
-	controllerExpiryCleanupInterval = 2 * time.Second
+	controllerExpiryCleanupInterval = 1 * time.Second
 	const wait = 3 * time.Second
 
 	controller := setup(t)
@@ -487,7 +485,9 @@ func TestControllerCleanExpired(t *testing.T) {
 				"scheme": "basic",
 			},
 		},
-		"ttl": 1.0, // this should not live long
+		"registration": map[string]any{
+			"ttl": 0.1,
+		},
 	}
 
 	id, err := controller.add(td)
@@ -506,6 +506,6 @@ func TestControllerCleanExpired(t *testing.T) {
 			t.Fatalf("Got an error other than NotFoundError when getting an expired TD: %s\n", err)
 		}
 	} else {
-		t.Fatalf("TD was not removed after 1 seconds")
+		t.Fatalf("Expired TD was not removed")
 	}
 }

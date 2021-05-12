@@ -16,6 +16,7 @@ import (
 	jsonpath "github.com/bhmj/jsonslice"
 	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/linksmart/service-catalog/v3/utils"
+	"github.com/linksmart/thing-directory/wot"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -36,11 +37,11 @@ func NewController(storage Storage) (CatalogController, error) {
 }
 
 func (c *Controller) add(td ThingDescription) (string, error) {
-	id, ok := td[_id].(string)
+	id, ok := td[wot.KeyThingID].(string)
 	if !ok || id == "" {
 		// System generated id
 		id = c.newURN()
-		td[_id] = id
+		td[wot.KeyThingID] = id
 	}
 
 	results, err := validateThingDescription(td)
@@ -51,8 +52,14 @@ func (c *Controller) add(td ThingDescription) (string, error) {
 		return "", &ValidationError{results}
 	}
 
-	td[_created] = time.Now().UTC()
-	td[_modified] = td[_created]
+	now := time.Now().UTC()
+	tr := ThingRegistration(td)
+	td[wot.KeyThingRegistration] = wot.ThingRegistration{
+		Created:  &now,
+		Modified: &now,
+		Expires:  computeExpiry(tr, now),
+		TTL:      ThingTTL(tr),
+	}
 
 	err = c.storage.add(id, td)
 	if err != nil {
@@ -63,7 +70,17 @@ func (c *Controller) add(td ThingDescription) (string, error) {
 }
 
 func (c *Controller) get(id string) (ThingDescription, error) {
-	return c.storage.get(id)
+	td, err := c.storage.get(id)
+	if err != nil {
+		return nil, err
+	}
+
+	//tr := ThingRegistration(td)
+	//now := time.Now()
+	//tr.Retrieved = &now
+	//td[wot.KeyThingRegistration] = tr
+
+	return td, nil
 }
 
 func (c *Controller) update(id string, td ThingDescription) error {
@@ -80,8 +97,15 @@ func (c *Controller) update(id string, td ThingDescription) error {
 		return &ValidationError{results}
 	}
 
-	td[_created] = oldTD[_created]
-	td[_modified] = time.Now().UTC()
+	now := time.Now().UTC()
+	oldTR := ThingRegistration(oldTD)
+	tr := ThingRegistration(td)
+	td[wot.KeyThingRegistration] = wot.ThingRegistration{
+		Created:  oldTR.Created,
+		Modified: &now,
+		Expires:  computeExpiry(tr, now),
+		TTL:      ThingTTL(tr),
+	}
 
 	err = c.storage.update(id, td)
 	if err != nil {
@@ -129,7 +153,16 @@ func (c *Controller) patch(id string, td ThingDescription) error {
 		return &ValidationError{results}
 	}
 
-	td[_modified] = time.Now().UTC()
+	//td[wot.KeyThingRegistrationModified] = time.Now().UTC()
+	now := time.Now().UTC()
+	oldTR := ThingRegistration(oldTD)
+	tr := ThingRegistration(td)
+	td[wot.KeyThingRegistration] = wot.ThingRegistration{
+		Created:  oldTR.Created,
+		Modified: &now,
+		Expires:  computeExpiry(tr, now),
+		TTL:      ThingTTL(tr),
+	}
 
 	err = c.storage.update(id, td)
 	if err != nil {
@@ -320,6 +353,72 @@ func (c *Controller) iterateBytes(ctx context.Context) <-chan []byte {
 	return c.storage.iterateBytes(ctx)
 }
 
+// UTILITY FUNCTIONS
+
+func ThingRegistration(td ThingDescription) *wot.ThingRegistration {
+	_, found := td[wot.KeyThingRegistration]
+	if found && td[wot.KeyThingRegistration] != nil {
+		if trMap, ok := td[wot.KeyThingRegistration].(map[string]interface{}); ok {
+			var tr wot.ThingRegistration
+			parsedTime := func(t string) *time.Time {
+				parsed, err := time.Parse(time.RFC3339, t)
+				if err != nil {
+					panic(err)
+				}
+				return &parsed
+			}
+
+			if created, ok := trMap[wot.KeyThingRegistrationCreated].(string); ok {
+				tr.Created = parsedTime(created)
+			}
+			if modified, ok := trMap[wot.KeyThingRegistrationModified].(string); ok {
+				tr.Modified = parsedTime(modified)
+			}
+			if expires, ok := trMap[wot.KeyThingRegistrationExpires].(string); ok {
+				tr.Expires = parsedTime(expires)
+			}
+			if ttl, ok := trMap[wot.KeyThingRegistrationTTL].(float64); ok {
+				tr.TTL = &ttl
+			}
+
+			return &tr
+		}
+	}
+	// not found
+	return nil
+}
+
+func computeExpiry(tr *wot.ThingRegistration, now time.Time) *time.Time {
+
+	if tr != nil {
+		if tr.TTL != nil {
+			// calculate expiry as now+ttl
+			expires := now.Add(time.Duration(*tr.TTL * 1e9))
+			return &expires
+		} else if tr.Expires != nil {
+			return tr.Expires
+		}
+	}
+	// no expiry
+	return nil
+}
+
+func ThingExpires(tr *wot.ThingRegistration) *time.Time {
+	if tr != nil {
+		return tr.Expires
+	}
+	// no expiry
+	return nil
+}
+
+func ThingTTL(tr *wot.ThingRegistration) *float64 {
+	if tr != nil {
+		return tr.TTL
+	}
+	// no TTL
+	return nil
+}
+
 // basicTypeFromXPathStr is a hack to get the actual data type from xpath.TextNode
 // Note: This might cause unexpected behaviour e.g. if user explicitly set string value to "true" or "false"
 func basicTypeFromXPathStr(strVal string) interface{} {
@@ -343,7 +442,7 @@ func getObjectFromXPathNode(n *xpath.Node) interface{} {
 		return basicTypeFromXPathStr(n.Data)
 	}
 
-	if n.FirstChild != nil && n.FirstChild.Data == "" { // in case of array, there will be no key
+	if n.FirstChild != nil && n.FirstChild.Data == "" { // in case of array, there will be no wot.Key
 		retArray := make([]interface{}, 0)
 		for child := n.FirstChild; child != nil; child = child.NextSibling {
 			retArray = append(retArray, getObjectFromXPathNode(child))
@@ -379,24 +478,15 @@ func (c *Controller) cleanExpired() {
 		var expiredServices []ThingDescription
 
 		for td := range c.storage.iterator() {
-			if td[_ttl] != nil {
-				ttl := td[_ttl].(float64)
-				if ttl != 0 {
-					// remove if expiry is overdue by half-TTL
-					modified, err := time.Parse(time.RFC3339, td[_modified].(string))
-					if err != nil {
-						log.Printf("cleanExpired() error: %s", err)
-						continue
-					}
-					if t.After(modified.Add(time.Duration(1.5*ttl) * time.Second)) {
-						expiredServices = append(expiredServices, td)
-					}
+			if expires := ThingExpires(ThingRegistration(td)); expires != nil {
+				if t.After(*expires) {
+					expiredServices = append(expiredServices, td)
 				}
 			}
 		}
 
 		for i := range expiredServices {
-			id := expiredServices[i][_id].(string)
+			id := expiredServices[i][wot.KeyThingID].(string)
 			log.Printf("cleanExpired() Removing expired registration: %s", id)
 			err := c.storage.delete(id)
 			if err != nil {
