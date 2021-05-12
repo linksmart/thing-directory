@@ -11,6 +11,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/linksmart/service-catalog/v3/utils"
+	"github.com/linksmart/thing-directory/wot"
 )
 
 const (
