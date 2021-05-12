@@ -12,13 +12,8 @@ import (
 type ThingDescription = map[string]interface{}
 
 const (
-	ResponseContextURL    = "https://linksmart.eu/thing-directory/context.jsonld"
-	ResponseType          = "Catalog"
-	ResponseMediaType     = "application/ld+json"
-	ResponseJSONMediaType = "application/json"
-	// DNS-SD
-	DNSSDServiceType    = "_wot._tcp"
-	DNSSDServiceSubtype = "_directory" // _directory._sub._wot._tcp
+	ResponseContextURL = "https://linksmart.eu/thing-directory/context.jsonld"
+	ResponseType       = "Catalog"
 	// Storage backend types
 	BackendMemory  = "memory"
 	BackendLevelDB = "leveldb"
