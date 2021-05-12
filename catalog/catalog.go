@@ -17,11 +17,6 @@ const (
 	// Storage backend types
 	BackendMemory  = "memory"
 	BackendLevelDB = "leveldb"
-	// TD keys used internally
-	_id       = "id"
-	_created  = "created"
-	_modified = "modified"
-	_ttl      = "ttl"
 )
 
 func validateThingDescription(td map[string]interface{}) ([]wot.ValidationError, error) {
@@ -30,12 +25,12 @@ func validateThingDescription(td map[string]interface{}) ([]wot.ValidationError,
 		return nil, fmt.Errorf("error validating with JSON schema: %s", err)
 	}
 
-	if td[_ttl] != nil {
-		_, ok := td[_ttl].(float64)
+	if td[wot.KeyThingRegistrationTTL] != nil {
+		_, ok := td[wot.KeyThingRegistrationTTL].(float64)
 		if !ok {
 			issues = append(issues, wot.ValidationError{
-				Field: _ttl,
-				Descr: fmt.Sprintf("Invalid type. Expected float64, given: %T", td[_ttl]),
+				Field: wot.KeyThingRegistrationTTL,
+				Descr: fmt.Sprintf("Invalid type. Expected float64, given: %T", td[wot.KeyThingRegistrationTTL]),
 			})
 		}
 	}

@@ -65,8 +65,8 @@ func (a *HTTPAPI) Post(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if td[_id] != nil {
-		id, ok := td[_id].(string)
+	if td[wot.KeyThingID] != nil {
+		id, ok := td[wot.KeyThingID].(string)
 		if !ok || id != "" {
 			ErrorResponse(w, http.StatusBadRequest, "Registering with user-defined id is not possible using a POST request.")
 			return
@@ -113,12 +113,12 @@ func (a *HTTPAPI) Put(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if id, ok := td[_id].(string); !ok || id == "" {
+	if id, ok := td[wot.KeyThingID].(string); !ok || id == "" {
 		ErrorResponse(w, http.StatusBadRequest, "Registration without id is not possible using a PUT request.")
 		return
 	}
-	if params["id"] != td[_id] {
-		ErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("Resource id in path (%s) does not match the id in body (%s)", params["id"], td[_id]))
+	if params["id"] != td[wot.KeyThingID] {
+		ErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("Resource id in path (%s) does not match the id in body (%s)", params["id"], td[wot.KeyThingID]))
 		return
 	}
 
@@ -179,9 +179,9 @@ func (a *HTTPAPI) Patch(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if id, ok := td[_id].(string); ok && id == "" {
-		if params["id"] != td[_id] {
-			ErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("Resource id in path (%s) does not match the id in body (%s)", params["id"], td[_id]))
+	if id, ok := td[wot.KeyThingID].(string); ok && id == "" {
+		if params["id"] != td[wot.KeyThingID] {
+			ErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("Resource id in path (%s) does not match the id in body (%s)", params["id"], td[wot.KeyThingID]))
 			return
 		}
 	}
@@ -218,7 +218,7 @@ func (a *HTTPAPI) Get(w http.ResponseWriter, req *http.Request) {
 			ErrorResponse(w, http.StatusNotFound, err.Error())
 			return
 		default:
-			ErrorResponse(w, http.StatusInternalServerError, "Error retrieving the registration:", err.Error())
+			ErrorResponse(w, http.StatusInternalServerError, "Error retrieving the registration: ", err.Error())
 			return
 		}
 	}
@@ -395,7 +395,7 @@ func (a *HTTPAPI) GetAll(w http.ResponseWriter, req *http.Request) {
 func (a *HTTPAPI) SearchJSONPath(w http.ResponseWriter, req *http.Request) {
 	err := req.ParseForm()
 	if err != nil {
-		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query:", err.Error())
+		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query: ", err.Error())
 		return
 	}
 
@@ -431,7 +431,7 @@ func (a *HTTPAPI) SearchJSONPath(w http.ResponseWriter, req *http.Request) {
 func (a *HTTPAPI) SearchXPath(w http.ResponseWriter, req *http.Request) {
 	err := req.ParseForm()
 	if err != nil {
-		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query:", err.Error())
+		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query: ", err.Error())
 		return
 	}
 
@@ -479,7 +479,7 @@ func (a *HTTPAPI) GetValidation(w http.ResponseWriter, req *http.Request) {
 
 	var td ThingDescription
 	if err := json.Unmarshal(body, &td); err != nil {
-		ErrorResponse(w, http.StatusBadRequest, "Error processing the request:", err.Error())
+		ErrorResponse(w, http.StatusBadRequest, "Error processing the request: ", err.Error())
 		return
 	}
 
