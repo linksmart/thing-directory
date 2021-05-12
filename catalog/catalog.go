@@ -20,22 +20,17 @@ const (
 )
 
 func validateThingDescription(td map[string]interface{}) ([]wot.ValidationError, error) {
-	issues, err := wot.ValidateMap(&td)
+	issues, err := wot.ValidateDiscoveryExtensions(&td)
 	if err != nil {
 		return nil, fmt.Errorf("error validating with JSON schema: %s", err)
 	}
 
-	if td[wot.KeyThingRegistrationTTL] != nil {
-		_, ok := td[wot.KeyThingRegistrationTTL].(float64)
-		if !ok {
-			issues = append(issues, wot.ValidationError{
-				Field: wot.KeyThingRegistrationTTL,
-				Descr: fmt.Sprintf("Invalid type. Expected float64, given: %T", td[wot.KeyThingRegistrationTTL]),
-			})
-		}
+	tdIssues, err := wot.ValidateMap(&td)
+	if err != nil {
+		return nil, fmt.Errorf("error validating with JSON schema: %s", err)
 	}
 
-	return issues, nil
+	return append(issues, tdIssues...), nil
 }
 
 // Controller interface

@@ -23,18 +23,11 @@ func TestValidateThingDescription(t *testing.T) {
 					"scheme": "basic",
 				},
 			},
-			"ttl": 1,
+			"registration": map[string]any{
+				"ttl": "60",
+			},
 		}
 		results, err := validateThingDescription(td)
-		if err != nil {
-			t.Fatalf("internal validation error: %s", err)
-		}
-		if len(results) == 0 {
-			t.Fatalf("Didn't return error on integer TTL.")
-		}
-
-		td["ttl"] = "1"
-		results, err = validateThingDescription(td)
 		if err != nil {
 			t.Fatalf("internal validation error: %s", err)
 		}
