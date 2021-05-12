@@ -205,8 +205,8 @@ func TestGet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error parsing media type: %s", err)
 	}
-	if mediaType != ResponseMediaType {
-		t.Fatalf("Expected Content-Type: %s, got %s", ResponseMediaType, res.Header.Get("Content-Type"))
+	if mediaType != wot.MediaTypeThingDescription {
+		t.Fatalf("Expected Content-Type: %s, got %s", wot.MediaTypeThingDescription, res.Header.Get("Content-Type"))
 	}
 
 	var retrievedTD ThingDescription
@@ -664,8 +664,8 @@ func TestGetAll(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Error parsing media type: %s", err)
 		}
-		if mediaType != ResponseMediaType {
-			t.Fatalf("Expected Content-Type: %s, got %s", ResponseMediaType, res.Header.Get("Content-Type"))
+		if mediaType != wot.MediaTypeJSONLD {
+			t.Fatalf("Expected Content-Type: %s, got %s", wot.MediaTypeJSONLD, res.Header.Get("Content-Type"))
 		}
 	})
 
