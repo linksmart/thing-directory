@@ -49,3 +49,33 @@ func ValidateMap(td *map[string]interface{}) ([]ValidationError, error) {
 
 	return nil, nil
 }
+
+func validate(td *map[string]interface{}, schema *gojsonschema.Schema) ([]ValidationError, error) {
+	result, err := schema.Validate(gojsonschema.NewGoLoader(td))
+	if err != nil {
+		return nil, err
+	}
+
+	if !result.Valid() {
+		var issues []ValidationError
+		for _, re := range result.Errors() {
+			issues = append(issues, ValidationError{Field: re.Field(), Descr: re.Description()})
+		}
+		return issues, nil
+	}
+
+	return nil, nil
+}
+
+func ValidateTD(td *map[string]interface{}, schemas ...*gojsonschema.Schema) ([]ValidationError, error) {
+	var validationErrors []ValidationError
+	for _, schema := range schemas {
+		result, err := validate(td, schema)
+		if err != nil {
+			return nil, err
+		}
+		validationErrors = append(validationErrors, result...)
+	}
+
+	return validationErrors, nil
+}
