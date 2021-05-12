@@ -26,9 +26,12 @@ type EnrichedTD struct {
 	Registration *ThingRegistration `json:"registration,omitempty"`
 }
 
+// ThingRegistration contains the registration information
+// alphabetically sorted to match the TD map serialization
 type ThingRegistration struct {
-	Created  *time.Time `json:"created,omitempty"`
-	Modified *time.Time `json:"modified,omitempty"`
-	Expires  *time.Time `json:"expires,omitempty"`
-	TTL      *float64   `json:"ttl,omitempty"`
+	Created   *time.Time `json:"created,omitempty"`
+	Expires   *time.Time `json:"expires,omitempty"`
+	Modified  *time.Time `json:"modified,omitempty"`
+	Retrieved *time.Time `json:"retrieved,omitempty"`
+	TTL       *float64   `json:"ttl,omitempty"`
 }

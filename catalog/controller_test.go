@@ -144,8 +144,7 @@ func TestControllerGet(t *testing.T) {
 		}
 
 		// set system-generated attributes
-		storedTD["created"] = td["created"]
-		storedTD["modified"] = td["modified"]
+		storedTD["registration"] = td["registration"]
 
 		if !serializedEqual(td, storedTD) {
 			t.Fatalf("Added and retrieved TDs are not equal:\n Added:\n%v\n Retrieved:\n%v\n", td, storedTD)
@@ -206,8 +205,7 @@ func TestControllerUpdate(t *testing.T) {
 		}
 
 		// set system-generated attributes
-		storedTD["created"] = td["created"]
-		storedTD["modified"] = td["modified"]
+		storedTD["registration"] = td["registration"]
 
 		if !serializedEqual(td, storedTD) {
 			t.Fatalf("Updates were not applied or returned:\n Expected:\n%v\n Retrieved:\n%v\n", td, storedTD)
@@ -487,7 +485,9 @@ func TestControllerCleanExpired(t *testing.T) {
 				"scheme": "basic",
 			},
 		},
-		"ttl": 1.0, // this should not live long
+		"registration": map[string]any{
+			"ttl": 1,
+		},
 	}
 
 	id, err := controller.add(td)

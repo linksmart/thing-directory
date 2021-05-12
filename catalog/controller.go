@@ -57,10 +57,9 @@ func (c *Controller) add(td ThingDescription) (string, error) {
 	td[wot.KeyThingRegistration] = wot.ThingRegistration{
 		Created:  &now,
 		Modified: &now,
-		Expires:  ThingExpiry(tr, now),
+		Expires:  computeExpiry(tr, now),
+		TTL:      ThingTTL(tr),
 	}
-	//td[wot.KeyThingRegistrationCreated] = time.Now().UTC()
-	//td[wot.KeyThingRegistrationModified] = td[wot.KeyThingRegistrationCreated]
 
 	err = c.storage.add(id, td)
 	if err != nil {
@@ -77,13 +76,9 @@ func (c *Controller) get(id string) (ThingDescription, error) {
 	}
 
 	tr := ThingRegistration(td)
-	if tr != nil && tr.Expires != nil {
-		// set ttl as duration until expiry
-		ttl := float64(tr.Expires.Sub(time.Now()) / 1e9)
-		tr.TTL = &ttl
-
-		td[wot.KeyThingRegistration] = tr
-	}
+	now := time.Now()
+	tr.Retrieved = &now
+	td[wot.KeyThingRegistration] = tr
 
 	return td, nil
 }
@@ -93,7 +88,6 @@ func (c *Controller) update(id string, td ThingDescription) error {
 	if err != nil {
 		return err
 	}
-	oldTR := ThingRegistration(oldTD)
 
 	results, err := validateThingDescription(td)
 	if err != nil {
@@ -104,14 +98,14 @@ func (c *Controller) update(id string, td ThingDescription) error {
 	}
 
 	now := time.Now().UTC()
+	oldTR := ThingRegistration(oldTD)
 	tr := ThingRegistration(td)
 	td[wot.KeyThingRegistration] = wot.ThingRegistration{
 		Created:  oldTR.Created,
 		Modified: &now,
-		Expires:  ThingExpiry(tr, now),
+		Expires:  computeExpiry(tr, now),
+		TTL:      ThingTTL(tr),
 	}
-	//td[wot.KeyThingRegistrationCreated] = oldTD[wot.KeyThingRegistrationCreated]
-	//td[wot.KeyThingRegistrationModified] = time.Now().UTC()
 
 	err = c.storage.update(id, td)
 	if err != nil {
@@ -159,7 +153,16 @@ func (c *Controller) patch(id string, td ThingDescription) error {
 		return &ValidationError{results}
 	}
 
-	td[wot.KeyThingRegistrationModified] = time.Now().UTC()
+	//td[wot.KeyThingRegistrationModified] = time.Now().UTC()
+	now := time.Now().UTC()
+	oldTR := ThingRegistration(oldTD)
+	tr := ThingRegistration(td)
+	td[wot.KeyThingRegistration] = wot.ThingRegistration{
+		Created:  oldTR.Created,
+		Modified: &now,
+		Expires:  computeExpiry(tr, now),
+		TTL:      ThingTTL(tr),
+	}
 
 	err = c.storage.update(id, td)
 	if err != nil {
@@ -385,18 +388,34 @@ func ThingRegistration(td ThingDescription) *wot.ThingRegistration {
 	return nil
 }
 
-func ThingExpiry(tr *wot.ThingRegistration, now time.Time) *time.Time {
+func computeExpiry(tr *wot.ThingRegistration, now time.Time) *time.Time {
 
 	if tr != nil {
-		if tr.Expires != nil {
-			return tr.Expires
-		} else if tr.TTL != nil {
+		if tr.TTL != nil {
 			// calculate expiry as now+ttl
 			expires := now.Add(time.Duration(*tr.TTL * 1e9))
 			return &expires
+		} else if tr.Expires != nil {
+			return tr.Expires
 		}
 	}
 	// no expiry
+	return nil
+}
+
+func ThingExpires(tr *wot.ThingRegistration) *time.Time {
+	if tr != nil {
+		return tr.Expires
+	}
+	// no expiry
+	return nil
+}
+
+func ThingTTL(tr *wot.ThingRegistration) *float64 {
+	if tr != nil {
+		return tr.TTL
+	}
+	// no TTL
 	return nil
 }
 
@@ -459,18 +478,9 @@ func (c *Controller) cleanExpired() {
 		var expiredServices []ThingDescription
 
 		for td := range c.storage.iterator() {
-			if td[wot.KeyThingRegistrationTTL] != nil {
-				ttl := td[wot.KeyThingRegistrationTTL].(float64)
-				if ttl != 0 {
-					// remove if expiry is overdue by half-TTL
-					modified, err := time.Parse(time.RFC3339, td[wot.KeyThingRegistrationModified].(string))
-					if err != nil {
-						log.Printf("cleanExpired() error: %s", err)
-						continue
-					}
-					if t.After(modified.Add(time.Duration(1.5*ttl) * time.Second)) {
-						expiredServices = append(expiredServices, td)
-					}
+			if expires := ThingExpires(ThingRegistration(td)); expires != nil {
+				if t.After(*expires) {
+					expiredServices = append(expiredServices, td)
 				}
 			}
 		}
