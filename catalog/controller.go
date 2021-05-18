@@ -23,7 +23,8 @@ import (
 var controllerExpiryCleanupInterval = 60 * time.Second // to be modified in unit tests
 
 type Controller struct {
-	storage Storage
+	storage   Storage
+	listeners eventHandler
 }
 
 func NewController(storage Storage) (CatalogController, error) {
@@ -34,6 +35,10 @@ func NewController(storage Storage) (CatalogController, error) {
 	go c.cleanExpired()
 
 	return &c, nil
+}
+
+func (c *Controller) AddSubscriber(listener EventListener) {
+	c.listeners = append(c.listeners, listener)
 }
 
 func (c *Controller) add(td ThingDescription) (string, error) {
@@ -59,6 +64,8 @@ func (c *Controller) add(td ThingDescription) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	go c.listeners.created(td)
 
 	return id, nil
 }
@@ -88,6 +95,8 @@ func (c *Controller) update(id string, td ThingDescription) error {
 	if err != nil {
 		return err
 	}
+
+	go c.listeners.updated(oldTD, td)
 
 	return nil
 }
@@ -137,14 +146,23 @@ func (c *Controller) patch(id string, td ThingDescription) error {
 		return err
 	}
 
+	go c.listeners.updated(oldTD, td)
+
 	return nil
 }
 
 func (c *Controller) delete(id string) error {
-	err := c.storage.delete(id)
+	oldTD, err := c.storage.get(id)
 	if err != nil {
 		return err
 	}
+
+	err = c.storage.delete(id)
+	if err != nil {
+		return err
+	}
+
+	go c.listeners.deleted(oldTD)
 
 	return nil
 }

@@ -10,10 +10,11 @@ type Event struct {
 	Data catalog.ThingDescription `json:"data"`
 }
 
-// EventController interface
-type EventController interface {
+// NotificationController interface
+type NotificationController interface {
 	subscribe(c chan Event, eventTypes []EventType) error
 	unsubscribe(c chan Event) error
+	Stop()
 	catalog.EventListener
 }
 

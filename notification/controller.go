@@ -20,6 +20,9 @@ type Controller struct {
 
 	// Client connections registry
 	activeClients map[chan Event][]EventType
+
+	// shutdown
+	shutdown chan bool
 }
 
 type subscriber struct {
@@ -28,14 +31,15 @@ type subscriber struct {
 }
 
 func NewController(s Storage) *Controller {
-	return &Controller{
+	c := &Controller{
 		s:                    s,
 		Notifier:             make(chan Event, 1),
 		subscribingClients:   make(chan subscriber),
 		unsubscribingClients: make(chan chan Event),
 		activeClients:        make(map[chan Event][]EventType),
 	}
-
+	go c.handler()
+	return c
 }
 
 func (c *Controller) subscribe(client chan Event, eventType []EventType) error {
@@ -66,6 +70,11 @@ func (c *Controller) storeAndNotify(event Event) error {
 
 	return nil
 }
+
+func (c *Controller) Stop() {
+	c.shutdown <- true
+}
+
 func (c *Controller) CreateHandler(new catalog.ThingDescription) error {
 	event := Event{
 		Type: createEvent,
@@ -119,6 +128,9 @@ func (c *Controller) handler() {
 				}
 
 			}
+		case <-c.shutdown:
+			log.Println("Shutting down notification controller")
+			return
 		}
 	}
 

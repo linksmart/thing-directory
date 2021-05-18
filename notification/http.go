@@ -9,11 +9,11 @@ import (
 )
 
 type HTTPAPI struct {
-	controller  EventController
+	controller  NotificationController
 	contentType string
 }
 
-func NewHTTPAPI(controller EventController, version string) *HTTPAPI {
+func NewHTTPAPI(controller NotificationController, version string) *HTTPAPI {
 	contentType := "text/notification-stream"
 	if version != "" {
 		contentType += ";version=" + version
@@ -25,7 +25,7 @@ func NewHTTPAPI(controller EventController, version string) *HTTPAPI {
 
 }
 
-func (a *HTTPAPI) subscribeEvent(w http.ResponseWriter, req *http.Request) {
+func (a *HTTPAPI) SubscribeEvent(w http.ResponseWriter, req *http.Request) {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		common.ErrorResponse(w, http.StatusInternalServerError, "Streaming unsupported")

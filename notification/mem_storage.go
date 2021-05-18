@@ -1,10 +1,17 @@
 package notification
 
-import "strconv"
+import (
+	"math/rand"
+	"strconv"
+)
 
 type MemStorage struct {
 	events   []Event
-	latestID int64
+	latestID uint64
+}
+
+func NewMemStorage() *MemStorage {
+	return &MemStorage{latestID: rand.Uint64()}
 }
 
 func (m MemStorage) add(event Event) error {
@@ -22,5 +29,5 @@ func (m MemStorage) getAllAfter(id string) ([]Event, error) {
 }
 
 func (m MemStorage) getNewID() (string, error) {
-	return strconv.FormatInt(m.latestID, 10), nil
+	return strconv.FormatUint(m.latestID, 10), nil
 }
