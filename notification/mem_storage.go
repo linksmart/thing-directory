@@ -28,7 +28,7 @@ func (m MemStorage) getAllAfter(ID string) ([]Event, error) {
 	return []Event{}, nil
 }
 
-func (m MemStorage) getNewID() (string, error) {
+func (m *MemStorage) getNewID() (string, error) {
 	m.latestID += 1
 	return strconv.FormatUint(m.latestID, 10), nil
 }
