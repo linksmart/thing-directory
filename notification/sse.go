@@ -5,8 +5,14 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/linksmart/thing-directory/common"
+)
+
+const (
+	QueryParamType = "type"
+	QueryParamFull = "full"
 )
 
 type SSEAPI struct {
@@ -27,6 +33,10 @@ func NewHTTPAPI(controller NotificationController, version string) *SSEAPI {
 }
 
 func (a *SSEAPI) SubscribeEvent(w http.ResponseWriter, req *http.Request) {
+	eventTypes, full, err := parseQueryParameters(req)
+	if err != nil {
+		common.ErrorResponse(w, http.StatusBadRequest, err)
+	}
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		common.ErrorResponse(w, http.StatusInternalServerError, "Streaming unsupported")
@@ -35,8 +45,7 @@ func (a *SSEAPI) SubscribeEvent(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", a.contentType)
 
 	messageChan := make(chan Event)
-	eventTypes := []EventType{createEvent, updateEvent, deleteEvent}
-	a.controller.subscribe(messageChan, eventTypes)
+	a.controller.subscribe(messageChan, eventTypes, full)
 
 	go func() {
 		<-req.Context().Done()
@@ -54,4 +63,38 @@ func (a *SSEAPI) SubscribeEvent(w http.ResponseWriter, req *http.Request) {
 
 		flusher.Flush()
 	}
+}
+
+func parseQueryParameters(req *http.Request) ([]EventType, bool, error) {
+
+	full := false
+	req.ParseForm()
+
+	// Parse full or partial events
+	if strings.EqualFold(req.Form.Get(QueryParamFull), "true") {
+		full = true
+	}
+
+	// Parse event type to be subscribed to
+	queriedTypes := req.Form[QueryParamType]
+	if queriedTypes == nil {
+		return []EventType{createEvent, updateEvent, deleteEvent}, full, nil
+	}
+
+	var eventTypes []EventType
+loopQueriedTypes:
+	for _, v := range queriedTypes {
+		eventType := EventType(v)
+		if !eventType.IsValid() {
+			return nil, false, fmt.Errorf("invalid type parameter")
+		}
+		for _, existing := range eventTypes {
+			if existing == eventType {
+				continue loopQueriedTypes
+			}
+		}
+		eventTypes = append(eventTypes, eventType)
+	}
+
+	return eventTypes, full, nil
 }

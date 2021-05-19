@@ -12,7 +12,7 @@ type Event struct {
 
 // NotificationController interface
 type NotificationController interface {
-	subscribe(c chan Event, eventTypes []EventType) error
+	subscribe(c chan Event, eventTypes []EventType, full bool) error
 	unsubscribe(c chan Event) error
 	Stop()
 	catalog.EventListener

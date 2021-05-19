@@ -1,9 +1,11 @@
 package notification
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 
+	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/linksmart/thing-directory/catalog"
 )
 
@@ -19,7 +21,7 @@ type Controller struct {
 	unsubscribingClients chan chan Event
 
 	// Client connections registry
-	activeClients map[chan Event][]EventType
+	activeClients map[chan Event]subscriber
 
 	// shutdown
 	shutdown chan bool
@@ -28,6 +30,7 @@ type Controller struct {
 type subscriber struct {
 	client     chan Event
 	eventTypes []EventType
+	full       bool
 }
 
 func NewController(s Storage) *Controller {
@@ -36,15 +39,18 @@ func NewController(s Storage) *Controller {
 		Notifier:             make(chan Event, 1),
 		subscribingClients:   make(chan subscriber),
 		unsubscribingClients: make(chan chan Event),
-		activeClients:        make(map[chan Event][]EventType),
+		activeClients:        make(map[chan Event]subscriber),
 		shutdown:             make(chan bool),
 	}
 	go c.handler()
 	return c
 }
 
-func (c *Controller) subscribe(client chan Event, eventType []EventType) error {
-	c.subscribingClients <- subscriber{client: client, eventTypes: eventType}
+func (c *Controller) subscribe(client chan Event, eventType []EventType, full bool) error {
+	c.subscribingClients <- subscriber{client: client,
+		eventTypes: eventType,
+		full:       full,
+	}
 	return nil
 }
 
@@ -87,12 +93,28 @@ func (c *Controller) CreateHandler(new catalog.ThingDescription) error {
 }
 
 func (c *Controller) UpdateHandler(old catalog.ThingDescription, new catalog.ThingDescription) error {
+	oldJson, err := json.Marshal(old)
+	if err != nil {
+		return fmt.Errorf("error marshalling old TD")
+	}
+	newJson, err := json.Marshal(new)
+	if err != nil {
+		return fmt.Errorf("error marshalling new TD")
+	}
+	patch, err := jsonpatch.CreateMergePatch(oldJson, newJson)
+	if err != nil {
+		return fmt.Errorf("error merging new TD")
+	}
+	var td catalog.ThingDescription
+	if err := json.Unmarshal(patch, &td); err != nil {
+		return fmt.Errorf("error unmarshalling the patch TD")
+	}
+	td["id"] = old["id"]
 	event := Event{
 		Type: updateEvent,
-		Data: new,
+		Data: td,
 	}
-	// Todo: store only changes
-	err := c.storeAndNotify(event)
+	err = c.storeAndNotify(event)
 	return err
 }
 
@@ -113,18 +135,22 @@ loop:
 	for {
 		select {
 		case s := <-c.subscribingClients:
-			c.activeClients[s.client] = s.eventTypes
+			c.activeClients[s.client] = s
 			log.Printf("New subscription. %d active clients", len(c.activeClients))
 		case s := <-c.unsubscribingClients:
 
 			delete(c.activeClients, s)
 			log.Printf("Unsubscribed. %d active clients", len(c.activeClients))
 		case event := <-c.Notifier:
-			for clientMessageChan, eventTypes := range c.activeClients {
-				for _, eventType := range eventTypes {
+			for clientMessageChan, s := range c.activeClients {
+				for _, eventType := range s.eventTypes {
 					// Send the notification if the type matches
 					if eventType == event.Type {
-						clientMessageChan <- event
+						toSend := event
+						if !s.full {
+							toSend.Data = catalog.ThingDescription{"id": toSend.Data["id"]}
+						}
+						clientMessageChan <- toSend
 						break
 					}
 				}
