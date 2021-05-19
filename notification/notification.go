@@ -5,8 +5,8 @@ import (
 )
 
 type Event struct {
-	Id   string                   `json:"id"`
-	Type EventType                `json:"notification"`
+	ID   string                   `json:"id"`
+	Type EventType                `json:"event"`
 	Data catalog.ThingDescription `json:"data"`
 }
 

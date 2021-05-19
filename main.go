@@ -164,7 +164,7 @@ func main() {
 	log.Println("Shutting down...")
 }
 
-func setupHTTPRouter(config *HTTPConfig, api *catalog.HTTPAPI, notifAPI *notification.HTTPAPI) (*negroni.Negroni, error) {
+func setupHTTPRouter(config *HTTPConfig, api *catalog.HTTPAPI, notifAPI *notification.SSEAPI) (*negroni.Negroni, error) {
 
 	corsHandler := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"},

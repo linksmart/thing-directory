@@ -19,9 +19,9 @@ func (m MemStorage) add(event Event) error {
 	return nil
 }
 
-func (m MemStorage) getAllAfter(id string) ([]Event, error) {
+func (m MemStorage) getAllAfter(ID string) ([]Event, error) {
 	for i, v := range m.events {
-		if v.Id == id {
+		if v.ID == ID {
 			return m.events[i:], nil
 		}
 	}
@@ -29,5 +29,6 @@ func (m MemStorage) getAllAfter(id string) ([]Event, error) {
 }
 
 func (m MemStorage) getNewID() (string, error) {
+	m.latestID += 1
 	return strconv.FormatUint(m.latestID, 10), nil
 }

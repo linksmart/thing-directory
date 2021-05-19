@@ -2,30 +2,31 @@ package notification
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/linksmart/thing-directory/common"
 )
 
-type HTTPAPI struct {
+type SSEAPI struct {
 	controller  NotificationController
 	contentType string
 }
 
-func NewHTTPAPI(controller NotificationController, version string) *HTTPAPI {
-	contentType := "text/notification-stream"
+func NewHTTPAPI(controller NotificationController, version string) *SSEAPI {
+	contentType := "text/event-stream"
 	if version != "" {
 		contentType += ";version=" + version
 	}
-	return &HTTPAPI{
+	return &SSEAPI{
 		controller:  controller,
 		contentType: contentType,
 	}
 
 }
 
-func (a *HTTPAPI) SubscribeEvent(w http.ResponseWriter, req *http.Request) {
+func (a *SSEAPI) SubscribeEvent(w http.ResponseWriter, req *http.Request) {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		common.ErrorResponse(w, http.StatusInternalServerError, "Streaming unsupported")
@@ -43,11 +44,13 @@ func (a *HTTPAPI) SubscribeEvent(w http.ResponseWriter, req *http.Request) {
 	}()
 
 	for event := range messageChan {
-		toSend, err := json.Marshal(event)
+		data, err := json.MarshalIndent(event.Data, "data: ", "    ")
 		if err != nil {
-			log.Printf("error marshaling notification %v: %s", event, err)
+			log.Printf("error marshaling event %v: %s", event, err)
 		}
-		w.Write(toSend)
+		fmt.Fprintf(w, "event: %s\n", event.Type)
+		fmt.Fprintf(w, "id: %s\n", event.ID)
+		fmt.Fprintf(w, "data: %s\n\n", data)
 
 		flusher.Flush()
 	}

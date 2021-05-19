@@ -37,6 +37,7 @@ func NewController(s Storage) *Controller {
 		subscribingClients:   make(chan subscriber),
 		unsubscribingClients: make(chan chan Event),
 		activeClients:        make(map[chan Event][]EventType),
+		shutdown:             make(chan bool),
 	}
 	go c.handler()
 	return c
@@ -54,7 +55,7 @@ func (c *Controller) unsubscribe(client chan Event) error {
 
 func (c *Controller) storeAndNotify(event Event) error {
 	var err error
-	event.Id, err = c.s.getNewID()
+	event.ID, err = c.s.getNewID()
 	if err != nil {
 		return fmt.Errorf("error generating ID : %v", err)
 	}
@@ -108,6 +109,7 @@ func (c *Controller) DeleteHandler(old catalog.ThingDescription) error {
 }
 
 func (c *Controller) handler() {
+loop:
 	for {
 		select {
 		case s := <-c.subscribingClients:
@@ -130,7 +132,7 @@ func (c *Controller) handler() {
 			}
 		case <-c.shutdown:
 			log.Println("Shutting down notification controller")
-			return
+			break loop
 		}
 	}
 
