@@ -41,7 +41,7 @@
             "groups": [],
             "roles": [],
             "clients": [],
-            "denyPathSubstrings": []
+            "excludePathSubstrings": []
           },
           {
             "paths": ["/td"],
@@ -50,7 +50,7 @@
             "groups": ["anonymous"],
             "roles": [],
             "clients": [],
-            "denyPathSubstrings": []
+            "excludePathSubstrings": []
           }
         ]
       }
