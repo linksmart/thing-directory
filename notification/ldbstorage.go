@@ -137,8 +137,8 @@ func (s *LevelDBStorage) fetchLatestID() (uint64, error) {
 	if exists {
 		latestID = byteToUint64(iter.Key())
 	} else {
-		// Start from 1
-		latestID = 1
+		// Start from 0
+		latestID = 0
 	}
 	iter.Release()
 	err := iter.Error()

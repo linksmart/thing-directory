@@ -106,9 +106,16 @@ func main() {
 	api := catalog.NewHTTPAPI(controller, Version)
 
 	// Start notification
-	notificationStorage, err := notification.NewLevelDBStorage("./events", nil, 1000)
-	if err != nil {
-		panic("Failed to open the notification storage:" + err.Error())
+	var notificationStorage notification.Storage
+	switch config.Storage.Type {
+	case catalog.BackendLevelDB:
+		notificationStorage, err = notification.NewLevelDBStorage(config.Storage.DSN+"/events", nil, 1000)
+		if err != nil {
+			panic("Failed to start LevelDB storage for events:" + err.Error())
+		}
+		defer storage.Close()
+	default:
+		panic("Could not create catalog API storage. Unsupported type:" + config.Storage.Type)
 	}
 	notificationController := notification.NewController(notificationStorage)
 	notifAPI := notification.NewHTTPAPI(notificationController, Version)

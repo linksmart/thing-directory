@@ -7,6 +7,7 @@ import (
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/linksmart/thing-directory/catalog"
+	"github.com/linksmart/thing-directory/wot"
 )
 
 type Controller struct {
@@ -112,7 +113,7 @@ func (c *Controller) UpdateHandler(old catalog.ThingDescription, new catalog.Thi
 	if err := json.Unmarshal(patch, &td); err != nil {
 		return fmt.Errorf("error unmarshalling the patch TD")
 	}
-	td["id"] = old["id"]
+	td[wot.KeyThingID] = old[wot.KeyThingID]
 	event := Event{
 		Type: updateEvent,
 		Data: td,
@@ -123,7 +124,7 @@ func (c *Controller) UpdateHandler(old catalog.ThingDescription, new catalog.Thi
 
 func (c *Controller) DeleteHandler(old catalog.ThingDescription) error {
 	deleted := catalog.ThingDescription{
-		"id": old["id"],
+		wot.KeyThingID: old[wot.KeyThingID],
 	}
 	event := Event{
 		Type: deleteEvent,
@@ -141,7 +142,7 @@ loop:
 			c.activeClients[s.client] = s
 			log.Printf("New subscription. %d active clients", len(c.activeClients))
 
-			// send the missed events
+			// Send the missed events
 			if s.lastEventID != "" {
 				missedEvents, err := c.s.getAllAfter(s.lastEventID)
 				if err != nil {
@@ -152,7 +153,6 @@ loop:
 				}
 			}
 		case s := <-c.unsubscribingClients:
-
 			delete(c.activeClients, s)
 			log.Printf("Unsubscribed. %d active clients", len(c.activeClients))
 		case event := <-c.Notifier:
@@ -173,7 +173,7 @@ func sendToSubscriber(s subscriber, event Event) {
 		if eventType == event.Type {
 			toSend := event
 			if !s.full {
-				toSend.Data = catalog.ThingDescription{"id": toSend.Data["id"]}
+				toSend.Data = catalog.ThingDescription{wot.KeyThingID: toSend.Data[wot.KeyThingID]}
 			}
 			s.client <- toSend
 			break
