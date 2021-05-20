@@ -1,8 +1,11 @@
 package wot
 
 import (
+	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/xeipuuv/gojsonschema"
 )
 
 const (
@@ -10,18 +13,36 @@ const (
 	defaultSchemaPath = "../wot/wot_td_schema.json"
 )
 
-func TestLoadSchema(t *testing.T) {
+func TestLoadSchemas(t *testing.T) {
 	path := os.Getenv(envTestSchemaPath)
 	if path == "" {
 		path = defaultSchemaPath
 	}
-	err := LoadSchema(path)
+	err := LoadJSONSchemas([]string{path})
 	if err != nil {
 		t.Fatalf("error loading WoT Thing Description schema: %s", err)
 	}
+	if len(loadedJSONSchemas) == 0 {
+		t.Fatalf("JSON Schema was not loaded into memory")
+	}
 }
 
-func TestValidateMap(t *testing.T) {
+func TestValidateAgainstSchema(t *testing.T) {
+	path := os.Getenv(envTestSchemaPath)
+	if path == "" {
+		path = defaultSchemaPath
+	}
+
+	// load the schema
+	file, err := ioutil.ReadFile(path)
+	if err != nil {
+		t.Fatalf("error reading file: %s", err)
+	}
+	schema, err := gojsonschema.NewSchema(gojsonschema.NewBytesLoader(file))
+	if err != nil {
+		t.Fatalf("error loading schema: %s", err)
+	}
+
 	t.Run("non-URI ID", func(t *testing.T) {
 		var td = map[string]any{
 			"@context": "https://www.w3.org/2019/wot/td/v1",
@@ -35,7 +56,7 @@ func TestValidateMap(t *testing.T) {
 				},
 			},
 		}
-		results, err := ValidateMap(&td)
+		results, err := validateAgainstSchema(&td, schema)
 		if err != nil {
 			t.Fatalf("internal validation error: %s", err)
 		}
@@ -57,7 +78,7 @@ func TestValidateMap(t *testing.T) {
 				},
 			},
 		}
-		results, err := ValidateMap(&td)
+		results, err := validateAgainstSchema(&td, schema)
 		if err != nil {
 			t.Fatalf("internal validation error: %s", err)
 		}
