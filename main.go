@@ -72,11 +72,15 @@ func main() {
 		log.Printf("Service ID not set. Generated new UUID: %s", config.ServiceID)
 	}
 
-	err = wot.LoadJSONSchemas(config.Validation.JSONSchemas)
-	if err != nil {
-		panic("error loading validation JSON Schemas: " + err.Error())
+	if len(config.Validation.JSONSchemas) > 0 {
+		err = wot.LoadJSONSchemas(config.Validation.JSONSchemas)
+		if err != nil {
+			panic("error loading validation JSON Schemas: " + err.Error())
+		}
+		log.Printf("Loaded JSON Schemas: %v", config.Validation.JSONSchemas)
+	} else {
+		log.Printf("Warning: No configuration for JSON Schemas. TDs will not be validated.")
 	}
-	log.Printf("Loaded JSON Schemas: %v", config.Validation.JSONSchemas)
 
 	// Setup API storage
 	var storage catalog.Storage

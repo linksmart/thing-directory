@@ -20,17 +20,11 @@ const (
 )
 
 func validateThingDescription(td map[string]interface{}) ([]wot.ValidationError, error) {
-	issues, err := wot.ValidateDiscoveryExtensions(&td)
+	result, err := wot.ValidateTD(&td)
 	if err != nil {
-		return nil, fmt.Errorf("error validating with JSON schema: %s", err)
+		return nil, fmt.Errorf("error validating with JSON Schemas: %s", err)
 	}
-
-	tdIssues, err := wot.ValidateMap(&td)
-	if err != nil {
-		return nil, fmt.Errorf("error validating with JSON schema: %s", err)
-	}
-
-	return append(issues, tdIssues...), nil
+	return result, nil
 }
 
 // Controller interface

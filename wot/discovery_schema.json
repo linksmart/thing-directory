@@ -1,0 +1,32 @@
+{
+  "title": "WoT Discovery TD-extensions Schema - 21 May 2021",
+  "description": "JSON Schema for validating TD instances with WoT Discovery extensions",
+  "$schema ": "http://json-schema.org/draft/2019-09/schema#",
+  "type": "object",
+  "properties": {
+    "registration": {
+      "type": "object",
+      "properties": {
+        "created": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expires": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "retrieved": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "modified": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ttl": {
+          "type": "number"
+        }
+      }
+    }
+  }
+}
