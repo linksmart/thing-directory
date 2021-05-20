@@ -66,17 +66,17 @@ func main() {
 	if err != nil {
 		panic("Error reading config file:" + err.Error())
 	}
-	log.Printf("Loaded config file: " + *confPath)
+	log.Printf("Loaded config file: %s", *confPath)
 	if config.ServiceID == "" {
 		config.ServiceID = uuid.NewV4().String()
 		log.Printf("Service ID not set. Generated new UUID: %s", config.ServiceID)
 	}
-	log.Print("Loaded schema file: " + *schemaPath)
 
-	err = wot.LoadSchema(*schemaPath)
+	err = wot.LoadJSONSchemas(config.Validation.JSONSchemas)
 	if err != nil {
-		panic("error loading WoT Thing Description schema: " + err.Error())
+		panic("error loading validation JSON Schemas: " + err.Error())
 	}
+	log.Printf("Loaded JSON Schemas: %v", config.Validation.JSONSchemas)
 
 	// Setup API storage
 	var storage catalog.Storage

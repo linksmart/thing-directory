@@ -55,35 +55,40 @@ func ValidateMap(td *map[string]interface{}) ([]ValidationError, error) {
 
 type jsonSchema = *gojsonschema.Schema
 
-// LoadJSONSchema loads the a JSONSchema from a path
-func LoadJSONSchema(path string) (jsonSchema, error) {
+var loadedJSONSchemas []jsonSchema
+
+// ReadJSONSchema reads the a JSONSchema from a file
+func readJSONSchema(path string) (jsonSchema, error) {
 	file, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("error reading file: %s", err)
 	}
 
-	schema, err = gojsonschema.NewSchema(gojsonschema.NewBytesLoader(file))
+	schema, err := gojsonschema.NewSchema(gojsonschema.NewBytesLoader(file))
 	if err != nil {
 		return nil, fmt.Errorf("error loading schema: %s", err)
 	}
 	return schema, nil
 }
 
-// TODO: load schemas into memory (only once) instead of returning
-// LoadJSONSchemas loads one or more JSON Schemas
-func LoadJSONSchemas(paths []string) ([]jsonSchema, error) {
+// LoadJSONSchemas loads one or more JSON Schemas into memory
+func LoadJSONSchemas(paths []string) error {
+	if len(loadedJSONSchemas) != 0 {
+		panic("Unexpected re-loading of JSON Schemas.")
+	}
 	var schemas []jsonSchema
 	for _, path := range paths {
-		schema, err := LoadJSONSchema(path)
+		schema, err := readJSONSchema(path)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		schemas = append(schemas, schema)
 	}
-	return schemas, nil
+	loadedJSONSchemas = schemas
+	return nil
 }
 
-func validate(td *map[string]interface{}, schema jsonSchema) ([]ValidationError, error) {
+func validateAgainstSchema(td *map[string]interface{}, schema jsonSchema) ([]ValidationError, error) {
 	result, err := schema.Validate(gojsonschema.NewGoLoader(td))
 	if err != nil {
 		return nil, err
@@ -100,11 +105,10 @@ func validate(td *map[string]interface{}, schema jsonSchema) ([]ValidationError,
 	return nil, nil
 }
 
-// ValidateTD performs input validation using one or more JSON schemas
-func ValidateTD(td *map[string]interface{}, schemas ...jsonSchema) ([]ValidationError, error) {
+func validateAgainstSchemas(td *map[string]interface{}, schemas ...jsonSchema) ([]ValidationError, error) {
 	var validationErrors []ValidationError
 	for _, schema := range schemas {
-		result, err := validate(td, schema)
+		result, err := validateAgainstSchema(td, schema)
 		if err != nil {
 			return nil, err
 		}
@@ -112,4 +116,10 @@ func ValidateTD(td *map[string]interface{}, schemas ...jsonSchema) ([]Validation
 	}
 
 	return validationErrors, nil
+}
+
+// ValidateTD performs input validation using one or more pre-loaded JSON Schemas
+// If no schema has been pre-loaded, the function returns as if there are no validation errors
+func ValidateTD(td *map[string]interface{}) ([]ValidationError, error) {
+	return validateAgainstSchemas(td, loadedJSONSchemas...)
 }
