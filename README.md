@@ -51,6 +51,13 @@ Copy sample configuration files for server and JSON Schema into `conf` directory
 mkdir -p conf
 cp sample_conf/thing-directory.json wot/wot_td_schema.json conf
 ```
+
+Alternatively, download sample config file and schemas:
+```bash
+curl https://raw.githubusercontent.com/linksmart/thing-directory/master/sample_conf/thing-directory.json --create-dirs -o conf/thing-directory.json
+curl https://raw.githubusercontent.com/w3c/wot-thing-description/REC1.0/validation/td-json-schema-validation.json --create-dirs -o conf/wot_td_schema.json
+```
+
 `conf` is the default directory for configuration files. This can be changed with CLI arguments.
 
 Get the CLI argument help (linux/macOS):

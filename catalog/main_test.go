@@ -27,11 +27,14 @@ var (
 )
 
 func loadSchema() error {
+	if wot.LoadedJSONSchemas() {
+		return nil
+	}
 	path := os.Getenv(envTestSchemaPath)
 	if path == "" {
 		path = defaultSchemaPath
 	}
-	return wot.LoadSchema(path)
+	return wot.LoadJSONSchemas([]string{path})
 }
 
 func serializedEqual(td1 ThingDescription, td2 ThingDescription) bool {
