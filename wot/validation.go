@@ -42,6 +42,11 @@ func LoadJSONSchemas(paths []string) error {
 	return nil
 }
 
+// LoadedJSONSchemas checks whether any JSON Schema has been loaded into memory
+func LoadedJSONSchemas() bool {
+	return len(loadedJSONSchemas) > 0
+}
+
 func validateAgainstSchema(td *map[string]interface{}, schema jsonSchema) ([]ValidationError, error) {
 	result, err := schema.Validate(gojsonschema.NewGoLoader(td))
 	if err != nil {
