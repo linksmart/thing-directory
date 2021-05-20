@@ -17,10 +17,15 @@ import (
 type Config struct {
 	ServiceID      string         `json:"serviceID"`
 	Description    string         `json:"description"`
+	Validation     Validation     `json:"validation"`
 	HTTP           HTTPConfig     `json:"http"`
 	DNSSD          DNSSDConfig    `json:"dnssd"`
 	Storage        StorageConfig  `json:"storage"`
 	ServiceCatalog ServiceCatalog `json:"serviceCatalog"`
+}
+
+type Validation struct {
+	JSONSchemas []string `json:"jsonSchemas"`
 }
 
 type HTTPConfig struct {

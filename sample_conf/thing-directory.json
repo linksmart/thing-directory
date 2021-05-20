@@ -1,5 +1,8 @@
 {
   "description": "LinkSmart Thing Directory",
+  "validation": {
+    "jsonSchemas": []
+  },
   "storage": {
     "type": "leveldb",
     "dsn": "./data"
