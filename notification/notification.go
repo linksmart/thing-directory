@@ -12,8 +12,8 @@ type Event struct {
 
 // NotificationController interface
 type NotificationController interface {
-	subscribe(c chan Event, eventTypes []EventType, full bool) error
-	unsubscribe(c chan Event) error
+	subscribe(client chan Event, eventTypes []EventType, full bool, lastEventID string) error
+	unsubscribe(client chan Event) error
 	Stop()
 	catalog.EventListener
 }
@@ -23,4 +23,5 @@ type Storage interface {
 	add(event Event) error
 	getAllAfter(id string) ([]Event, error)
 	getNewID() (string, error)
+	Close()
 }

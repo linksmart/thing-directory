@@ -102,7 +102,10 @@ func main() {
 	api := catalog.NewHTTPAPI(controller, Version)
 
 	// Start notification
-	notificationStorage := notification.NewMemStorage()
+	notificationStorage, err := notification.NewLevelDBStorage("./events", nil, 1000)
+	if err != nil {
+		panic("Failed to open the notification storage:" + err.Error())
+	}
 	notificationController := notification.NewController(notificationStorage)
 	notifAPI := notification.NewHTTPAPI(notificationController, Version)
 	defer notificationController.Stop()

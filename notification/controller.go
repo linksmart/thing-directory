@@ -28,9 +28,10 @@ type Controller struct {
 }
 
 type subscriber struct {
-	client     chan Event
-	eventTypes []EventType
-	full       bool
+	client      chan Event
+	eventTypes  []EventType
+	full        bool
+	lastEventID string
 }
 
 func NewController(s Storage) *Controller {
@@ -46,11 +47,13 @@ func NewController(s Storage) *Controller {
 	return c
 }
 
-func (c *Controller) subscribe(client chan Event, eventType []EventType, full bool) error {
-	c.subscribingClients <- subscriber{client: client,
-		eventTypes: eventType,
-		full:       full,
+func (c *Controller) subscribe(client chan Event, eventTypes []EventType, full bool, lastEventID string) error {
+	s := subscriber{client: client,
+		eventTypes:  eventTypes,
+		full:        full,
+		lastEventID: lastEventID,
 	}
+	c.subscribingClients <- s
 	return nil
 }
 
@@ -137,24 +140,24 @@ loop:
 		case s := <-c.subscribingClients:
 			c.activeClients[s.client] = s
 			log.Printf("New subscription. %d active clients", len(c.activeClients))
+
+			// send the missed events
+			if s.lastEventID != "" {
+				missedEvents, err := c.s.getAllAfter(s.lastEventID)
+				if err != nil {
+					log.Printf("error getting the events after ID %s: %s", s.lastEventID, err)
+				}
+				for _, event := range missedEvents {
+					sendToSubscriber(s, event)
+				}
+			}
 		case s := <-c.unsubscribingClients:
 
 			delete(c.activeClients, s)
 			log.Printf("Unsubscribed. %d active clients", len(c.activeClients))
 		case event := <-c.Notifier:
-			for clientMessageChan, s := range c.activeClients {
-				for _, eventType := range s.eventTypes {
-					// Send the notification if the type matches
-					if eventType == event.Type {
-						toSend := event
-						if !s.full {
-							toSend.Data = catalog.ThingDescription{"id": toSend.Data["id"]}
-						}
-						clientMessageChan <- toSend
-						break
-					}
-				}
-
+			for _, s := range c.activeClients {
+				sendToSubscriber(s, event)
 			}
 		case <-c.shutdown:
 			log.Println("Shutting down notification controller")
@@ -162,4 +165,18 @@ loop:
 		}
 	}
 
+}
+
+func sendToSubscriber(s subscriber, event Event) {
+	for _, eventType := range s.eventTypes {
+		// Send the notification if the type matches
+		if eventType == event.Type {
+			toSend := event
+			if !s.full {
+				toSend.Data = catalog.ThingDescription{"id": toSend.Data["id"]}
+			}
+			s.client <- toSend
+			break
+		}
+	}
 }

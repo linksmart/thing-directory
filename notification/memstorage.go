@@ -32,3 +32,7 @@ func (m *MemStorage) getNewID() (string, error) {
 	m.latestID += 1
 	return strconv.FormatUint(m.latestID, 10), nil
 }
+
+func (m MemStorage) Close() {
+	// do nothing
+}

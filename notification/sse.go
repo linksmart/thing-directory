@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	QueryParamType = "type"
-	QueryParamFull = "full"
+	QueryParamType    = "type"
+	QueryParamFull    = "full"
+	HeaderLastEventID = "Last-Event-ID"
 )
 
 type SSEAPI struct {
@@ -45,7 +46,9 @@ func (a *SSEAPI) SubscribeEvent(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", a.contentType)
 
 	messageChan := make(chan Event)
-	a.controller.subscribe(messageChan, eventTypes, full)
+
+	lastEventID := req.Header.Get(HeaderLastEventID)
+	a.controller.subscribe(messageChan, eventTypes, full, lastEventID)
 
 	go func() {
 		<-req.Context().Done()
@@ -53,7 +56,8 @@ func (a *SSEAPI) SubscribeEvent(w http.ResponseWriter, req *http.Request) {
 	}()
 
 	for event := range messageChan {
-		data, err := json.MarshalIndent(event.Data, "data: ", "    ")
+		//data, err := json.MarshalIndent(event.Data, "data: ", "")
+		data, err := json.Marshal(event.Data)
 		if err != nil {
 			log.Printf("error marshaling event %v: %s", event, err)
 		}
