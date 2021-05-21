@@ -121,10 +121,10 @@ func (s *LevelDBStorage) Close() {
 	s.wg.Wait()
 	err := s.db.Close()
 	if err != nil {
-		log.Printf("Error closing event storage: %s", err)
+		log.Printf("Error closing SSE storage: %s", err)
 	}
 	if flag.Lookup("test.v") == nil {
-		log.Println("Closed leveldb.")
+		log.Println("Closed SSE leveldb.")
 	}
 }
 
