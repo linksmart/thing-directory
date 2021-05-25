@@ -23,7 +23,8 @@ import (
 var controllerExpiryCleanupInterval = 60 * time.Second // to be modified in unit tests
 
 type Controller struct {
-	storage Storage
+	storage   Storage
+	listeners eventHandler
 }
 
 func NewController(storage Storage) (CatalogController, error) {
@@ -34,6 +35,10 @@ func NewController(storage Storage) (CatalogController, error) {
 	go c.cleanExpired()
 
 	return &c, nil
+}
+
+func (c *Controller) AddSubscriber(listener EventListener) {
+	c.listeners = append(c.listeners, listener)
 }
 
 func (c *Controller) add(td ThingDescription) (string, error) {
@@ -66,6 +71,8 @@ func (c *Controller) add(td ThingDescription) (string, error) {
 		return "", err
 	}
 
+	go c.listeners.created(td)
+
 	return id, nil
 }
 
@@ -94,7 +101,7 @@ func (c *Controller) update(id string, td ThingDescription) error {
 		return err
 	}
 	if len(results) != 0 {
-		return &ValidationError{results}
+		return &ValidationError{ValidationErrors: results}
 	}
 
 	now := time.Now().UTC()
@@ -111,6 +118,8 @@ func (c *Controller) update(id string, td ThingDescription) error {
 	if err != nil {
 		return err
 	}
+
+	go c.listeners.updated(oldTD, td)
 
 	return nil
 }
@@ -169,14 +178,23 @@ func (c *Controller) patch(id string, td ThingDescription) error {
 		return err
 	}
 
+	go c.listeners.updated(oldTD, td)
+
 	return nil
 }
 
 func (c *Controller) delete(id string) error {
-	err := c.storage.delete(id)
+	oldTD, err := c.storage.get(id)
 	if err != nil {
 		return err
 	}
+
+	err = c.storage.delete(id)
+	if err != nil {
+		return err
+	}
+
+	go c.listeners.deleted(oldTD)
 
 	return nil
 }
@@ -235,7 +253,7 @@ func (c *Controller) filterJSONPath(path string, page, perPage int) ([]interface
 	// filter results with jsonpath
 	b, err = jsonpath.Get(b, path)
 	if err != nil {
-		return nil, 0, &BadRequestError{fmt.Sprintf("error evaluating jsonpath: %s", err)}
+		return nil, 0, &BadRequestError{S: fmt.Sprintf("error evaluating jsonpath: %s", err)}
 	}
 
 	// de-serialize the filtered results
@@ -248,7 +266,7 @@ func (c *Controller) filterJSONPath(path string, page, perPage int) ([]interface
 	// paginate
 	offset, limit, err := utils.GetPagingAttr(len(results), page, perPage, MaxPerPage)
 	if err != nil {
-		return nil, 0, &BadRequestError{fmt.Sprintf("unable to paginate: %s", err)}
+		return nil, 0, &BadRequestError{S: fmt.Sprintf("unable to paginate: %s", err)}
 	}
 	// return the requested page
 	return results[offset : offset+limit], len(results), nil
@@ -302,7 +320,7 @@ func (c *Controller) filterXPath(path string, page, perPage int) ([]interface{},
 	// filter with xpath
 	nodes, err := xpath.QueryAll(doc, path)
 	if err != nil {
-		return nil, 0, &BadRequestError{fmt.Sprintf("error filtering input with xpath: %s", err)}
+		return nil, 0, &BadRequestError{S: fmt.Sprintf("error filtering input with xpath: %s", err)}
 	}
 	for _, n := range nodes {
 		results = append(results, getObjectFromXPathNode(n))
@@ -311,7 +329,7 @@ func (c *Controller) filterXPath(path string, page, perPage int) ([]interface{},
 	// paginate
 	offset, limit, err := utils.GetPagingAttr(len(results), page, perPage, MaxPerPage)
 	if err != nil {
-		return nil, 0, &BadRequestError{fmt.Sprintf("unable to paginate: %s", err)}
+		return nil, 0, &BadRequestError{S: fmt.Sprintf("unable to paginate: %s", err)}
 	}
 	// return the requested page
 	return results[offset : offset+limit], len(results), nil
@@ -333,7 +351,7 @@ func (c *Controller) filterXPathBytes(path string) ([]byte, error) {
 	// filter with xpath
 	nodes, err := xpath.QueryAll(doc, path)
 	if err != nil {
-		return nil, &BadRequestError{fmt.Sprintf("error filtering input with xpath: %s", err)}
+		return nil, &BadRequestError{S: fmt.Sprintf("error filtering input with xpath: %s", err)}
 	}
 	results := make([]interface{}, len(nodes))
 	for i := range nodes {

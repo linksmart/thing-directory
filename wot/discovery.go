@@ -19,6 +19,10 @@ const (
 	KeyThingRegistrationModified = "modified"
 	KeyThingRegistrationExpires  = "expires"
 	KeyThingRegistrationTTL      = "ttl"
+	// TD event types
+	EventTypeCreate = "create"
+	EventTypeUpdate = "update"
+	EventTypeDelete = "delete"
 )
 
 type EnrichedTD struct {
@@ -34,4 +38,15 @@ type ThingRegistration struct {
 	Modified  *time.Time `json:"modified,omitempty"`
 	Retrieved *time.Time `json:"retrieved,omitempty"`
 	TTL       *float64   `json:"ttl,omitempty"`
+}
+
+type EventType string
+
+func (e EventType) IsValid() bool {
+	switch e {
+	case EventTypeCreate, EventTypeUpdate, EventTypeDelete:
+		return true
+	default:
+		return false
+	}
 }

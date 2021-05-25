@@ -48,6 +48,8 @@ type CatalogController interface {
 	cleanExpired()
 
 	Stop()
+
+	AddSubscriber(listener EventListener)
 }
 
 // Storage interface

@@ -83,7 +83,7 @@ func (a *HTTPAPI) Post(w http.ResponseWriter, req *http.Request) {
 			ErrorResponse(w, http.StatusBadRequest, "Invalid registration:", err.Error())
 			return
 		case *ValidationError:
-			ValidationErrorResponse(w, err.(*ValidationError).validationErrors)
+			ValidationErrorResponse(w, err.(*ValidationError).ValidationErrors)
 			return
 		default:
 			ErrorResponse(w, http.StatusInternalServerError, "Error creating the registration:", err.Error())
@@ -137,7 +137,7 @@ func (a *HTTPAPI) Put(w http.ResponseWriter, req *http.Request) {
 					ErrorResponse(w, http.StatusBadRequest, "Invalid registration:", err.Error())
 					return
 				case *ValidationError:
-					ValidationErrorResponse(w, err.(*ValidationError).validationErrors)
+					ValidationErrorResponse(w, err.(*ValidationError).ValidationErrors)
 					return
 				default:
 					ErrorResponse(w, http.StatusInternalServerError, "Error creating the registration:", err.Error())
@@ -151,7 +151,7 @@ func (a *HTTPAPI) Put(w http.ResponseWriter, req *http.Request) {
 			ErrorResponse(w, http.StatusBadRequest, "Invalid registration:", err.Error())
 			return
 		case *ValidationError:
-			ValidationErrorResponse(w, err.(*ValidationError).validationErrors)
+			ValidationErrorResponse(w, err.(*ValidationError).ValidationErrors)
 			return
 		default:
 			ErrorResponse(w, http.StatusInternalServerError, "Error updating the registration:", err.Error())
@@ -196,7 +196,7 @@ func (a *HTTPAPI) Patch(w http.ResponseWriter, req *http.Request) {
 			ErrorResponse(w, http.StatusBadRequest, "Invalid registration:", err.Error())
 			return
 		case *ValidationError:
-			ValidationErrorResponse(w, err.(*ValidationError).validationErrors)
+			ValidationErrorResponse(w, err.(*ValidationError).ValidationErrors)
 			return
 		default:
 			ErrorResponse(w, http.StatusInternalServerError, "Error updating the registration:", err.Error())

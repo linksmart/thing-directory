@@ -13,23 +13,23 @@ import (
 )
 
 // Not Found
-type NotFoundError struct{ s string }
+type NotFoundError struct{ S string }
 
-func (e *NotFoundError) Error() string { return e.s }
+func (e *NotFoundError) Error() string { return e.S }
 
 // Conflict (non-unique id, assignment to read-only data)
-type ConflictError struct{ s string }
+type ConflictError struct{ S string }
 
-func (e *ConflictError) Error() string { return e.s }
+func (e *ConflictError) Error() string { return e.S }
 
 // Bad Request
-type BadRequestError struct{ s string }
+type BadRequestError struct{ S string }
 
-func (e *BadRequestError) Error() string { return e.s }
+func (e *BadRequestError) Error() string { return e.S }
 
 // Validation error (HTTP Bad Request)
 type ValidationError struct {
-	validationErrors []wot.ValidationError
+	ValidationErrors []wot.ValidationError
 }
 
 func (e *ValidationError) Error() string { return "validation errors" }

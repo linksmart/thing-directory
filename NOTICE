@@ -19,3 +19,7 @@ the corresponding developers and organisations:
 * https://github.com/oleksandr/bonjour by Oleksandr Lobunets (MIT License)
 * https://github.com/syndtr/goleveldb by Suryandaru Triandana (MIT License)
 * https://github.com/dgrijalva/jwt-go by Dave Grijalva (MIT License)
+
+Moreover, it includes portions of source code from the following developers and organizations:
+
+* https://gist.github.com/ismasan/3fb75381cd2deb6bfa9c by Ismael Celis (MIT License)
