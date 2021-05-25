@@ -153,9 +153,9 @@ loop:
 					sendToSubscriber(s, event)
 				}
 			}
-		case s := <-c.unsubscribingClients:
-			delete(c.activeClients, s)
-			close(s)
+		case clientChan := <-c.unsubscribingClients:
+			delete(c.activeClients, clientChan)
+			close(clientChan)
 			log.Printf("Unsubscribed. %d active clients", len(c.activeClients))
 		case event := <-c.Notifier:
 			for _, s := range c.activeClients {
