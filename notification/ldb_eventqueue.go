@@ -16,14 +16,14 @@ import (
 )
 
 // LevelDB storage
-type LevelDBStorage struct {
+type LevelDBEventQueue struct {
 	db       *leveldb.DB
 	wg       sync.WaitGroup
 	latestID uint64
 	capacity uint64
 }
 
-func NewLevelDBStorage(dsn string, opts *opt.Options, capacity uint64) (Storage, error) {
+func NewLevelDBEventQueue(dsn string, opts *opt.Options, capacity uint64) (EventQueue, error) {
 	url, err := url.Parse(dsn)
 	if err != nil {
 		return nil, err
@@ -35,25 +35,22 @@ func NewLevelDBStorage(dsn string, opts *opt.Options, capacity uint64) (Storage,
 		return nil, err
 	}
 
-	ldbstorage := &LevelDBStorage{db: db, capacity: capacity}
+	ldbstorage := &LevelDBEventQueue{db: db, capacity: capacity}
 	ldbstorage.latestID, err = ldbstorage.fetchLatestID()
 	if err != nil {
-		return nil, fmt.Errorf("error fetching the latest ID: %w", err)
+		return nil, fmt.Errorf("error fetching the latest ID from storage: %w", err)
 	}
 	return ldbstorage, nil
 }
-func (s *LevelDBStorage) add(event Event) error {
-	return s.addRotate(event)
-}
 
-func (s *LevelDBStorage) addRotate(event Event) error {
+func (s *LevelDBEventQueue) addRotate(event Event) error {
 	s.wg.Add(1)
 	defer s.wg.Done()
 
 	// add new data
 	bytes, err := json.Marshal(event)
 	if err != nil {
-		return fmt.Errorf("error marshaling event: %w", err)
+		return fmt.Errorf("error marshalling event: %w", err)
 	}
 	uintID, err := strconv.ParseUint(event.ID, 16, 64)
 	if err != nil {
@@ -84,7 +81,7 @@ func (s *LevelDBStorage) addRotate(event Event) error {
 	return nil
 }
 
-func (s *LevelDBStorage) getAllAfter(id string) ([]Event, error) {
+func (s *LevelDBEventQueue) getAllAfter(id string) ([]Event, error) {
 	intID, err := strconv.ParseUint(id, 16, 64)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing latest ID: %w", err)
@@ -112,12 +109,12 @@ func (s *LevelDBStorage) getAllAfter(id string) ([]Event, error) {
 	return events, nil
 }
 
-func (s *LevelDBStorage) getNewID() (string, error) {
+func (s *LevelDBEventQueue) getNewID() (string, error) {
 	s.latestID += 1
 	return strconv.FormatUint(s.latestID, 16), nil
 }
 
-func (s *LevelDBStorage) Close() {
+func (s *LevelDBEventQueue) Close() {
 	s.wg.Wait()
 	err := s.db.Close()
 	if err != nil {
@@ -128,7 +125,7 @@ func (s *LevelDBStorage) Close() {
 	}
 }
 
-func (s *LevelDBStorage) fetchLatestID() (uint64, error) {
+func (s *LevelDBEventQueue) fetchLatestID() (uint64, error) {
 	var latestID uint64
 	s.wg.Add(1)
 	defer s.wg.Done()

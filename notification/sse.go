@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/linksmart/thing-directory/common"
+	"github.com/linksmart/thing-directory/catalog"
 )
 
 const (
@@ -21,7 +21,7 @@ type SSEAPI struct {
 	contentType string
 }
 
-func NewHTTPAPI(controller NotificationController, version string) *SSEAPI {
+func NewSSEAPI(controller NotificationController, version string) *SSEAPI {
 	contentType := "text/event-stream"
 	if version != "" {
 		contentType += ";version=" + version
@@ -36,11 +36,11 @@ func NewHTTPAPI(controller NotificationController, version string) *SSEAPI {
 func (a *SSEAPI) SubscribeEvent(w http.ResponseWriter, req *http.Request) {
 	eventTypes, full, err := parseQueryParameters(req)
 	if err != nil {
-		common.ErrorResponse(w, http.StatusBadRequest, err)
+		catalog.ErrorResponse(w, http.StatusBadRequest, err)
 	}
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		common.ErrorResponse(w, http.StatusInternalServerError, "Streaming unsupported")
+		catalog.ErrorResponse(w, http.StatusInternalServerError, "Streaming unsupported")
 		return
 	}
 	w.Header().Set("Content-Type", a.contentType)
@@ -52,6 +52,7 @@ func (a *SSEAPI) SubscribeEvent(w http.ResponseWriter, req *http.Request) {
 
 	go func() {
 		<-req.Context().Done()
+		// unsubscribe to events and close the messageChan
 		a.controller.unsubscribe(messageChan)
 	}()
 

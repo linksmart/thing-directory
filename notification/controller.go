@@ -11,7 +11,7 @@ import (
 )
 
 type Controller struct {
-	s Storage
+	s EventQueue
 	// Events are pushed to this channel by the main events-gathering routine
 	Notifier chan Event
 
@@ -35,7 +35,7 @@ type subscriber struct {
 	lastEventID string
 }
 
-func NewController(s Storage) *Controller {
+func NewController(s EventQueue) *Controller {
 	c := &Controller{
 		s:                    s,
 		Notifier:             make(chan Event, 1),
@@ -74,7 +74,7 @@ func (c *Controller) storeAndNotify(event Event) error {
 	c.Notifier <- event
 
 	// Store
-	err = c.s.add(event)
+	err = c.s.addRotate(event)
 	if err != nil {
 		return fmt.Errorf("error storing the notification : %v", err)
 	}
@@ -147,6 +147,7 @@ loop:
 				missedEvents, err := c.s.getAllAfter(s.lastEventID)
 				if err != nil {
 					log.Printf("error getting the events after ID %s: %s", s.lastEventID, err)
+					continue loop
 				}
 				for _, event := range missedEvents {
 					sendToSubscriber(s, event)
@@ -154,6 +155,7 @@ loop:
 			}
 		case s := <-c.unsubscribingClients:
 			delete(c.activeClients, s)
+			close(s)
 			log.Printf("Unsubscribed. %d active clients", len(c.activeClients))
 		case event := <-c.Notifier:
 			for _, s := range c.activeClients {

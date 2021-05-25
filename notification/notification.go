@@ -12,16 +12,29 @@ type Event struct {
 
 // NotificationController interface
 type NotificationController interface {
+	// subscribe to the events. the caller will get events through the channel 'client' starting from 'lastEventID'
 	subscribe(client chan Event, eventTypes []EventType, full bool, lastEventID string) error
+
+	// unsubscribe and close the channel 'client'
 	unsubscribe(client chan Event) error
+
+	// Stop the controller
 	Stop()
+
 	catalog.EventListener
 }
 
-// Storage interface
-type Storage interface {
-	add(event Event) error
+// EventQueue interface
+type EventQueue interface {
+	//addRotate adds new and delete the old event if the event queue is full
+	addRotate(event Event) error
+
+	// getAllAfter gets the events after the event ID
 	getAllAfter(id string) ([]Event, error)
+
+	// getNewID creates a new ID for the event
 	getNewID() (string, error)
+
+	// Close all the resources acquired by the queue implementation
 	Close()
 }

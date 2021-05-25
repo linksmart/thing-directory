@@ -11,7 +11,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/linksmart/service-catalog/v3/utils"
-	"github.com/linksmart/thing-directory/common"
 	"github.com/linksmart/thing-directory/wot"
 )
 
@@ -56,20 +55,20 @@ func (a *HTTPAPI) Post(w http.ResponseWriter, req *http.Request) {
 	body, err := ioutil.ReadAll(req.Body)
 	req.Body.Close()
 	if err != nil {
-		common.ErrorResponse(w, http.StatusBadRequest, err.Error())
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	var td ThingDescription
 	if err := json.Unmarshal(body, &td); err != nil {
-		common.ErrorResponse(w, http.StatusBadRequest, "Error processing the request:", err.Error())
+		ErrorResponse(w, http.StatusBadRequest, "Error processing the request:", err.Error())
 		return
 	}
 
 	if td[wot.KeyThingID] != nil {
 		id, ok := td[wot.KeyThingID].(string)
 		if !ok || id != "" {
-			common.ErrorResponse(w, http.StatusBadRequest, "Registering with user-defined id is not possible using a POST request.")
+			ErrorResponse(w, http.StatusBadRequest, "Registering with user-defined id is not possible using a POST request.")
 			return
 		}
 	}
@@ -77,17 +76,17 @@ func (a *HTTPAPI) Post(w http.ResponseWriter, req *http.Request) {
 	id, err := a.controller.add(td)
 	if err != nil {
 		switch err.(type) {
-		case *common.ConflictError:
-			common.ErrorResponse(w, http.StatusConflict, "Error creating the resource:", err.Error())
+		case *ConflictError:
+			ErrorResponse(w, http.StatusConflict, "Error creating the resource:", err.Error())
 			return
-		case *common.BadRequestError:
-			common.ErrorResponse(w, http.StatusBadRequest, "Invalid registration:", err.Error())
+		case *BadRequestError:
+			ErrorResponse(w, http.StatusBadRequest, "Invalid registration:", err.Error())
 			return
-		case *common.ValidationError:
-			common.ValidationErrorResponse(w, err.(*common.ValidationError).ValidationErrors)
+		case *ValidationError:
+			ValidationErrorResponse(w, err.(*ValidationError).ValidationErrors)
 			return
 		default:
-			common.ErrorResponse(w, http.StatusInternalServerError, "Error creating the registration:", err.Error())
+			ErrorResponse(w, http.StatusInternalServerError, "Error creating the registration:", err.Error())
 			return
 		}
 	}
@@ -104,58 +103,58 @@ func (a *HTTPAPI) Put(w http.ResponseWriter, req *http.Request) {
 	body, err := ioutil.ReadAll(req.Body)
 	req.Body.Close()
 	if err != nil {
-		common.ErrorResponse(w, http.StatusBadRequest, err.Error())
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	var td ThingDescription
 	if err := json.Unmarshal(body, &td); err != nil {
-		common.ErrorResponse(w, http.StatusBadRequest, "Error processing the request:", err.Error())
+		ErrorResponse(w, http.StatusBadRequest, "Error processing the request:", err.Error())
 		return
 	}
 
 	if id, ok := td[wot.KeyThingID].(string); !ok || id == "" {
-		common.ErrorResponse(w, http.StatusBadRequest, "Registration without id is not possible using a PUT request.")
+		ErrorResponse(w, http.StatusBadRequest, "Registration without id is not possible using a PUT request.")
 		return
 	}
 	if params["id"] != td[wot.KeyThingID] {
-		common.ErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("Resource id in path (%s) does not match the id in body (%s)", params["id"], td[wot.KeyThingID]))
+		ErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("Resource id in path (%s) does not match the id in body (%s)", params["id"], td[wot.KeyThingID]))
 		return
 	}
 
 	err = a.controller.update(params["id"], td)
 	if err != nil {
 		switch err.(type) {
-		case *common.NotFoundError:
+		case *NotFoundError:
 			// Create a new device with the given id
 			id, err := a.controller.add(td)
 			if err != nil {
 				switch err.(type) {
-				case *common.ConflictError:
-					common.ErrorResponse(w, http.StatusConflict, "Error creating the registration:", err.Error())
+				case *ConflictError:
+					ErrorResponse(w, http.StatusConflict, "Error creating the registration:", err.Error())
 					return
-				case *common.BadRequestError:
-					common.ErrorResponse(w, http.StatusBadRequest, "Invalid registration:", err.Error())
+				case *BadRequestError:
+					ErrorResponse(w, http.StatusBadRequest, "Invalid registration:", err.Error())
 					return
-				case *common.ValidationError:
-					common.ValidationErrorResponse(w, err.(*common.ValidationError).ValidationErrors)
+				case *ValidationError:
+					ValidationErrorResponse(w, err.(*ValidationError).ValidationErrors)
 					return
 				default:
-					common.ErrorResponse(w, http.StatusInternalServerError, "Error creating the registration:", err.Error())
+					ErrorResponse(w, http.StatusInternalServerError, "Error creating the registration:", err.Error())
 					return
 				}
 			}
 			w.Header().Set("Location", id)
 			w.WriteHeader(http.StatusCreated)
 			return
-		case *common.BadRequestError:
-			common.ErrorResponse(w, http.StatusBadRequest, "Invalid registration:", err.Error())
+		case *BadRequestError:
+			ErrorResponse(w, http.StatusBadRequest, "Invalid registration:", err.Error())
 			return
-		case *common.ValidationError:
-			common.ValidationErrorResponse(w, err.(*common.ValidationError).ValidationErrors)
+		case *ValidationError:
+			ValidationErrorResponse(w, err.(*ValidationError).ValidationErrors)
 			return
 		default:
-			common.ErrorResponse(w, http.StatusInternalServerError, "Error updating the registration:", err.Error())
+			ErrorResponse(w, http.StatusInternalServerError, "Error updating the registration:", err.Error())
 			return
 		}
 	}
@@ -170,19 +169,19 @@ func (a *HTTPAPI) Patch(w http.ResponseWriter, req *http.Request) {
 	body, err := ioutil.ReadAll(req.Body)
 	req.Body.Close()
 	if err != nil {
-		common.ErrorResponse(w, http.StatusBadRequest, err.Error())
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	var td ThingDescription
 	if err := json.Unmarshal(body, &td); err != nil {
-		common.ErrorResponse(w, http.StatusBadRequest, "Error processing the request:", err.Error())
+		ErrorResponse(w, http.StatusBadRequest, "Error processing the request:", err.Error())
 		return
 	}
 
 	if id, ok := td[wot.KeyThingID].(string); ok && id == "" {
 		if params["id"] != td[wot.KeyThingID] {
-			common.ErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("Resource id in path (%s) does not match the id in body (%s)", params["id"], td[wot.KeyThingID]))
+			ErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("Resource id in path (%s) does not match the id in body (%s)", params["id"], td[wot.KeyThingID]))
 			return
 		}
 	}
@@ -190,17 +189,17 @@ func (a *HTTPAPI) Patch(w http.ResponseWriter, req *http.Request) {
 	err = a.controller.patch(params["id"], td)
 	if err != nil {
 		switch err.(type) {
-		case *common.NotFoundError:
-			common.ErrorResponse(w, http.StatusNotFound, "Invalid registration:", err.Error())
+		case *NotFoundError:
+			ErrorResponse(w, http.StatusNotFound, "Invalid registration:", err.Error())
 			return
-		case *common.BadRequestError:
-			common.ErrorResponse(w, http.StatusBadRequest, "Invalid registration:", err.Error())
+		case *BadRequestError:
+			ErrorResponse(w, http.StatusBadRequest, "Invalid registration:", err.Error())
 			return
-		case *common.ValidationError:
-			common.ValidationErrorResponse(w, err.(*common.ValidationError).ValidationErrors)
+		case *ValidationError:
+			ValidationErrorResponse(w, err.(*ValidationError).ValidationErrors)
 			return
 		default:
-			common.ErrorResponse(w, http.StatusInternalServerError, "Error updating the registration:", err.Error())
+			ErrorResponse(w, http.StatusInternalServerError, "Error updating the registration:", err.Error())
 			return
 		}
 	}
@@ -215,18 +214,18 @@ func (a *HTTPAPI) Get(w http.ResponseWriter, req *http.Request) {
 	td, err := a.controller.get(params["id"])
 	if err != nil {
 		switch err.(type) {
-		case *common.NotFoundError:
-			common.ErrorResponse(w, http.StatusNotFound, err.Error())
+		case *NotFoundError:
+			ErrorResponse(w, http.StatusNotFound, err.Error())
 			return
 		default:
-			common.ErrorResponse(w, http.StatusInternalServerError, "Error retrieving the registration: ", err.Error())
+			ErrorResponse(w, http.StatusInternalServerError, "Error retrieving the registration: ", err.Error())
 			return
 		}
 	}
 
 	b, err := json.Marshal(td)
 	if err != nil {
-		common.ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -244,11 +243,11 @@ func (a *HTTPAPI) Delete(w http.ResponseWriter, req *http.Request) {
 	err := a.controller.delete(params["id"])
 	if err != nil {
 		switch err.(type) {
-		case *common.NotFoundError:
-			common.ErrorResponse(w, http.StatusNotFound, err.Error())
+		case *NotFoundError:
+			ErrorResponse(w, http.StatusNotFound, err.Error())
 			return
 		default:
-			common.ErrorResponse(w, http.StatusInternalServerError, "Error deleting the registration:", err.Error())
+			ErrorResponse(w, http.StatusInternalServerError, "Error deleting the registration:", err.Error())
 			return
 		}
 	}
@@ -260,13 +259,13 @@ func (a *HTTPAPI) Delete(w http.ResponseWriter, req *http.Request) {
 func (a *HTTPAPI) GetMany(w http.ResponseWriter, req *http.Request) {
 	err := req.ParseForm()
 	if err != nil {
-		common.ErrorResponse(w, http.StatusBadRequest, "Error parsing the query:", err.Error())
+		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query:", err.Error())
 		return
 	}
 	page, perPage, err := utils.ParsePagingParams(
 		req.Form.Get(QueryParamPage), req.Form.Get(QueryParamPerPage), MaxPerPage)
 	if err != nil {
-		common.ErrorResponse(w, http.StatusBadRequest, "Error parsing query parameters:", err.Error())
+		ErrorResponse(w, http.StatusBadRequest, "Error parsing query parameters:", err.Error())
 		return
 	}
 
@@ -274,18 +273,18 @@ func (a *HTTPAPI) GetMany(w http.ResponseWriter, req *http.Request) {
 	var total int
 	if jsonPath := req.Form.Get(QueryParamJSONPath); jsonPath != "" {
 		if req.Form.Get(QueryParamXPath) != "" {
-			common.ErrorResponse(w, http.StatusBadRequest, "query with jsonpath should not be mixed with xpath")
+			ErrorResponse(w, http.StatusBadRequest, "query with jsonpath should not be mixed with xpath")
 			return
 		}
 		w.Header().Add("X-Request-Jsonpath", jsonPath)
 		items, total, err = a.controller.filterJSONPath(jsonPath, page, perPage)
 		if err != nil {
 			switch err.(type) {
-			case *common.BadRequestError:
-				common.ErrorResponse(w, http.StatusBadRequest, err.Error())
+			case *BadRequestError:
+				ErrorResponse(w, http.StatusBadRequest, err.Error())
 				return
 			default:
-				common.ErrorResponse(w, http.StatusInternalServerError, err.Error())
+				ErrorResponse(w, http.StatusInternalServerError, err.Error())
 				return
 			}
 		}
@@ -294,26 +293,26 @@ func (a *HTTPAPI) GetMany(w http.ResponseWriter, req *http.Request) {
 		items, total, err = a.controller.filterXPath(xPath, page, perPage)
 		if err != nil {
 			switch err.(type) {
-			case *common.BadRequestError:
-				common.ErrorResponse(w, http.StatusBadRequest, err.Error())
+			case *BadRequestError:
+				ErrorResponse(w, http.StatusBadRequest, err.Error())
 				return
 			default:
-				common.ErrorResponse(w, http.StatusInternalServerError, err.Error())
+				ErrorResponse(w, http.StatusInternalServerError, err.Error())
 				return
 			}
 		}
 	} else if req.Form.Get(QueryParamFetchPath) != "" {
-		common.ErrorResponse(w, http.StatusBadRequest, "fetch query parameter is deprecated. Use jsonpath or xpath")
+		ErrorResponse(w, http.StatusBadRequest, "fetch query parameter is deprecated. Use jsonpath or xpath")
 		return
 	} else {
 		items, total, err = a.controller.list(page, perPage)
 		if err != nil {
 			switch err.(type) {
-			case *common.BadRequestError:
-				common.ErrorResponse(w, http.StatusBadRequest, err.Error())
+			case *BadRequestError:
+				ErrorResponse(w, http.StatusBadRequest, err.Error())
 				return
 			default:
-				common.ErrorResponse(w, http.StatusInternalServerError, err.Error())
+				ErrorResponse(w, http.StatusInternalServerError, err.Error())
 				return
 			}
 		}
@@ -330,7 +329,7 @@ func (a *HTTPAPI) GetMany(w http.ResponseWriter, req *http.Request) {
 
 	b, err := json.Marshal(coll)
 	if err != nil {
-		common.ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -396,13 +395,13 @@ func (a *HTTPAPI) GetAll(w http.ResponseWriter, req *http.Request) {
 func (a *HTTPAPI) SearchJSONPath(w http.ResponseWriter, req *http.Request) {
 	err := req.ParseForm()
 	if err != nil {
-		common.ErrorResponse(w, http.StatusBadRequest, "Error parsing the query: ", err.Error())
+		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query: ", err.Error())
 		return
 	}
 
 	query := req.Form.Get(QueryParamSearchQuery)
 	if query == "" {
-		common.ErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("No value for %s argument", QueryParamSearchQuery))
+		ErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("No value for %s argument", QueryParamSearchQuery))
 		return
 	}
 	w.Header().Add("X-Request-Query", query)
@@ -410,11 +409,11 @@ func (a *HTTPAPI) SearchJSONPath(w http.ResponseWriter, req *http.Request) {
 	b, err := a.controller.filterJSONPathBytes(query)
 	if err != nil {
 		switch err.(type) {
-		case *common.BadRequestError:
-			common.ErrorResponse(w, http.StatusBadRequest, err.Error())
+		case *BadRequestError:
+			ErrorResponse(w, http.StatusBadRequest, err.Error())
 			return
 		default:
-			common.ErrorResponse(w, http.StatusInternalServerError, err.Error())
+			ErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 	}
@@ -432,13 +431,13 @@ func (a *HTTPAPI) SearchJSONPath(w http.ResponseWriter, req *http.Request) {
 func (a *HTTPAPI) SearchXPath(w http.ResponseWriter, req *http.Request) {
 	err := req.ParseForm()
 	if err != nil {
-		common.ErrorResponse(w, http.StatusBadRequest, "Error parsing the query: ", err.Error())
+		ErrorResponse(w, http.StatusBadRequest, "Error parsing the query: ", err.Error())
 		return
 	}
 
 	query := req.Form.Get(QueryParamSearchQuery)
 	if query == "" {
-		common.ErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("No value for %s argument", QueryParamSearchQuery))
+		ErrorResponse(w, http.StatusBadRequest, fmt.Sprintf("No value for %s argument", QueryParamSearchQuery))
 		return
 	}
 	w.Header().Add("X-Request-Query", query)
@@ -446,11 +445,11 @@ func (a *HTTPAPI) SearchXPath(w http.ResponseWriter, req *http.Request) {
 	b, err := a.controller.filterXPathBytes(query)
 	if err != nil {
 		switch err.(type) {
-		case *common.BadRequestError:
-			common.ErrorResponse(w, http.StatusBadRequest, err.Error())
+		case *BadRequestError:
+			ErrorResponse(w, http.StatusBadRequest, err.Error())
 			return
 		default:
-			common.ErrorResponse(w, http.StatusInternalServerError, err.Error())
+			ErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 	}
@@ -469,25 +468,25 @@ func (a *HTTPAPI) GetValidation(w http.ResponseWriter, req *http.Request) {
 	body, err := ioutil.ReadAll(req.Body)
 	req.Body.Close()
 	if err != nil {
-		common.ErrorResponse(w, http.StatusBadRequest, err.Error())
+		ErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if len(body) == 0 {
-		common.ErrorResponse(w, http.StatusBadRequest, "Empty request body")
+		ErrorResponse(w, http.StatusBadRequest, "Empty request body")
 		return
 	}
 
 	var td ThingDescription
 	if err := json.Unmarshal(body, &td); err != nil {
-		common.ErrorResponse(w, http.StatusBadRequest, "Error processing the request: ", err.Error())
+		ErrorResponse(w, http.StatusBadRequest, "Error processing the request: ", err.Error())
 		return
 	}
 
 	var response ValidationResult
 	results, err := validateThingDescription(td)
 	if err != nil {
-		common.ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	if len(results) != 0 {
@@ -500,7 +499,7 @@ func (a *HTTPAPI) GetValidation(w http.ResponseWriter, req *http.Request) {
 
 	b, err := json.Marshal(response)
 	if err != nil {
-		common.ErrorResponse(w, http.StatusInternalServerError, err.Error())
+		ErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
