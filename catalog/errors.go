@@ -65,12 +65,12 @@ func ProblemDetailsResponse(w http.ResponseWriter, pd wot.ProblemDetails) {
 	}
 	b, err := json.Marshal(pd)
 	if err != nil {
-		log.Printf("ERROR serializing error object: %S", err)
+		log.Printf("ERROR serializing error object: %s", err)
 	}
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(pd.Status)
 	_, err = w.Write(b)
 	if err != nil {
-		log.Printf("ERROR writing HTTP response: %S", err)
+		log.Printf("ERROR writing HTTP response: %s", err)
 	}
 }
