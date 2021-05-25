@@ -2,18 +2,19 @@ package notification
 
 import (
 	"github.com/linksmart/thing-directory/catalog"
+	"github.com/linksmart/thing-directory/wot"
 )
 
 type Event struct {
 	ID   string                   `json:"id"`
-	Type EventType                `json:"event"`
+	Type wot.EventType            `json:"event"`
 	Data catalog.ThingDescription `json:"data"`
 }
 
 // NotificationController interface
 type NotificationController interface {
 	// subscribe to the events. the caller will get events through the channel 'client' starting from 'lastEventID'
-	subscribe(client chan Event, eventTypes []EventType, full bool, lastEventID string) error
+	subscribe(client chan Event, eventTypes []wot.EventType, full bool, lastEventID string) error
 
 	// unsubscribe and close the channel 'client'
 	unsubscribe(client chan Event) error

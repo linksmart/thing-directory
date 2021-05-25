@@ -30,7 +30,7 @@ type Controller struct {
 
 type subscriber struct {
 	client      chan Event
-	eventTypes  []EventType
+	eventTypes  []wot.EventType
 	full        bool
 	lastEventID string
 }
@@ -48,7 +48,7 @@ func NewController(s EventQueue) *Controller {
 	return c
 }
 
-func (c *Controller) subscribe(client chan Event, eventTypes []EventType, full bool, lastEventID string) error {
+func (c *Controller) subscribe(client chan Event, eventTypes []wot.EventType, full bool, lastEventID string) error {
 	s := subscriber{client: client,
 		eventTypes:  eventTypes,
 		full:        full,
@@ -88,7 +88,7 @@ func (c *Controller) Stop() {
 
 func (c *Controller) CreateHandler(new catalog.ThingDescription) error {
 	event := Event{
-		Type: createEvent,
+		Type: wot.EventTypeCreate,
 		Data: new,
 	}
 
@@ -115,7 +115,7 @@ func (c *Controller) UpdateHandler(old catalog.ThingDescription, new catalog.Thi
 	}
 	td[wot.KeyThingID] = old[wot.KeyThingID]
 	event := Event{
-		Type: updateEvent,
+		Type: wot.EventTypeUpdate,
 		Data: td,
 	}
 	err = c.storeAndNotify(event)
@@ -127,7 +127,7 @@ func (c *Controller) DeleteHandler(old catalog.ThingDescription) error {
 		wot.KeyThingID: old[wot.KeyThingID],
 	}
 	event := Event{
-		Type: deleteEvent,
+		Type: wot.EventTypeDelete,
 		Data: deleted,
 	}
 	err := c.storeAndNotify(event)

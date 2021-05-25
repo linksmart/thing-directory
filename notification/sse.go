@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/linksmart/thing-directory/catalog"
+	"github.com/linksmart/thing-directory/wot"
 )
 
 const (
@@ -70,7 +71,7 @@ func (a *SSEAPI) SubscribeEvent(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func parseQueryParameters(req *http.Request) ([]EventType, bool, error) {
+func parseQueryParameters(req *http.Request) ([]wot.EventType, bool, error) {
 
 	full := false
 	req.ParseForm()
@@ -83,13 +84,13 @@ func parseQueryParameters(req *http.Request) ([]EventType, bool, error) {
 	// Parse event type to be subscribed to
 	queriedTypes := req.Form[QueryParamType]
 	if queriedTypes == nil {
-		return []EventType{createEvent, updateEvent, deleteEvent}, full, nil
+		return []wot.EventType{wot.EventTypeCreate, wot.EventTypeUpdate, wot.EventTypeDelete}, full, nil
 	}
 
-	var eventTypes []EventType
+	var eventTypes []wot.EventType
 loopQueriedTypes:
 	for _, v := range queriedTypes {
-		eventType := EventType(v)
+		eventType := wot.EventType(v)
 		if !eventType.IsValid() {
 			return nil, false, fmt.Errorf("invalid type parameter")
 		}
