@@ -35,12 +35,12 @@ func NewLevelDBEventQueue(dsn string, opts *opt.Options, capacity uint64) (Event
 		return nil, err
 	}
 
-	ldbstorage := &LevelDBEventQueue{db: db, capacity: capacity}
-	ldbstorage.latestID, err = ldbstorage.fetchLatestID()
+	ldbEventQueue := &LevelDBEventQueue{db: db, capacity: capacity}
+	ldbEventQueue.latestID, err = ldbEventQueue.fetchLatestID()
 	if err != nil {
 		return nil, fmt.Errorf("error fetching the latest ID from storage: %w", err)
 	}
-	return ldbstorage, nil
+	return ldbEventQueue, nil
 }
 
 func (s *LevelDBEventQueue) addRotate(event Event) error {
