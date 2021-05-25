@@ -106,18 +106,18 @@ func main() {
 	api := catalog.NewHTTPAPI(controller, Version)
 
 	// Start notification
-	var notificationStorage notification.EventQueue
+	var eventQueue notification.EventQueue
 	switch config.Storage.Type {
 	case catalog.BackendLevelDB:
-		notificationStorage, err = notification.NewLevelDBEventQueue(config.Storage.DSN+"/sse", nil, 1000)
+		eventQueue, err = notification.NewLevelDBEventQueue(config.Storage.DSN+"/sse", nil, 1000)
 		if err != nil {
 			panic("Failed to start LevelDB storage for SSE events:" + err.Error())
 		}
-		defer storage.Close()
+		defer eventQueue.Close()
 	default:
 		panic("Could not create SSE storage. Unsupported type:" + config.Storage.Type)
 	}
-	notificationController := notification.NewController(notificationStorage)
+	notificationController := notification.NewController(eventQueue)
 	notifAPI := notification.NewSSEAPI(notificationController, Version)
 	defer notificationController.Stop()
 
