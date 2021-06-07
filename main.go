@@ -250,6 +250,7 @@ func setupHTTPRouter(config *HTTPConfig, api *catalog.HTTPAPI, notifAPI *notific
 
 	//TD notification
 	r.get("/events", commonHandlers.ThenFunc(notifAPI.SubscribeEvent))
+	r.get("/events/{type}", commonHandlers.ThenFunc(notifAPI.SubscribeEvent))
 
 	logger := negroni.NewLogger()
 	logFlags := log.LstdFlags

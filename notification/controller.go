@@ -31,7 +31,7 @@ type Controller struct {
 type subscriber struct {
 	client      chan Event
 	eventTypes  []wot.EventType
-	full        bool
+	diff        bool
 	lastEventID string
 }
 
@@ -48,10 +48,10 @@ func NewController(s EventQueue) *Controller {
 	return c
 }
 
-func (c *Controller) subscribe(client chan Event, eventTypes []wot.EventType, full bool, lastEventID string) error {
+func (c *Controller) subscribe(client chan Event, eventTypes []wot.EventType, diff bool, lastEventID string) error {
 	s := subscriber{client: client,
 		eventTypes:  eventTypes,
-		full:        full,
+		diff:        diff,
 		lastEventID: lastEventID,
 	}
 	c.subscribingClients <- s
@@ -174,7 +174,7 @@ func sendToSubscriber(s subscriber, event Event) {
 		// Send the notification if the type matches
 		if eventType == event.Type {
 			toSend := event
-			if !s.full {
+			if !s.diff {
 				toSend.Data = catalog.ThingDescription{wot.KeyThingID: toSend.Data[wot.KeyThingID]}
 			}
 			s.client <- toSend

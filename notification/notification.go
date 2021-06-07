@@ -14,7 +14,7 @@ type Event struct {
 // NotificationController interface
 type NotificationController interface {
 	// subscribe to the events. the caller will get events through the channel 'client' starting from 'lastEventID'
-	subscribe(client chan Event, eventTypes []wot.EventType, full bool, lastEventID string) error
+	subscribe(client chan Event, eventTypes []wot.EventType, diff bool, lastEventID string) error
 
 	// unsubscribe and close the channel 'client'
 	unsubscribe(client chan Event) error
