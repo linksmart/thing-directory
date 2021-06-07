@@ -222,17 +222,29 @@ func setupHTTPRouter(config *HTTPConfig, api *catalog.HTTPAPI, notifAPI *notific
 	// OpenAPI Proxy for Swagger "try it out" feature
 	r.get("/openapi-spec-proxy", commonHandlers.ThenFunc(apiSpecProxy))
 	r.get("/openapi-spec-proxy/{basepath:.+}", commonHandlers.ThenFunc(apiSpecProxy))
-	// TD listing, filtering
+
+	// Deprecated: use /things and /search instead
+	// TD CRUD, listing, filtering
 	r.get("/td", commonHandlers.ThenFunc(api.GetMany))
 	r.get("/td-chunked", commonHandlers.ThenFunc(api.GetAll))
-	r.get("/search/jsonpath", commonHandlers.ThenFunc(api.SearchJSONPath))
-	r.get("/search/xpath", commonHandlers.ThenFunc(api.SearchXPath))
-	// TD crud
 	r.post("/td", commonHandlers.ThenFunc(api.Post))
 	r.get("/td/{id:.+}", commonHandlers.ThenFunc(api.Get))
 	r.put("/td/{id:.+}", commonHandlers.ThenFunc(api.Put))
 	r.patch("/td/{id:.+}", commonHandlers.ThenFunc(api.Patch))
 	r.delete("/td/{id:.+}", commonHandlers.ThenFunc(api.Delete))
+
+	// CRUDL
+	r.post("/things", commonHandlers.ThenFunc(api.Post))             // create anonymous
+	r.put("/things/{id:.+}", commonHandlers.ThenFunc(api.Put))       // create or update
+	r.get("/things/{id:.+}", commonHandlers.ThenFunc(api.Get))       // retrieve
+	r.patch("/things/{id:.+}", commonHandlers.ThenFunc(api.Patch))   // partially update
+	r.delete("/things/{id:.+}", commonHandlers.ThenFunc(api.Delete)) // delete
+	r.get("/things", commonHandlers.ThenFunc(api.GetAll))            // listing
+
+	// search
+	r.get("/search/jsonpath", commonHandlers.ThenFunc(api.SearchJSONPath))
+	r.get("/search/xpath", commonHandlers.ThenFunc(api.SearchXPath))
+
 	// TD validation
 	r.get("/validation", commonHandlers.ThenFunc(api.GetValidation))
 
