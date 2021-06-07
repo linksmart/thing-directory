@@ -7,13 +7,14 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/gorilla/mux"
 	"github.com/linksmart/thing-directory/catalog"
 	"github.com/linksmart/thing-directory/wot"
 )
 
 const (
 	QueryParamType    = "type"
-	QueryParamFull    = "full"
+	QueryParamFull    = "diff"
 	HeaderLastEventID = "Last-Event-ID"
 )
 
@@ -35,7 +36,11 @@ func NewSSEAPI(controller NotificationController, version string) *SSEAPI {
 }
 
 func (a *SSEAPI) SubscribeEvent(w http.ResponseWriter, req *http.Request) {
-	eventTypes, full, err := parseQueryParameters(req)
+	diff, err := parseQueryParameters(req)
+	if err != nil {
+		catalog.ErrorResponse(w, http.StatusBadRequest, err)
+	}
+	eventTypes, err := parsePath(req)
 	if err != nil {
 		catalog.ErrorResponse(w, http.StatusBadRequest, err)
 	}
@@ -49,7 +54,7 @@ func (a *SSEAPI) SubscribeEvent(w http.ResponseWriter, req *http.Request) {
 	messageChan := make(chan Event)
 
 	lastEventID := req.Header.Get(HeaderLastEventID)
-	a.controller.subscribe(messageChan, eventTypes, full, lastEventID)
+	a.controller.subscribe(messageChan, eventTypes, diff, lastEventID)
 
 	go func() {
 		<-req.Context().Done()
@@ -71,36 +76,29 @@ func (a *SSEAPI) SubscribeEvent(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func parseQueryParameters(req *http.Request) ([]wot.EventType, bool, error) {
-
-	full := false
+func parseQueryParameters(req *http.Request) (bool, error) {
+	diff := false
 	req.ParseForm()
-
-	// Parse full or partial events
+	// Parse diff or just ID
 	if strings.EqualFold(req.Form.Get(QueryParamFull), "true") {
-		full = true
+		diff = true
 	}
+	return diff, nil
+}
 
+func parsePath(req *http.Request) ([]wot.EventType, error) {
 	// Parse event type to be subscribed to
-	queriedTypes := req.Form[QueryParamType]
-	if queriedTypes == nil {
-		return []wot.EventType{wot.EventTypeCreate, wot.EventTypeUpdate, wot.EventTypeDelete}, full, nil
+	params := mux.Vars(req)
+	event := params[QueryParamType]
+	if event == "" {
+		return []wot.EventType{wot.EventTypeCreate, wot.EventTypeUpdate, wot.EventTypeDelete}, nil
 	}
 
-	var eventTypes []wot.EventType
-loopQueriedTypes:
-	for _, v := range queriedTypes {
-		eventType := wot.EventType(v)
-		if !eventType.IsValid() {
-			return nil, false, fmt.Errorf("invalid type parameter")
-		}
-		for _, existing := range eventTypes {
-			if existing == eventType {
-				continue loopQueriedTypes
-			}
-		}
-		eventTypes = append(eventTypes, eventType)
+	eventType := wot.EventType(event)
+	if !eventType.IsValid() {
+		return nil, fmt.Errorf("invalid type in path")
 	}
 
-	return eventTypes, full, nil
+	return []wot.EventType{eventType}, nil
+
 }
