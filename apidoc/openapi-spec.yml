@@ -16,6 +16,8 @@ tags:
     description: Registration API
   - name: search
     description: Search API
+  - name: events
+    description: Notification API
   - name: validation
     description: Validation API
   - name: td
@@ -529,6 +531,67 @@ paths:
         '500':
           $ref: '#/components/responses/RespInternalServerError'
 
+
+  /events:
+    get:
+      tags:
+        - events
+      summary: Subscribe to all events
+      description: This API uses the [Server-Sent Events (SSE)](https://www.w3.org/TR/eventsource/) protocol.
+      parameters:
+        - name: diff
+          in: query
+          description: Include changed TD attributes inside events payload
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          $ref: '#/components/responses/RespEventStream'
+        '400':
+          $ref: '#/components/responses/RespBadRequest'
+        '401':
+          $ref: '#/components/responses/RespUnauthorized'
+        '403':
+          $ref: '#/components/responses/RespForbidden'
+        '500':
+          $ref: '#/components/responses/RespInternalServerError'
+  /events/{type}:
+    get:
+      tags:
+        - events
+      summary: Subscribe to specific events
+      description: This API uses the [Server-Sent Events (SSE)](https://www.w3.org/TR/eventsource/) protocol.
+      parameters:
+        - name: type
+          in: path
+          description: Event type
+          required: true
+          schema:
+            type: string
+            enum:
+              - create
+              - update
+              - delete
+        - name: diff
+          in: query
+          description: Include changed TD attributes inside events payload
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          $ref: '#/components/responses/RespEventStream'
+        '400':
+          $ref: '#/components/responses/RespBadRequest'
+        '401':
+          $ref: '#/components/responses/RespUnauthorized'
+        '403':
+          $ref: '#/components/responses/RespForbidden'
+        '500':
+          $ref: '#/components/responses/RespInternalServerError'
+
+
   /validation:
     get:
       tags:
@@ -643,6 +706,32 @@ components:
         application/ld+json:
           schema:
             $ref: '#/components/schemas/ProblemDetails'
+    RespEventStream:
+      description: Events stream
+      content:
+        text/event-stream:
+          schema:
+            type: array
+            format: chunked
+            items:
+              type: object
+              format: text
+              required:
+                - id
+                - event
+                - data
+              properties:
+                id:
+                  type: integer
+                  description: event id
+                event:
+                  type: string
+                  description: event type
+                data:
+                  type: object
+                  format: json
+                  required:
+                    - id
   schemas:
     ErrorResponse:
       type: object
@@ -654,9 +743,9 @@ components:
     ProblemDetails:
       description: RFC7807 Problem Details (https://tools.ietf.org/html/rfc7807)
       properties:
-#        type:
-#          type: string
-#          description: A URI reference that identifies the problem type.
+        #        type:
+        #          type: string
+        #          description: A URI reference that identifies the problem type.
         status:
           type: integer
           format: int32
@@ -715,6 +804,7 @@ components:
           type: array
           items:
             type: string
+
   examples:
     ThingDescriptionWithoutID:
       summary: Example Thing Description
