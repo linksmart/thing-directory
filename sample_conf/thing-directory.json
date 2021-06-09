@@ -26,13 +26,13 @@
       "certFile": "./tls/cert.pem"
     },
     "auth": {
-      "enabled": true,
+      "enabled": false,
       "provider": "keycloak",
       "providerURL": "https://provider-url",
       "clientID": "sampleTD",
       "basicEnabled": false,
       "authorization": {
-        "enabled": true,
+        "enabled": false,
         "rules": [
           {
             "paths": ["/td"],
