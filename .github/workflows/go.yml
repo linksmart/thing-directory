@@ -64,7 +64,8 @@ jobs:
           TD_VALIDATION_JSONSCHEMAS: "conf/wot_td_schema.json,conf/wot_discovery_schema.json"
           URL: http://localhost:8081
         run: |
-          go run . --conf sample_conf/thing-directory.json &
+          (go run . --conf sample_conf/thing-directory.json && echo) &
+          sleep 10
           cd wot-discovery-testing/directory
           go test
 
