@@ -9,8 +9,8 @@ on:
 
 jobs:
 
-  test:
-    name: Test the code
+  unit-test:
+    name: Run unit tests
     runs-on: ubuntu-latest
     steps:
       - name: Set up Go 1.x
@@ -28,10 +28,51 @@ jobs:
         if: success()
         run: go test -v ./...
 
+  component-test:
+    name: Run component tests
+    runs-on: ubuntu-latest
+    needs: unit-test
+    steps:
+      - name: Set up Go 1.x
+        if: success()
+        uses: actions/setup-go@v2
+        with:
+          go-version: ^1.14
+        id: go
+
+      - name: Check out code
+        if: success()
+        uses: actions/checkout@v2
+
+      - name: Download validation files
+        if: success()
+        env:
+          TD_VALIDATION_JSONSCHEMAS: "conf/wot_td_schema.json,conf/wot_discovery_schema.json"
+        run: |
+          curl https://raw.githubusercontent.com/w3c/wot-thing-description/REC1.0/validation/td-json-schema-validation.json --create-dirs -o conf/wot_td_schema.json
+          curl https://raw.githubusercontent.com/w3c/wot-discovery/main/validation/td-discovery-extensions-json-schema.json --create-dirs -o conf/wot_discovery_schema.json
+
+      - name: Checkout wot-discovery-testing
+        uses: actions/checkout@v2
+        with:
+          repository: farshidtz/wot-discovery-testing
+          path: wot-discovery-testing
+
+      - name: Run tests
+        if: success()
+        env:
+          TD_VALIDATION_JSONSCHEMAS: "conf/wot_td_schema.json,conf/wot_discovery_schema.json"
+          URL: http://localhost:8081
+        run: |
+          go run . --conf sample_conf/thing-directory.json &
+          cd wot-discovery-testing/directory
+          go test
+
+
   build:
     name: Build and upload snapshots
     runs-on: ubuntu-latest
-    needs: test
+    needs: component-test
     steps:
 
       - name: Set up Go 1.x
@@ -274,7 +315,7 @@ jobs:
   docker:
     name: Build and push docker image
     runs-on: ubuntu-latest
-    needs: test
+    needs: component-test
     steps:
 
       - name: Prepare Variables
