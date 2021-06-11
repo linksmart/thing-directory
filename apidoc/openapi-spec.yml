@@ -122,10 +122,10 @@ paths:
           schema:
             type: string
       responses:
-        '200':
-          description: Thing Description updated successfully
         '201':
           description: A new Thing Description is created
+        '204':
+          description: Thing Description updated successfully
         '400':
           $ref: '#/components/responses/RespValidationBadRequest'
         '401':
@@ -161,7 +161,7 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        '204':
           description: Thing Description patched successfully
         '400':
           $ref: '#/components/responses/RespValidationBadRequest'
@@ -229,7 +229,7 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        '204':
           description: Successful response
         '401':
           $ref: '#/components/responses/RespUnauthorized'
@@ -335,10 +335,10 @@ paths:
           schema:
             type: string
       responses:
-        '200':
-          description: Thing Description updated successfully
         '201':
           description: A new Thing Description is created
+        '204':
+          description: Thing Description updated successfully
         '400':
           $ref: '#/components/responses/RespValidationBadRequest'
         '401':
@@ -373,7 +373,7 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        '204':
           description: Thing Description patched successfully
         '400':
           $ref: '#/components/responses/RespValidationBadRequest'
@@ -439,7 +439,7 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        '204':
           description: Successful response
         '401':
           $ref: '#/components/responses/RespUnauthorized'

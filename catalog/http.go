@@ -159,7 +159,7 @@ func (a *HTTPAPI) Put(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // Patch updates parts or all of an existing item (Response: StatusOK)
@@ -204,7 +204,7 @@ func (a *HTTPAPI) Patch(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // Get handler get one item
@@ -252,7 +252,7 @@ func (a *HTTPAPI) Delete(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // GetMany lists entries in a paginated catalog format
