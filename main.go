@@ -39,7 +39,6 @@ const (
 
 var (
 	confPath    = flag.String("conf", "conf/thing-directory.json", "Configuration file path")
-	schemaPath  = flag.String("schema", "conf/wot_td_schema.json", "WoT Thing Description schema file path")
 	version     = flag.Bool("version", false, "Print the API version")
 	Version     string // set with build flags
 	BuildNumber string // set with build flags

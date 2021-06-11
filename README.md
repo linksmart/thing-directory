@@ -44,42 +44,26 @@ Compile from source:
 ```bash
 go build
 ```
-This will result in an executable called `thing-directory` (linux/macOS) or `thing-directory.exe` (windows).
+This will result in an executable named `thing-directory` (linux/macOS) or `thing-directory.exe` (windows).
 
-Copy sample configuration files for server and JSON Schema into `conf` directory:
-```bash
-mkdir -p conf
-cp sample_conf/thing-directory.json wot/wot_td_schema.json conf
-```
-
-Alternatively, download sample config file and schemas:
-```bash
-curl https://raw.githubusercontent.com/linksmart/thing-directory/master/sample_conf/thing-directory.json --create-dirs -o conf/thing-directory.json
-curl https://raw.githubusercontent.com/w3c/wot-thing-description/REC1.0/validation/td-json-schema-validation.json --create-dirs -o conf/wot_td_schema.json
-```
-
-`conf` is the default directory for configuration files. This can be changed with CLI arguments.
-
-Get the CLI argument help (linux/macOS):
+Get the CLI arguments help (linux/macOS):
 ```bash
 $ ./thing-directory -help
 Usage of ./thing-directory:
   -conf string
         Configuration file path (default "conf/thing-directory.json")
-  -schema string
-        WoT Thing Description schema file path (default "conf/wot_td_schema.json")
   -version
         Print the API version
 ```
 
 Run (linux/macOS):
 ```bash
-$ ./thing-directory
+$ ./thing-directory --conf=sample_conf/thing-directory.json
 ```
 
 To build and run together:
 ```bash
-go run .
+go run . --conf=sample_conf/thing-directory.json
 ```
 
 Test all packages (add `-v` flag for verbose results):
