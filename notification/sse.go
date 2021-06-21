@@ -39,10 +39,12 @@ func (a *SSEAPI) SubscribeEvent(w http.ResponseWriter, req *http.Request) {
 	diff, err := parseQueryParameters(req)
 	if err != nil {
 		catalog.ErrorResponse(w, http.StatusBadRequest, err)
+		return
 	}
 	eventTypes, err := parsePath(req)
 	if err != nil {
 		catalog.ErrorResponse(w, http.StatusBadRequest, err)
+		return
 	}
 	flusher, ok := w.(http.Flusher)
 	if !ok {
